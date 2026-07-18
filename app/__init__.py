@@ -1,0 +1,1 @@
+# Screenshot Manager アプリケーションパッケージ
