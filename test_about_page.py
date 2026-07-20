@@ -136,10 +136,15 @@ def test_about_nav_and_stack():
 
 
 def test_feedback_urls_centralized():
-    assert APP_GITHUB_URL.startswith("https://")
+    assert APP_GITHUB_URL == "https://github.com/p1rworks24-ops/Capixe"
     assert resolve_feedback_url("feedback") == github_issues_url()
-    assert resolve_feedback_url("bug") == github_issues_url()
-    assert resolve_feedback_url("feature") == github_issues_url()
+    assert resolve_feedback_url("bug") == (
+        "https://github.com/p1rworks24-ops/Capixe/issues/new?template=bug_report.yml"
+    )
+    assert resolve_feedback_url("feature") == (
+        "https://github.com/p1rworks24-ops/Capixe/issues/new"
+        "?template=feature_request.yml"
+    )
     assert APP_URL_REPORT_BUG is None  # override slot ready for templates
 
 
@@ -186,10 +191,13 @@ def test_github_and_feedback_click_open_urls():
         "/"
     )
     assert len(opened) == 1 + len(FEEDBACK_ITEM_SPECS)
+    expected = {
+        resolve_feedback_url("feedback"),
+        resolve_feedback_url("bug"),
+        resolve_feedback_url("feature"),
+    }
     for url in opened[1:]:
-        assert url == github_issues_url() or url.rstrip("/") == github_issues_url().rstrip(
-            "/"
-        )
+        assert url in expected or url.rstrip("/") in {u.rstrip("/") for u in expected}
 
 
 def test_about_fits_default_window_with_scroll():

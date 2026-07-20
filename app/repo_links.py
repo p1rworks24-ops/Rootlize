@@ -1,26 +1,20 @@
 """
 Central GitHub repository identity and public links.
 
-Edit GITHUB_OWNER / GITHUB_REPO in this file only when moving from the
-development repository (AutoRunner) to the public Capixe repository.
-Do not hardcode github.com URLs elsewhere in application code.
-
-Current values are left empty so links stay on the GitHub host root
-(same behavior as before). Fill in AutoRunner owner/repo when the remote
-is known; later change GITHUB_REPO to \"Capixe\" (and owner if needed).
+Edit GITHUB_OWNER / GITHUB_REPO in this file only when the GitHub
+identity changes. Do not hardcode github.com URLs elsewhere in
+application code.
 """
 
 from __future__ import annotations
 
 # ---------------------------------------------------------------------------
-# Single place to update for AutoRunner → Capixe (or any rename / transfer)
+# Single place to update for repository rename / transfer
 # ---------------------------------------------------------------------------
 GITHUB_HOST = "https://github.com"
 
-# Development example: GITHUB_OWNER = "your-org", GITHUB_REPO = "AutoRunner"
-# Public release:     GITHUB_REPO = "Capixe"  (update owner if it changes)
-GITHUB_OWNER = ""
-GITHUB_REPO = ""
+GITHUB_OWNER = "p1rworks24-ops"
+GITHUB_REPO = "Capixe"
 
 # Issue Form file names under .github/ISSUE_TEMPLATE/
 GITHUB_BUG_REPORT_TEMPLATE = "bug_report.yml"

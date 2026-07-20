@@ -1,4 +1,5 @@
 Capixe — Prototype Preview
+Capture less. Find more.
 Version: v0.1.0-preview
 Platform: Windows 10 / Windows 11 (64-bit)
 
@@ -13,6 +14,7 @@ Important:
 - Keep Capixe.exe and the _internal folder together.
 - Do not run Capixe.exe alone without _internal.
 - This is a portable preview build (no installer).
+- Python is not required.
 
 ========================================
 Where data is stored
@@ -43,8 +45,11 @@ Known limitations
 ========================================
 Feedback
 ========================================
-Use GitHub Issues on the Capixe repository when published.
-Repository URL: (set GITHUB_OWNER / GITHUB_REPO — currently unset)
+Bug report:
+https://github.com/p1rworks24-ops/Capixe/issues/new?template=bug_report.yml
+
+Feature request:
+https://github.com/p1rworks24-ops/Capixe/issues/new?template=feature_request.yml
 
 Do not share passwords, API keys, or private personal data in Issues.
 
@@ -58,4 +63,5 @@ Public licensing terms will be determined before any public source release.
 ========================================
 Source
 ========================================
-GitHub repository: (pending — fill when publishing)
+GitHub repository:
+https://github.com/p1rworks24-ops/Capixe

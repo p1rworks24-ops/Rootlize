@@ -2,96 +2,85 @@
 
 Capture less. Find more.
 
-## About
+Capixe is a Windows app for capturing and managing screenshots. It helps you save captures into a folder you choose, browse them later, add tags, and organize files — so screenshots stay findable instead of disappearing into the clipboard.
 
-Capixe is a Windows screenshot manager. It helps you capture screenshots, save them into a Root Folder you choose, browse images, apply tags, and run organize tools — so captures become reusable assets instead of a clipboard dump.
+## Preview status
 
-## Current Status
+This is a **Prototype Preview** (`v0.1.0-preview`).
 
-**Prototype Preview** (`v0.1.0-preview`).
-
-This repository holds Capixe **source code** (intended Private). Binary ZIP distribution is planned through a separate Public repository / Releases (no Python source there).
-
-This build is under active development. Features, UI, and data layouts may change. Treat it as an early preview, not a finished product.
+It is not a final release. Bugs, incomplete features, and breaking changes are expected.
 
 ## Features
 
-Implemented in this preview:
+Available in this preview:
 
-- Region Capture and Full Screen Capture
-- Capture Panel (optional always-on-top controls)
-- Screenshot Root Folder and save-folder management
-- Image browsing (Images)
-- Tags
-- Organize tools (bulk tags / rename and related hub)
-- Settings (paths, shortcuts, notifications, window size)
-- Local user-data storage (config and tags under AppData)
-- About page with version / feedback entry points
+- Region capture
+- Full-screen capture
+- Local screenshot folder management
+- Folder browsing
+- Tag management
+- Search
+- Bulk tag operations
+- Bulk rename
+- Configurable save location
+- Configurable keyboard shortcuts
 
-Not implemented / placeholder:
+Not included yet:
 
-- AI page in the navigation is a placeholder only (no AI features yet)
-
-## Requirements
-
-- Windows 10 or Windows 11 (64-bit)
-- No Python install required for the Release ZIP build
-- From source: Python 3.13+ recommended (see Development)
-
-Other OS platforms are not supported in this preview.
+- AI features (the AI page is a placeholder only)
+- OCR
 
 ## Download
 
-Download the Windows portable ZIP from GitHub Releases (when published):
+Download the Windows portable ZIP from GitHub Releases:
 
-`Capixe-v0.1.0-preview-win64.zip`
+https://github.com/p1rworks24-ops/Capixe/releases
 
-Repository URL: fill in `GITHUB_OWNER` / `GITHUB_REPO` in `app/repo_links.py` (currently unset → links resolve to `https://github.com/`).
+Look for `Capixe-v0.1.0-preview-win64.zip` when the preview Release is published.
 
 ## Installation
 
-1. Download the ZIP from Releases
-2. Extract the ZIP fully to any folder you can write to
-3. Open the extracted `Capixe` folder and run `Capixe.exe`
-4. Keep `Capixe.exe` together with the `_internal` folder — do not move the EXE alone
+1. Download the ZIP from Releases.
+2. Extract the ZIP completely to a folder you can write to.
+3. Open the extracted `Capixe` folder and run `Capixe.exe`.
+4. Keep `Capixe.exe` together with the `_internal` folder — do not move the EXE alone.
 
-This is a portable **onedir** build. There is no installer.
+Python is **not** required for the Release ZIP build.
 
-## Data Locations
+There is no installer. This is a portable preview build.
 
-Settings and tags (default):
+### Windows security warning
 
-`%APPDATA%\Capixe`
+This preview build is **not code-signed**. Windows SmartScreen, Microsoft Defender, or your organization policy may show a warning when you download or run `Capixe.exe`.
 
-Default screenshot root (new installs):
+Only continue if you trust this GitHub repository / Release and have verified the file you downloaded. Capixe does not ask you to bypass security tools blindly.
 
-`%USERPROFILE%\Pictures\Capixe`
+## Data storage
+
+Capixe stores settings and tags under your user profile, not inside the app folder:
+
+- Settings / tags: `%APPDATA%\Capixe`
+- Default screenshot root (new installs): `%USERPROFILE%\Pictures\Capixe`
 
 If you already chose another Root Folder in Settings, Capixe continues to use that path.
 
-## Windows Security Warning
-
-This Prototype Preview is **not code-signed**. Windows SmartScreen, Defender, or your organization policy may warn when you download or run `Capixe.exe`.
-
-Only proceed if you trust the download source (this GitHub repository / Release) and have verified the file you obtained. Capixe does not ask you to ignore security tooling blindly.
-
-## Known Limitations
-
-- Prototype Preview — expect bugs and breaking changes
-- No installer
-- No code signing
-- No auto-update
-- AI features are not implemented (nav placeholder only)
-- Windows only
-- Global capture shortcuts are registered while the app is running
+Expanding or moving the Capixe app folder does not move your screenshots or settings.
 
 ## Feedback
 
-When the public repository URL is configured, use **GitHub Issues** (Bug Report / Feature Request forms under `.github/ISSUE_TEMPLATE/`).
+- [Bug report](https://github.com/p1rworks24-ops/Capixe/issues/new?template=bug_report.yml)
+- [Feature request](https://github.com/p1rworks24-ops/Capixe/issues/new?template=feature_request.yml)
 
-Until `GITHUB_OWNER` / `GITHUB_REPO` are set in `app/repo_links.py`, in-app GitHub links point at `https://github.com/` only.
+Please do not post passwords, API keys, personal emails, or private file paths in Issues.
 
-Do not paste passwords, API keys, personal emails, or private file paths into Issues.
+## Known limitations
+
+- Windows only
+- Prototype Preview — expect bugs and changes
+- Unsigned build (SmartScreen may warn)
+- No installer and no auto-update
+- AI and OCR features are not included yet
+- Capture shortcuts work only while Capixe is running
 
 ## Development
 
@@ -102,43 +91,19 @@ python -m pip install -r requirements.txt
 python main.py
 ```
 
-Optional packaging tools:
-
-```text
-python -m pip install -r requirements-dev.txt
-```
-
-## Building
+Packaging (developers):
 
 ```text
 python -m pip install -r requirements-dev.txt
 python -m PyInstaller Capixe.spec --clean --noconfirm
-```
-
-Output:
-
-`dist/Capixe/Capixe.exe` (distribute the entire `dist/Capixe/` folder)
-
-Release ZIP (gitignored under `release/`):
-
-```text
 powershell -ExecutionPolicy Bypass -File packaging\pack_release_zip.ps1
-```
-
-Produces `release/Capixe-v0.1.0-preview-win64.zip` with:
-
-```text
-Capixe/
-  Capixe.exe
-  _internal/
-  README.txt
 ```
 
 ## License
 
-Capixe is currently private and proprietary software.
+Capixe is proprietary software.
 Copyright © 2026 Capixe. All rights reserved.
 
-Public licensing terms will be determined before any public source release.
+This repository may be public for distribution and feedback, but that does **not** grant permission to copy, modify, redistribute, or sell the software or its source code.
 
 See [LICENSE](LICENSE) for details.

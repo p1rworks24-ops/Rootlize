@@ -14,15 +14,34 @@ from app.repo_links import (
 )
 
 
-def test_unconfigured_matches_host_root():
-    assert not github_repo_configured()
-    assert github_repo_url() == "https://github.com/"
+def test_default_capixe_repo_configured():
+    assert github_repo_configured()
+    assert github_repo_url() == "https://github.com/p1rworks24-ops/Capixe"
     assert APP_GITHUB_URL == github_repo_url()
-    assert github_issues_url() == github_repo_url()
-    # Until owner/repo are set, form links fall back to the same host root
+    assert github_issues_url() == "https://github.com/p1rworks24-ops/Capixe/issues"
     assert resolve_feedback_url("feedback") == github_issues_url()
-    assert resolve_feedback_url("bug") == github_issues_url()
-    assert resolve_feedback_url("feature") == github_issues_url()
+    assert (
+        resolve_feedback_url("bug")
+        == "https://github.com/p1rworks24-ops/Capixe/issues/new?template=bug_report.yml"
+    )
+    assert (
+        resolve_feedback_url("feature")
+        == "https://github.com/p1rworks24-ops/Capixe/issues/new"
+        "?template=feature_request.yml"
+    )
+    assert github_bug_report_url() == resolve_feedback_url("bug")
+    assert github_feature_request_url() == resolve_feedback_url("feature")
+
+
+def test_unconfigured_matches_host_root(monkeypatch):
+    monkeypatch.setattr(links, "GITHUB_OWNER", "")
+    monkeypatch.setattr(links, "GITHUB_REPO", "")
+    assert not links.github_repo_configured()
+    assert links.github_repo_url() == "https://github.com/"
+    assert links.github_issues_url() == links.github_repo_url()
+    assert links.resolve_feedback_url("feedback") == links.github_issues_url()
+    assert links.resolve_feedback_url("bug") == links.github_issues_url()
+    assert links.resolve_feedback_url("feature") == links.github_issues_url()
 
 
 def test_configured_repo_derives_all_urls(monkeypatch):
@@ -44,15 +63,6 @@ def test_configured_repo_derives_all_urls(monkeypatch):
     assert links.resolve_feedback_url("bug") == links.github_bug_report_url()
     assert links.resolve_feedback_url("feature") == links.github_feature_request_url()
     assert links.resolve_feedback_url("feedback") == links.github_issues_url()
-
-
-def test_capixe_migration_is_owner_repo_only(monkeypatch):
-    """Publishing Capixe should only require changing owner/repo constants."""
-    monkeypatch.setattr(links, "GITHUB_OWNER", "dev-org")
-    monkeypatch.setattr(links, "GITHUB_REPO", "Capixe")
-    assert links.github_repo_url() == "https://github.com/dev-org/Capixe"
-    assert "bug_report.yml" in links.github_bug_report_url()
-    assert "feature_request.yml" in links.github_feature_request_url()
 
 
 def test_explicit_override_wins(monkeypatch):

@@ -63,8 +63,8 @@ body:
     id: capixe-version
     attributes:
       label: Capixe version
-      description: You can find this on the About page (for example, 0.1.0 Prototype Preview).
-      placeholder: 0.1.0 Prototype Preview
+      description: You can find this on the About page (for example, v0.1.0-preview).
+      placeholder: v0.1.0-preview
     validations:
       required: true
 
@@ -80,10 +80,10 @@ body:
   - type: textarea
     id: media
     attributes:
-      label: Screenshots or screen recording
+      label: Screenshots, recording, or logs
       description: |
-        Optional. Drag and drop images or a short recording here.
-        Please remove or hide any personal information before uploading.
+        Optional. Drag and drop images, a short recording, or paste relevant log lines here.
+        Please remove or hide any personal or confidential information before uploading.
     validations:
       required: false
 

@@ -6,10 +6,9 @@
 # Labels used by the forms:
 #   - bug          (Bug Report)
 #   - enhancement  (Feature Request)
-# If these labels do not exist yet:
-#   1. Open the repository on GitHub
-#   2. Go to Issues → Labels (or Settings → General → Issues)
-#   3. Create labels named exactly "bug" and "enhancement"
-# Missing labels do not break the forms; GitHub may skip applying them
-# until the labels exist.
+# If these labels do not exist yet, create them under Issues → Labels.
 blank_issues_enabled: false
+contact_links:
+  - name: Capixe repository
+    url: https://github.com/p1rworks24-ops/Capixe
+    about: Source, Releases, and project overview.

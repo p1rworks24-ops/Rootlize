@@ -57,7 +57,10 @@ def test_compat_aliases_match_canonical():
     assert APP_NAME in APP_COPYRIGHT
     assert "private" in APP_LICENSE.lower()
     assert APP_GITHUB_URL.startswith("https://")
-    assert resolve_feedback_url("bug") == github_issues_url()
+    assert APP_GITHUB_URL == "https://github.com/p1rworks24-ops/Capixe"
+    assert resolve_feedback_url("bug") == (
+        "https://github.com/p1rworks24-ops/Capixe/issues/new?template=bug_report.yml"
+    )
     assert DEFAULT_CONFIG["window_title"] == APP_NAME
     assert t("app.name") == APP_NAME
     assert t("nav.brand") == APP_NAME
