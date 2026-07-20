@@ -1,17 +1,17 @@
 """Lightweight i18n helpers for UI strings.
 
-English is the only locale today. To add another language later:
-1. Create app/i18n/<locale>.py with a MESSAGES dict
-2. Register it in _CATALOGS
-3. Call set_locale("<locale>")
+English is the default locale. Japanese (ja) is registered for keys that have
+translations; missing keys fall back to English via ``t()``.
 """
 
 from __future__ import annotations
 
 from app.i18n import en as en_messages
+from app.i18n import ja as ja_messages
 
 _CATALOGS: dict[str, dict[str, str]] = {
     "en": en_messages.MESSAGES,
+    "ja": ja_messages.MESSAGES,
 }
 
 _locale: str = "en"

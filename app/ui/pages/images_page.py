@@ -10,16 +10,17 @@ from PySide6.QtCore import Qt, QSize, QEvent, Signal, QTimer, QFileSystemWatcher
 from PySide6.QtGui import (
     QPixmap,
     QAction,
-    QActionGroup,
     QBrush,
     QColor,
     QFont,
+    QFontMetrics,
     QIcon,
     QPainter,
     QKeySequence,
     QShortcut,
 )
 from PySide6.QtWidgets import (
+    QApplication,
     QWidget,
     QPushButton,
     QVBoxLayout,
@@ -36,8 +37,12 @@ from PySide6.QtWidgets import (
     QTreeWidgetItem,
     QInputDialog,
     QAbstractItemView,
+    QAbstractSpinBox,
     QButtonGroup,
     QFrame,
+    QSizePolicy,
+    QStackedWidget,
+    QTextEdit,
 )
 
 from app.config import save_config
@@ -67,7 +72,21 @@ from app.ui.icons import (
     icon_tags,
     project_tree_icon,
 )
-from app.ui.widgets import ScreenshotListWidget, ProjectTreeWidget
+from app.ui.image_list_menu import (
+    ensure_list_item_under_cursor_selected,
+    populate_image_list_context_menu,
+)
+from app.ui.widgets import (
+    ListPanelMarqueeBridge,
+    ProjectTreeWidget,
+    ScreenshotListWidget,
+)
+from app.utils.file_clipboard import (
+    clear_system_file_clipboard,
+    paths_from_system_clipboard,
+    set_files_on_clipboard,
+    system_clipboard_is_cut,
+)
 from app.utils.group_by import (
     DEFAULT_GROUP_BY,
     GROUP_BY_NONE,
@@ -95,6 +114,7 @@ from app.utils.tag_format import format_tag, format_tags, normalize_tag
 from app.utils.thumbnail_cache import ThumbnailCache
 from app.utils.view_mode import (
     DEFAULT_THUMBNAIL_MODE,
+    THUMBNAIL_LIST_SPACING,
     THUMBNAIL_MODE_SIZES,
     is_list_mode,
     normalize_thumbnail_mode,
@@ -124,6 +144,8 @@ RIGHT_PANEL_DEFAULT_WIDTH = 280
 RIGHT_PANEL_MIN_WIDTH = 200
 RIGHT_PANEL_MAX_WIDTH = 480
 FS_WATCH_DEBOUNCE_MS = 350
+# Wide enough to keep Sort / Group / View inline with the Screenshots title
+HEADER_TOOLS_INLINE_MIN_WIDTH = 520
 
 CLIPBOARD_COPY = "copy"
 CLIPBOARD_CUT = "cut"
@@ -173,13 +195,14 @@ class ImagesPage(QWidget):
         self._clipboard_paths: list[Path] = []
         self._clipboard_mode: str | None = None
         self._updating_selection = False
-        self._folder_tree_expanded = bool(
-            self._config.get("images_folder_tree_expanded", True)
-        )
+        # Always start with Viewing folder open (collapse is session-only)
+        self._folder_tree_expanded = True
+        self._config["images_folder_tree_expanded"] = True
         self._folder_panel_expanded_width = FOLDER_PANEL_EXPANDED_WIDTH
         self._fs_refreshing = False
         self._undo: UndoRecord | None = None
         self._caption_delegate: CaptionIconDelegate | None = None
+        self._header_tools_inline = True
 
         self._init_ui()
         self._setup_shortcuts()
@@ -187,7 +210,8 @@ class ImagesPage(QWidget):
         self._load_display_settings_from_project()
         self._apply_thumbnail_mode()
         self.reload_tag_choices()
-        self._apply_folder_tree_expanded(self._folder_tree_expanded, persist=False)
+        self._apply_folder_tree_expanded(True, persist=False)
+        self._apply_header_tools_layout(force=True)
 
     def _init_ui(self) -> None:
         from app.ui.scroll_page import make_page_scroll
@@ -205,20 +229,21 @@ class ImagesPage(QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
+        from app.ui.page_header import PAGE_HEADER_MARGINS, make_page_header
+
         page_header = QWidget(page_root)
         page_header.setObjectName("imagesPageHeader")
         header_layout = QVBoxLayout(page_header)
-        header_layout.setContentsMargins(28, 20, 28, 8)
-        header_layout.setSpacing(6)
-
-        page_title = QLabel(t("images.title"), page_header)
-        page_title.setObjectName("pageTitle")
-        header_layout.addWidget(page_title)
-
-        page_subtitle = QLabel(t("images.subtitle"), page_header)
-        page_subtitle.setObjectName("pageSubtitle")
-        page_subtitle.setWordWrap(True)
-        header_layout.addWidget(page_subtitle)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(0)
+        header_layout.addWidget(
+            make_page_header(
+                page_header,
+                t("images.title"),
+                t("images.subtitle"),
+                margins=PAGE_HEADER_MARGINS,
+            )
+        )
         main_layout.addWidget(page_header)
 
         # Content: Folders | List | Preview
@@ -228,15 +253,18 @@ class ImagesPage(QWidget):
         content_layout.setSpacing(12)
 
         self._splitter = QSplitter(Qt.Horizontal, content)
+        self._splitter.setObjectName("imagesSplitter")
 
-        # Folder tree (collapsible)
+        # Folder tree (collapsible) — same card chrome as Screenshots / Preview
         self._folder_panel = QWidget(self)
         self._folder_panel.setObjectName("folderPanel")
         self._folder_panel.setMinimumWidth(FOLDER_PANEL_COLLAPSED_WIDTH)
         self._folder_panel.setMaximumWidth(FOLDER_PANEL_MAX_WIDTH)
+        self._folder_panel.installEventFilter(self)
+        self._folder_panel.setAttribute(Qt.WA_Hover, True)
         folder_layout = QVBoxLayout(self._folder_panel)
-        folder_layout.setContentsMargins(8, 8, 8, 8)
-        folder_layout.setSpacing(4)
+        folder_layout.setContentsMargins(10, 10, 10, 10)
+        folder_layout.setSpacing(6)
 
         self._folder_collapse_btn = QPushButton("◀", self)
         self._folder_collapse_btn.setObjectName("sectionToggleButton")
@@ -244,50 +272,55 @@ class ImagesPage(QWidget):
         self._folder_collapse_btn.setToolTip(t("images.collapse_folders"))
         self._folder_collapse_btn.clicked.connect(self._toggle_folder_tree)
 
-        self._folder_header = QWidget(self._folder_panel)
-        self._folder_header.setObjectName("sectionHeader")
-        folder_header_layout = QVBoxLayout(self._folder_header)
-        folder_header_layout.setContentsMargins(0, 2, 0, 0)
-        folder_header_layout.setSpacing(4)
+        # Same header row as Screenshots / Preview (toggle on the right)
+        self._folder_header = self._build_section_header(
+            t("images.folders"),
+            icon_folder(),
+            trailing=self._folder_collapse_btn,
+        )
+        self._folder_header_title_row = self._folder_header.findChild(
+            QWidget, "sectionHeaderTitleRow"
+        )
+        self._folder_header_divider = self._folder_header.findChild(
+            QFrame, "sectionDivider"
+        )
+        self._folder_header_icon = None
+        self._folder_header_title = None
+        for lab in self._folder_header.findChildren(QLabel):
+            if lab.objectName() == "sectionIcon" and self._folder_header_icon is None:
+                self._folder_header_icon = lab
+            elif lab.objectName() == "sectionTitle" and self._folder_header_title is None:
+                self._folder_header_title = lab
 
-        folder_title_row = QHBoxLayout()
-        folder_title_row.setContentsMargins(0, 0, 0, 0)
-        folder_title_row.setSpacing(6)
-        folder_title_row.addWidget(self._folder_collapse_btn)
-
-        self._folder_header_labels = QWidget(self._folder_header)
-        labels_layout = QHBoxLayout(self._folder_header_labels)
-        labels_layout.setContentsMargins(0, 0, 0, 0)
-        labels_layout.setSpacing(6)
-        folder_icon = QLabel(self._folder_header_labels)
-        folder_icon.setObjectName("sectionIcon")
-        folder_icon.setPixmap(icon_folder().pixmap(SECTION_ICON_SIZE, SECTION_ICON_SIZE))
-        labels_layout.addWidget(folder_icon)
-        folder_title = QLabel(t("images.folders"), self._folder_header_labels)
-        folder_title.setObjectName("sectionTitle")
-        labels_layout.addWidget(folder_title)
-        labels_layout.addStretch(1)
-        folder_title_row.addWidget(self._folder_header_labels, stretch=1)
-        folder_header_layout.addLayout(folder_title_row)
-
+        # Hints sit under the shared title row (same vertical level as other panels)
         self._folder_project_hint = QLabel(self._folder_header)
         self._folder_project_hint.setObjectName("mutedLabel")
         self._folder_project_hint.setWordWrap(True)
-        folder_header_layout.addWidget(self._folder_project_hint)
-
         self._save_folder_legend = QLabel(
             t("images.save_folder_star_legend"), self._folder_header
         )
         self._save_folder_legend.setObjectName("saveFolderLegend")
         self._save_folder_legend.setWordWrap(True)
-        folder_header_layout.addWidget(self._save_folder_legend)
-
-        self._folder_header_divider = QFrame(self._folder_header)
-        self._folder_header_divider.setObjectName("sectionDivider")
-        self._folder_header_divider.setFrameShape(QFrame.HLine)
-        self._folder_header_divider.setFixedHeight(1)
-        folder_header_layout.addWidget(self._folder_header_divider)
+        # Insert hints above the divider so the title row stays aligned with peers
+        header_layout = self._folder_header.layout()
+        if header_layout is not None and self._folder_header_divider is not None:
+            divider_index = header_layout.indexOf(self._folder_header_divider)
+            if divider_index < 0:
+                divider_index = header_layout.count()
+            header_layout.insertWidget(divider_index, self._folder_project_hint)
+            header_layout.insertWidget(divider_index + 1, self._save_folder_legend)
         folder_layout.addWidget(self._folder_header)
+        self._folder_header.installEventFilter(self)
+        if self._folder_header_title_row is not None:
+            self._folder_header_title_row.installEventFilter(self)
+
+        # Collapsed rail: frame shows ▶ (not a separate button)
+        self._folder_expand_glyph = QLabel("▶", self._folder_panel)
+        self._folder_expand_glyph.setObjectName("folderExpandGlyph")
+        self._folder_expand_glyph.setAlignment(Qt.AlignCenter)
+        self._folder_expand_glyph.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        self._folder_expand_glyph.hide()
+        folder_layout.addWidget(self._folder_expand_glyph)
 
         self._folder_body = QWidget(self._folder_panel)
         folder_body_layout = QVBoxLayout(self._folder_body)
@@ -328,63 +361,99 @@ class ImagesPage(QWidget):
         list_panel.setMinimumWidth(LIST_PANEL_MIN_WIDTH)
         self._list_panel = list_panel
         list_layout = QVBoxLayout(list_panel)
-        list_layout.setContentsMargins(0, 0, 0, 0)
-        list_layout.setSpacing(0)
+        list_layout.setContentsMargins(10, 10, 10, 10)
+        list_layout.setSpacing(6)
 
-        # Screenshots header: title + Sort / Group By as integrated tools
-        header_tools = QWidget(self)
-        header_tools.setObjectName("headerTools")
-        tools_layout = QHBoxLayout(header_tools)
-        tools_layout.setContentsMargins(0, 0, 0, 0)
-        tools_layout.setSpacing(6)
+        # Sort / Group / View — Organize Folder-style chip (never crushed into the
+        # 28px Screenshots title row, so Preview dividers stay aligned).
+        self._header_tools = QFrame(self)
+        self._header_tools.setObjectName("headerTools")
+        self._header_tools.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        tools_layout = QHBoxLayout(self._header_tools)
+        tools_layout.setContentsMargins(8, 4, 8, 4)
+        tools_layout.setSpacing(10)
+        tools_layout.setAlignment(Qt.AlignVCenter)
 
-        sort_label = QLabel(t("images.sort_label"), header_tools)
-        sort_label.setObjectName("toolbarFieldLabel")
-        tools_layout.addWidget(sort_label)
+        def _tool_field(label_text: str) -> tuple[QWidget, QLabel, QComboBox]:
+            field = QWidget(self._header_tools)
+            field.setObjectName("headerToolField")
+            field_layout = QHBoxLayout(field)
+            field_layout.setContentsMargins(0, 0, 0, 0)
+            field_layout.setSpacing(6)
+            lbl = QLabel(label_text, field)
+            lbl.setObjectName("toolbarFieldLabel")
+            lbl.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+            field_layout.addWidget(lbl, 0, Qt.AlignVCenter)
+            combo = QComboBox(field)
+            combo.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+            combo.setCursor(Qt.PointingHandCursor)
+            field_layout.addWidget(combo, 0, Qt.AlignVCenter)
+            return field, lbl, combo
 
-        self._sort_combo = QComboBox(header_tools)
-        self._sort_combo.setMinimumWidth(140)
-        self._sort_combo.setMaximumWidth(180)
-        self._sort_combo.setCursor(Qt.PointingHandCursor)
+        sort_field, self._sort_label, self._sort_combo = _tool_field(
+            t("images.sort_label")
+        )
+        self._sort_combo.setMinimumWidth(110)
+        self._sort_combo.setMaximumWidth(160)
         for mode, label in sort_option_labels():
             self._sort_combo.addItem(label, mode)
         self._sort_combo.currentIndexChanged.connect(self._on_sort_changed)
-        tools_layout.addWidget(self._sort_combo)
+        tools_layout.addWidget(sort_field, 0, Qt.AlignVCenter)
 
-        group_label = QLabel(t("images.group_by_label"), header_tools)
-        group_label.setObjectName("toolbarFieldLabel")
-        tools_layout.addWidget(group_label)
-
-        self._group_combo = QComboBox(header_tools)
-        self._group_combo.setMinimumWidth(88)
-        self._group_combo.setMaximumWidth(120)
-        self._group_combo.setCursor(Qt.PointingHandCursor)
+        group_field, self._group_label, self._group_combo = _tool_field(
+            t("images.group_by_label")
+        )
+        self._group_combo.setMinimumWidth(64)
+        self._group_combo.setMaximumWidth(90)
         for mode, label in group_by_option_labels():
             self._group_combo.addItem(label, mode)
         self._group_combo.currentIndexChanged.connect(self._on_group_by_changed)
-        tools_layout.addWidget(self._group_combo)
+        tools_layout.addWidget(group_field, 0, Qt.AlignVCenter)
+
+        view_field, self._view_label, self._view_combo = _tool_field(t("common.view"))
+        self._view_combo.setMinimumWidth(64)
+        self._view_combo.setMaximumWidth(90)
+        for mode, label in thumbnail_mode_labels():
+            self._view_combo.addItem(label, mode)
+        self._view_combo.currentIndexChanged.connect(self._on_view_combo_changed)
+        tools_layout.addWidget(view_field, 0, Qt.AlignVCenter)
 
         list_layout.addWidget(
             self._build_section_header(
                 t("images.screenshots"),
                 icon_images(),
-                trailing=header_tools,
             )
         )
+
+        # Dedicated tools row under the title (full height — never clipped)
+        self._header_tools_row = QWidget(list_panel)
+        self._header_tools_row.setObjectName("headerToolsRow")
+        self._header_tools_row_layout = QHBoxLayout(self._header_tools_row)
+        self._header_tools_row_layout.setContentsMargins(0, 0, 0, 6)
+        self._header_tools_row_layout.setSpacing(4)
+        self._header_tools_row_layout.addWidget(self._header_tools)
+        self._header_tools_row_layout.addStretch(1)
+        list_layout.addWidget(self._header_tools_row)
+        # Keep slot attrs for layout helper / tests (tools always live on the row)
+        self._header_tools_slot = self._header_tools_row
+        self._header_tools_slot_layout = self._header_tools_row_layout
+        self._header_tools_inline = False
 
         # Search spans only the Screenshots column (same width as this panel)
         search_row = QWidget(list_panel)
         search_row.setObjectName("screenshotsSearchRow")
         search_layout = QHBoxLayout(search_row)
-        search_layout.setContentsMargins(0, 6, 0, 6)
+        search_layout.setContentsMargins(0, 2, 0, 6)
         search_layout.setSpacing(6)
+        search_layout.setAlignment(Qt.AlignVCenter)
 
         self._refresh_btn = QPushButton(t("images.refresh"), search_row)
         self._refresh_btn.setObjectName("secondaryButton")
         self._refresh_btn.setIcon(icon_refresh())
+        self._refresh_btn.setIconSize(QSize(14, 14))
         self._refresh_btn.setCursor(Qt.PointingHandCursor)
         self._refresh_btn.clicked.connect(self.refresh)
-        search_layout.addWidget(self._refresh_btn)
+        search_layout.addWidget(self._refresh_btn, 0, Qt.AlignVCenter)
 
         self._search_input = QLineEdit(search_row)
         self._search_input.setObjectName("screenshotsSearchInput")
@@ -394,29 +463,51 @@ class ImagesPage(QWidget):
 
         self._search_btn = QPushButton(t("images.search"), search_row)
         self._search_btn.setIcon(icon_search())
+        self._search_btn.setIconSize(QSize(14, 14))
         self._search_btn.setCursor(Qt.PointingHandCursor)
         self._search_btn.clicked.connect(self._on_search)
-        search_layout.addWidget(self._search_btn)
+        search_layout.addWidget(self._search_btn, 0, Qt.AlignVCenter)
 
         self._clear_search_btn = QPushButton(t("images.clear"), search_row)
         self._clear_search_btn.setObjectName("secondaryButton")
         self._clear_search_btn.setIcon(icon_clear())
+        self._clear_search_btn.setIconSize(QSize(14, 14))
         self._clear_search_btn.setCursor(Qt.PointingHandCursor)
         self._clear_search_btn.clicked.connect(self._on_clear_search)
-        search_layout.addWidget(self._clear_search_btn)
+        search_layout.addWidget(self._clear_search_btn, 0, Qt.AlignVCenter)
 
         list_layout.addWidget(search_row)
+
+        self._list_stack = QStackedWidget(list_panel)
+        self._list_stack.setObjectName("imagesListStack")
+
+        self._list_empty = QFrame(self._list_stack)
+        self._list_empty.setObjectName("emptyHintCard")
+        empty_layout = QVBoxLayout(self._list_empty)
+        empty_layout.setContentsMargins(28, 36, 28, 36)
+        empty_layout.setSpacing(8)
+        empty_layout.addStretch(1)
+        self._list_empty_title = QLabel(t("images.empty_title"), self._list_empty)
+        self._list_empty_title.setObjectName("emptyHintTitle")
+        self._list_empty_title.setWordWrap(True)
+        self._list_empty_title.setAlignment(Qt.AlignCenter)
+        empty_layout.addWidget(self._list_empty_title)
+        self._list_empty_body = QLabel(t("images.empty_body"), self._list_empty)
+        self._list_empty_body.setObjectName("emptyHintBody")
+        self._list_empty_body.setWordWrap(True)
+        self._list_empty_body.setAlignment(Qt.AlignCenter)
+        empty_layout.addWidget(self._list_empty_body)
+        empty_layout.addStretch(1)
 
         self._list_widget = ScreenshotListWidget(self)
         self._list_widget.setObjectName("screenshotList")
         self._list_widget.setViewMode(QListWidget.IconMode)
         self._list_widget.setResizeMode(QListWidget.Adjust)
-        self._list_widget.setSpacing(10)
+        self._list_widget.setSpacing(THUMBNAIL_LIST_SPACING)
         self._list_widget.setWordWrap(True)
         self._list_widget.setUniformItemSizes(True)
         self._list_widget.setTextElideMode(Qt.ElideMiddle)
-        self._list_widget.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        self._list_widget.setSelectionRectVisible(True)
+        self._list_widget.configure_explorer_selection()
         # setViewMode/setMovement reset Qt DnD flags — restore drag-to-folder only
         self._list_widget.configure_drag_export_only()
         self._list_widget.itemClicked.connect(self._on_item_clicked)
@@ -426,14 +517,21 @@ class ImagesPage(QWidget):
         self._list_widget.setContextMenuPolicy(Qt.CustomContextMenu)
         self._list_widget.customContextMenuRequested.connect(self._on_context_menu)
         self._list_widget.viewport().installEventFilter(self)
-        list_layout.addWidget(self._list_widget, stretch=1)
+
+        self._list_stack.addWidget(self._list_widget)  # 0 = images
+        self._list_stack.addWidget(self._list_empty)  # 1 = empty hint
+        list_layout.addWidget(self._list_stack, stretch=1)
+        self._list_marquee_bridge = ListPanelMarqueeBridge(
+            list_panel, self._list_widget, self
+        )
         self._splitter.addWidget(list_panel)
+        self._list_panel.installEventFilter(self)
 
         # Preview + tags
         right_panel = QWidget(self)
         right_panel.setObjectName("rightPanel")
         right_layout = QVBoxLayout(right_panel)
-        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setContentsMargins(10, 10, 10, 10)
         right_layout.setSpacing(8)
 
         right_layout.addWidget(
@@ -444,15 +542,20 @@ class ImagesPage(QWidget):
         self._preview_label.setObjectName("previewLabel")
         self._preview_label.setAlignment(Qt.AlignCenter)
         self._preview_label.setMinimumSize(160, 160)
+        self._preview_label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)
         right_layout.addWidget(self._preview_label, stretch=1)
 
         self._info_widget = QWidget(self)
         self._info_widget.setObjectName("infoPanel")
+        self._info_widget.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         self._info_layout = QVBoxLayout(self._info_widget)
         self._info_layout.setContentsMargins(12, 10, 12, 12)
         self._info_layout.setSpacing(8)
 
         self._file_info_label = QLabel(t("images.file_none"), self)
+        self._file_info_label.setObjectName("imagesFileInfo")
+        self._file_info_label.setWordWrap(True)
+        self._file_info_label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         self._info_layout.addWidget(self._file_info_label)
 
         self._info_layout.addWidget(
@@ -519,13 +622,17 @@ class ImagesPage(QWidget):
 
         self._splitter.addWidget(right_panel)
         self._right_panel = right_panel
+        # Keep preview column width stable — long filenames must not resize the list grid
         right_panel.setMinimumWidth(RIGHT_PANEL_MIN_WIDTH)
         right_panel.setMaximumWidth(RIGHT_PANEL_MAX_WIDTH)
+        right_panel.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        right_panel.installEventFilter(self)
         self._folder_panel.setMinimumWidth(FOLDER_PANEL_MIN_EXPANDED)
         self._folder_panel.setMaximumWidth(FOLDER_PANEL_MAX_WIDTH)
 
         self._splitter.setChildrenCollapsible(False)
-        self._splitter.setHandleWidth(6)
+        # Transparent gutter — panels are separated by their own frames
+        self._splitter.setHandleWidth(10)
         self._splitter.setSizes(
             [FOLDER_PANEL_EXPANDED_WIDTH, 560, RIGHT_PANEL_DEFAULT_WIDTH]
         )
@@ -537,15 +644,9 @@ class ImagesPage(QWidget):
         content_layout.addWidget(self._splitter)
         main_layout.addWidget(content, stretch=1)
 
-        # Prefer scrolling over clipping when the window is smaller than the panels
-        min_w = (
-            FOLDER_PANEL_MIN_EXPANDED
-            + LIST_PANEL_MIN_WIDTH
-            + RIGHT_PANEL_MIN_WIDTH
-            + 48
-        )
-        page_root.setMinimumWidth(min_w)
-        page_root.setMinimumHeight(420)
+        # Soft floor only — do not push the main window past Settings size
+        page_root.setMinimumWidth(480)
+        page_root.setMinimumHeight(320)
 
         self._populate_folder_tree()
 
@@ -562,32 +663,37 @@ class ImagesPage(QWidget):
         wrap = QWidget(self)
         wrap.setObjectName("sectionHeader")
         layout = QVBoxLayout(wrap)
-        layout.setContentsMargins(0, 2, 0, 0)
-        layout.setSpacing(4)
+        layout.setContentsMargins(0, 0, 0, 2)
+        layout.setSpacing(6)
 
-        row = QHBoxLayout()
+        # Fixed-height title row so Screenshots / Preview dividers share the same Y
+        title_row = QWidget(wrap)
+        title_row.setObjectName("sectionHeaderTitleRow")
+        title_row.setFixedHeight(28)
+        row = QHBoxLayout(title_row)
         row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(6)
+        row.setSpacing(8)
+        row.setAlignment(Qt.AlignVCenter)
 
         if leading is not None:
-            row.addWidget(leading)
+            row.addWidget(leading, 0, Qt.AlignVCenter)
 
-        icon_label = QLabel(wrap)
+        icon_label = QLabel(title_row)
         icon_label.setObjectName("sectionIcon")
         icon_label.setPixmap(icon.pixmap(SECTION_ICON_SIZE, SECTION_ICON_SIZE))
-        row.addWidget(icon_label)
+        row.addWidget(icon_label, 0, Qt.AlignVCenter)
 
-        title_label = QLabel(title, wrap)
+        title_label = QLabel(title, title_row)
         title_label.setObjectName("sectionTitle")
-        row.addWidget(title_label)
+        row.addWidget(title_label, 0, Qt.AlignVCenter)
 
         if trailing is not None:
             row.addStretch(1)
-            row.addWidget(trailing)
+            row.addWidget(trailing, 0, Qt.AlignVCenter)
         else:
             row.addStretch(1)
 
-        layout.addLayout(row)
+        layout.addWidget(title_row)
 
         if with_divider:
             line = QFrame(wrap)
@@ -597,6 +703,25 @@ class ImagesPage(QWidget):
             layout.addWidget(line)
         return wrap
 
+    def _set_file_info_text(self, text: str) -> None:
+        """Set file info text and shrink font so long names stay inside the panel."""
+        self._file_info_label.setText(text)
+        self._fit_file_info_font()
+
+    def _fit_file_info_font(self) -> None:
+        label = self._file_info_label
+        text = label.text() or ""
+        available = max(self._right_panel.width() - 48, 72)
+        font = label.font()
+        for point in (12, 11, 10, 9, 8):
+            font.setPointSize(point)
+            fm = QFontMetrics(font)
+            # Prefer single-line fit; otherwise wrap at this size
+            if fm.horizontalAdvance(text) <= available or point <= 9:
+                label.setFont(font)
+                break
+        label.setWordWrap(True)
+
     def _toggle_folder_tree(self) -> None:
         self._apply_folder_tree_expanded(not self._folder_tree_expanded)
 
@@ -605,23 +730,46 @@ class ImagesPage(QWidget):
     ) -> None:
         """Show/hide the folder body and let the image list reclaim width."""
         self._folder_tree_expanded = expanded
+
+        # Expanded chrome (Viewing folder card) vs collapsed open-rail with ▶
+        self._folder_header.setVisible(expanded)
         self._folder_body.setVisible(expanded)
-        self._folder_header_labels.setVisible(expanded)
-        self._folder_header_divider.setVisible(expanded)
+        self._folder_collapse_btn.setVisible(expanded)
+        if self._folder_header_icon is not None:
+            self._folder_header_icon.setVisible(expanded)
+        if self._folder_header_title is not None:
+            self._folder_header_title.setVisible(expanded)
+        if self._folder_header_divider is not None:
+            self._folder_header_divider.setVisible(expanded)
         if hasattr(self, "_folder_project_hint"):
             self._folder_project_hint.setVisible(expanded)
         if hasattr(self, "_save_folder_legend"):
             self._save_folder_legend.setVisible(expanded)
+        self._folder_expand_glyph.setVisible(not expanded)
+        self._folder_expand_glyph.setText("▶")
 
         sizes = self._splitter.sizes()
         while len(sizes) < 3:
             sizes.append(200)
 
         layout = self._folder_panel.layout()
+
+        def _set_stretch(widget: QWidget, stretch: int) -> None:
+            if layout is None:
+                return
+            index = layout.indexOf(widget)
+            if index >= 0:
+                layout.setStretch(index, stretch)
+
         if expanded:
             if layout is not None:
-                layout.setContentsMargins(8, 8, 8, 8)
+                layout.setContentsMargins(10, 10, 10, 10)
+                # Glyph must not keep stretch space while Viewing folder is open
+                _set_stretch(self._folder_expand_glyph, 0)
+                _set_stretch(self._folder_body, 1)
             self._folder_panel.setObjectName("folderPanel")
+            self._folder_panel.setCursor(Qt.ArrowCursor)
+            self._folder_panel.setToolTip("")
             self._folder_panel.setMinimumWidth(FOLDER_PANEL_MIN_EXPANDED)
             self._folder_panel.setMaximumWidth(FOLDER_PANEL_MAX_WIDTH)
             self._folder_collapse_btn.setText("◀")
@@ -635,12 +783,14 @@ class ImagesPage(QWidget):
             if sizes[0] > FOLDER_PANEL_COLLAPSED_WIDTH:
                 self._folder_panel_expanded_width = sizes[0]
             if layout is not None:
-                layout.setContentsMargins(4, 8, 4, 8)
+                layout.setContentsMargins(0, 0, 0, 0)
+                _set_stretch(self._folder_expand_glyph, 1)
+                _set_stretch(self._folder_body, 0)
             self._folder_panel.setObjectName("folderPanelCollapsed")
+            self._folder_panel.setCursor(Qt.PointingHandCursor)
+            self._folder_panel.setToolTip(t("images.expand_folders"))
             self._folder_panel.setMinimumWidth(FOLDER_PANEL_COLLAPSED_WIDTH)
             self._folder_panel.setMaximumWidth(FOLDER_PANEL_COLLAPSED_WIDTH)
-            self._folder_collapse_btn.setText("▶")
-            self._folder_collapse_btn.setToolTip(t("images.expand_folders"))
             freed = max(0, sizes[0] - FOLDER_PANEL_COLLAPSED_WIDTH)
             sizes[0] = FOLDER_PANEL_COLLAPSED_WIDTH
             sizes[1] = sizes[1] + freed
@@ -649,6 +799,7 @@ class ImagesPage(QWidget):
         # Refresh stylesheet after objectName change
         self._folder_panel.style().unpolish(self._folder_panel)
         self._folder_panel.style().polish(self._folder_panel)
+        self._folder_panel.update()
 
         if persist:
             self._config["images_folder_tree_expanded"] = expanded
@@ -669,17 +820,46 @@ class ImagesPage(QWidget):
         """Explorer-like keyboard shortcuts for the Images page."""
         bindings = [
             (QKeySequence.SelectAll, self._select_all_images),
-            (QKeySequence.Copy, self._copy_selected_images),
-            (QKeySequence.Cut, self._cut_selected_images),
-            (QKeySequence.Paste, self._paste_clipboard),
-            (QKeySequence.Delete, self._delete_selected_images),
-            (QKeySequence(Qt.Key_F2), self._rename_selected_image),
+            (QKeySequence.Copy, self._shortcut_copy),
+            (QKeySequence.Cut, self._shortcut_cut),
+            (QKeySequence.Paste, self._shortcut_paste),
+            (QKeySequence.Delete, self._shortcut_delete),
+            (QKeySequence(Qt.Key_F2), self._shortcut_rename),
             (QKeySequence.Undo, self._undo_last_action),
         ]
         for sequence, slot in bindings:
             shortcut = QShortcut(sequence, self)
             shortcut.setContext(Qt.WidgetWithChildrenShortcut)
             shortcut.activated.connect(slot)
+
+    def _file_shortcut_focus_ok(self) -> bool:
+        """Avoid stealing Ctrl+C/X/V from text fields."""
+        focus = QApplication.focusWidget()
+        if isinstance(focus, (QLineEdit, QTextEdit, QAbstractSpinBox)):
+            return False
+        if isinstance(focus, QComboBox) and focus.isEditable():
+            return False
+        return True
+
+    def _shortcut_copy(self) -> None:
+        if self._file_shortcut_focus_ok():
+            self._copy_selected_images()
+
+    def _shortcut_cut(self) -> None:
+        if self._file_shortcut_focus_ok():
+            self._cut_selected_images()
+
+    def _shortcut_paste(self) -> None:
+        if self._file_shortcut_focus_ok():
+            self._paste_clipboard()
+
+    def _shortcut_delete(self) -> None:
+        if self._file_shortcut_focus_ok():
+            self._delete_selected_images()
+
+    def _shortcut_rename(self) -> None:
+        if self._file_shortcut_focus_ok():
+            self._rename_selected_image()
 
     def _setup_fs_watcher(self) -> None:
         """Watch screenshot root + current folder for Explorer-side changes."""
@@ -1207,6 +1387,11 @@ class ImagesPage(QWidget):
         self._group_combo.setCurrentIndex(group_index if group_index >= 0 else 0)
         self._group_combo.blockSignals(False)
 
+        self._view_combo.blockSignals(True)
+        view_index = self._view_combo.findData(self._thumbnail_mode)
+        self._view_combo.setCurrentIndex(view_index if view_index >= 0 else 0)
+        self._view_combo.blockSignals(False)
+
     def _save_display_setting(self, key: str, value) -> None:
         project_dir = self._get_folder_dir()
         project_dir.mkdir(parents=True, exist_ok=True)
@@ -1241,9 +1426,17 @@ class ImagesPage(QWidget):
         self._apply_thumbnail_mode()
         self._load_images()
 
+    def _on_view_combo_changed(self) -> None:
+        self._set_thumbnail_mode(normalize_thumbnail_mode(self._view_combo.currentData()))
+
     def _set_thumbnail_mode(self, mode: str) -> None:
         mode = normalize_thumbnail_mode(mode)
         self._thumbnail_mode = mode
+        if hasattr(self, "_view_combo"):
+            self._view_combo.blockSignals(True)
+            idx = self._view_combo.findData(mode)
+            self._view_combo.setCurrentIndex(idx if idx >= 0 else 0)
+            self._view_combo.blockSignals(False)
         try:
             self._save_display_setting("thumbnail_mode", mode)
             sizes = THUMBNAIL_MODE_SIZES.get(mode)
@@ -1257,21 +1450,68 @@ class ImagesPage(QWidget):
         self._apply_thumbnail_mode()
         self._load_images()
 
+    def _is_folder_expand_click_target(self, obj) -> bool:
+        return obj is self._folder_panel
+
     def eventFilter(self, obj, event) -> bool:
         if (
-            obj is self._list_widget.viewport()
-            and event.type() == QEvent.Type.Resize
+            getattr(self, "_folder_tree_expanded", True) is False
+            and self._is_folder_expand_click_target(obj)
+            and event.type() == QEvent.Type.MouseButtonRelease
+            and event.button() == Qt.LeftButton
         ):
-            self._refresh_header_widths()
+            self._apply_folder_tree_expanded(True)
+            return True
+        if event.type() == QEvent.Type.Resize:
+            if obj is self._list_widget.viewport():
+                self._refresh_header_widths()
+            elif obj is self._list_panel:
+                self._apply_header_tools_layout()
+            elif obj is self._right_panel:
+                self._fit_file_info_font()
         return super().eventFilter(obj, event)
+
+    def _apply_header_tools_layout(self, *, force: bool = False) -> None:
+        """Keep Sort / Group / View on a dedicated row (never clip the title)."""
+        if not hasattr(self, "_header_tools"):
+            return
+        self._header_tools_inline = False
+        self._header_tools_row.show()
+        self._header_tools.show()
+        wide = self._list_panel.width() >= HEADER_TOOLS_INLINE_MIN_WIDTH
+        self._tune_header_tools_sizes(wide)
+
+    def _tune_header_tools_sizes(self, wide: bool) -> None:
+        """Roomier combos when the list column is wide; compact when narrow."""
+        for label in (self._sort_label, self._group_label, self._view_label):
+            label.setVisible(self._list_panel.width() >= 360)
+        if wide:
+            self._sort_combo.setMinimumWidth(110)
+            self._sort_combo.setMaximumWidth(160)
+            self._group_combo.setMinimumWidth(64)
+            self._group_combo.setMaximumWidth(90)
+            self._view_combo.setMinimumWidth(64)
+            self._view_combo.setMaximumWidth(90)
+        else:
+            self._sort_combo.setMinimumWidth(96)
+            self._sort_combo.setMaximumWidth(140)
+            self._group_combo.setMinimumWidth(56)
+            self._group_combo.setMaximumWidth(80)
+            self._view_combo.setMinimumWidth(56)
+            self._view_combo.setMaximumWidth(80)
 
     def _apply_thumbnail_mode(self) -> None:
         mode = self._thumbnail_mode
         grouped = self._group_by != GROUP_BY_NONE
 
         if self._caption_delegate is None:
-            self._caption_delegate = CaptionIconDelegate(parent=self._list_widget)
+            self._caption_delegate = CaptionIconDelegate(
+                show_selection_badge=True,
+                parent=self._list_widget,
+            )
             self._list_widget.setItemDelegate(self._caption_delegate)
+        else:
+            self._caption_delegate._show_selection_badge = True
 
         # All sizes use IconMode cards (Small = compact cards, not a stretched list row)
         icon_size, grid_w, grid_h = THUMBNAIL_MODE_SIZES[mode]
@@ -1283,19 +1523,16 @@ class ImagesPage(QWidget):
         self._list_widget.setWrapping(True)
         self._list_widget.setResizeMode(QListWidget.Adjust)
         self._list_widget.setIconSize(QSize(icon_size, icon_size))
-        # Fixed grid forces every item into one cell — headers then sit beside images.
-        # Clear grid when grouped so sizeHint can make headers span a full row.
-        if grouped:
-            self._list_widget.setGridSize(QSize())
-        else:
-            self._list_widget.setGridSize(QSize(grid_w, grid_h))
-        self._list_widget.setSpacing(8)
+        # No fixed grid — spacing matches Group By (sizeHint + THUMBNAIL_LIST_SPACING)
+        self._list_widget.setGridSize(QSize())
+        self._list_widget.setSpacing(THUMBNAIL_LIST_SPACING)
         self._list_widget.setWordWrap(True)
         self._list_widget.setUniformItemSizes(not grouped)
         self._list_widget.setTextElideMode(Qt.ElideNone)
         self._list_widget.setHorizontalScrollMode(QAbstractItemView.ScrollPerPixel)
         self._list_widget.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
-        # IconMode + movement changes clear DragOnly — restore Explorer drag-out
+        # IconMode + movement changes clear DnD / selection flags — restore
+        self._list_widget.configure_explorer_selection()
         self._list_widget.configure_drag_export_only()
 
         style = self._list_widget.style()
@@ -1328,12 +1565,24 @@ class ImagesPage(QWidget):
     # ---- list helpers ----
 
     def _get_selected_path(self) -> str | None:
-        current_item = self._list_widget.currentItem()
-        if current_item is None:
+        """Return the selected image path, or None when nothing is selected.
+
+        Uses actual selection (not merely currentItem). Qt often keeps a
+        current item after a background click clears the selection; that must
+        not count as a selected image for preview / Clear reload restore.
+        """
+        items = self._selected_image_items()
+        if not items:
             return None
-        if current_item.data(ITEM_KIND_ROLE) == ITEM_KIND_HEADER:
-            return None
-        return current_item.data(Qt.UserRole)
+        current = self._list_widget.currentItem()
+        if (
+            current is not None
+            and current.isSelected()
+            and current.data(ITEM_KIND_ROLE) != ITEM_KIND_HEADER
+            and current.data(Qt.UserRole)
+        ):
+            return current.data(Qt.UserRole)
+        return items[0].data(Qt.UserRole)
 
     def _get_png_files(self, target_dir: Path) -> list[Path]:
         # Sorting is applied in build_groups (whole list or within each group).
@@ -1527,7 +1776,7 @@ class ImagesPage(QWidget):
         self._preview_cache_path = None
         self._preview_label.setPixmap(QPixmap())
         self._preview_label.setText(t("images.select_image"))
-        self._file_info_label.setText(t("images.file_none"))
+        self._set_file_info_text(t("images.file_none"))
         self._info_widget.setEnabled(False)
         self._clear_tags_layout()
         self.reload_tag_choices()
@@ -1568,14 +1817,19 @@ class ImagesPage(QWidget):
     ) -> None:
         if self._updating_selection:
             return
-        if current is None:
-            self._clear_preview()
+        if current is None or not current.isSelected():
+            if not self._selected_image_items():
+                self._clear_preview()
             return
         if current.data(ITEM_KIND_ROLE) == ITEM_KIND_HEADER:
             return
         self._show_image(current)
 
     def _on_item_clicked(self, item: QListWidgetItem) -> None:
+        if item.data(ITEM_KIND_ROLE) == ITEM_KIND_HEADER:
+            return
+        if not item.isSelected():
+            return
         self._show_image(item)
 
     def _on_item_double_clicked(self, item: QListWidgetItem) -> None:
@@ -1596,7 +1850,7 @@ class ImagesPage(QWidget):
 
         file_path = Path(file_path_str)
         self._info_widget.setEnabled(True)
-        self._file_info_label.setText(t("images.file_name", name=file_path.name))
+        self._set_file_info_text(t("images.file_name", name=file_path.name))
         self._display_tags(file_path)
 
         if self._preview_cache_path == file_path_str:
@@ -1639,29 +1893,19 @@ class ImagesPage(QWidget):
         return normalize_tag(self._tag_combo.itemText(index))
 
     def _on_assign_existing_tag(self) -> None:
-        file_path = self._selected_image_path()
-        if file_path is None:
+        paths = self._selected_image_paths()
+        if not paths:
             return
 
         tag_name = self._selected_tag_from_combo()
         if not tag_name:
             return
 
-        try:
-            added = self._metadata_service.add_image_tag(
-                file_path.parent, file_path.name, tag_name
-            )
-            if added:
-                self._display_tags(file_path)
-                self._update_list_for_tag_change(file_path)
-        except OSError as e:
-            QMessageBox.critical(
-                self, t("common.error"), t("images.tag.save_failed", error=e)
-            )
+        self._add_tag_to_paths(paths, tag_name)
 
     def _on_create_and_assign_tag(self) -> None:
-        file_path = self._selected_image_path()
-        if file_path is None:
+        paths = self._selected_image_paths()
+        if not paths:
             return
 
         new_tag = normalize_tag(self._tag_new_input.text())
@@ -1676,13 +1920,8 @@ class ImagesPage(QWidget):
             if not tag_name:
                 return
 
-            added = self._metadata_service.add_image_tag(
-                file_path.parent, file_path.name, tag_name
-            )
             self._tag_new_input.clear()
-            if added:
-                self._display_tags(file_path)
-                self._update_list_for_tag_change(file_path)
+            self._add_tag_to_paths(paths, tag_name)
             if created_new:
                 self.tags_changed.emit()
         except OSError as e:
@@ -1691,16 +1930,11 @@ class ImagesPage(QWidget):
             )
 
     def _delete_tag(self, file_path: Path, tag_to_remove: str) -> None:
-        try:
-            if self._metadata_service.remove_image_tag(
-                file_path.parent, file_path.name, tag_to_remove
-            ):
-                self._display_tags(file_path)
-                self._update_list_for_tag_change(file_path)
-        except OSError as e:
-            QMessageBox.critical(
-                self, t("common.error"), t("images.tag.remove_failed", error=e)
-            )
+        # Chip is shown for the focused image; remove from every selected image
+        paths = self._selected_image_paths()
+        if not paths:
+            paths = [file_path]
+        self._remove_tag_from_paths(paths, tag_to_remove)
 
     def _selected_image_items(self) -> list[QListWidgetItem]:
         """Selected list items that are real images (not group headers)."""
@@ -1726,106 +1960,72 @@ class ImagesPage(QWidget):
         return paths
 
     def _on_selection_changed(self) -> None:
+        if self._updating_selection:
+            return
         items = self._selected_image_items()
+        if not items:
+            # Background click / deselect — clear current so reload won't restore it
+            current = self._list_widget.currentItem()
+            if current is not None:
+                self._updating_selection = True
+                self._list_widget.setCurrentItem(None)
+                self._updating_selection = False
+            self._clear_preview()
+            return
         if len(items) == 1:
             self._show_image(items[0])
-        elif len(items) > 1:
-            current = self._list_widget.currentItem()
-            if (
-                current is not None
-                and current.data(ITEM_KIND_ROLE) != ITEM_KIND_HEADER
-                and current.data(Qt.UserRole)
-            ):
-                self._show_image(current)
-            self._file_info_label.setText(
-                t("images.file_selected_count", count=len(items))
-            )
+            return
+        current = self._list_widget.currentItem()
+        if (
+            current is not None
+            and current.isSelected()
+            and current.data(ITEM_KIND_ROLE) != ITEM_KIND_HEADER
+            and current.data(Qt.UserRole)
+        ):
+            self._show_image(current)
+        self._set_file_info_text(
+            t("images.file_selected_count", count=len(items))
+        )
 
     def _on_context_menu(self, pos) -> None:
+        ensure_list_item_under_cursor_selected(self._list_widget, pos)
         menu = QMenu(self)
-
-        view_menu = menu.addMenu(t("common.view"))
-        view_group = QActionGroup(self)
-        view_group.setExclusive(True)
-
-        for mode, label in thumbnail_mode_labels():
-            action = QAction(label, self)
-            action.setCheckable(True)
-            action.setChecked(mode == self._thumbnail_mode)
-            action.setData(mode)
-            action.triggered.connect(
-                lambda checked=False, m=mode: self._set_thumbnail_mode(m)
-            )
-            view_group.addAction(action)
-            view_menu.addAction(action)
-
-        menu.addSeparator()
-
-        # Ensure the item under the cursor is part of the selection (Explorer-like)
-        item_at = self._list_widget.itemAt(pos)
-        if (
-            item_at is not None
-            and item_at.data(ITEM_KIND_ROLE) != ITEM_KIND_HEADER
-            and not item_at.isSelected()
-        ):
-            self._list_widget.clearSelection()
-            item_at.setSelected(True)
-            self._list_widget.setCurrentItem(item_at)
-
-        selected = self._selected_image_paths()
-        count = len(selected)
-        has_clipboard = self._has_clipboard()
-
-        if count >= 1:
-            open_action = QAction(t("images.open"), self)
-            open_action.triggered.connect(self._open_selected_images)
-            menu.addAction(open_action)
-
-            copy_label = (
-                t("common.copy") if count == 1 else t("images.copy_count", count=count)
-            )
-            copy_action = QAction(copy_label, self)
-            copy_action.triggered.connect(self._copy_selected_images)
-            menu.addAction(copy_action)
-
-            cut_label = (
-                t("common.cut") if count == 1 else t("images.cut_count", count=count)
-            )
-            cut_action = QAction(cut_label, self)
-            cut_action.triggered.connect(self._cut_selected_images)
-            menu.addAction(cut_action)
-
-        paste_action = QAction(t("common.paste"), self)
-        paste_action.setEnabled(has_clipboard)
-        paste_action.triggered.connect(self._paste_clipboard)
-        menu.addAction(paste_action)
-
-        if count == 1:
-            rename_action = QAction(t("images.rename_title"), self)
-            rename_action.triggered.connect(self._rename_selected_image)
-            menu.addAction(rename_action)
-
-        if count >= 1:
-            delete_label = (
-                t("common.delete")
-                if count == 1
-                else t("images.delete_count", count=count)
-            )
-            delete_action = QAction(delete_label, self)
-            delete_action.triggered.connect(self._delete_selected_images)
-            menu.addAction(delete_action)
-
-            menu.addSeparator()
-            explorer_action = QAction(t("images.open_explorer"), self)
-            explorer_action.triggered.connect(self._open_selected_in_explorer)
-            menu.addAction(explorer_action)
-
+        populate_image_list_context_menu(
+            menu,
+            self,
+            thumbnail_mode=self._thumbnail_mode,
+            selected_count=len(self._selected_image_paths()),
+            has_clipboard=self._has_clipboard(),
+            on_set_thumbnail_mode=self._set_thumbnail_mode,
+            on_open=self._open_selected_images,
+            on_copy=self._copy_selected_images,
+            on_cut=self._cut_selected_images,
+            on_paste=self._paste_clipboard,
+            on_rename=self._rename_selected_image,
+            on_delete=self._delete_selected_images,
+            on_explorer=self._open_selected_in_explorer,
+        )
         menu.exec(self._list_widget.mapToGlobal(pos))
 
     def _has_clipboard(self) -> bool:
-        return bool(self._clipboard_mode) and any(
+        if bool(self._clipboard_mode) and any(
             p.exists() for p in self._clipboard_paths
-        )
+        ):
+            return True
+        return bool(paths_from_system_clipboard())
+
+    def _resolve_paste_sources(self) -> tuple[list[Path], str | None]:
+        """Prefer in-app clipboard; fall back to system file URLs."""
+        if self._clipboard_mode and any(p.exists() for p in self._clipboard_paths):
+            return (
+                [p for p in self._clipboard_paths if p.exists()],
+                self._clipboard_mode,
+            )
+        system_paths = paths_from_system_clipboard()
+        if not system_paths:
+            return [], None
+        mode = CLIPBOARD_CUT if system_clipboard_is_cut() else CLIPBOARD_COPY
+        return system_paths, mode
 
     def _set_clipboard(self, paths: list[Path], mode: str) -> None:
         valid = [p for p in paths if p.exists()]
@@ -1837,17 +2037,21 @@ class ImagesPage(QWidget):
         self._clipboard_mode = mode if valid else None
         self._apply_cut_visuals()
         if valid:
+            set_files_on_clipboard(valid, cut=(mode == CLIPBOARD_CUT))
             self._push_undo(
                 UndoRecord(
                     kind=UNDO_COPY if mode == CLIPBOARD_COPY else UNDO_CUT,
                     payload={"previous": previous},
                 )
             )
+        else:
+            clear_system_file_clipboard()
 
     def _clear_clipboard(self) -> None:
         self._clipboard_paths = []
         self._clipboard_mode = None
         self._apply_cut_visuals()
+        clear_system_file_clipboard()
 
     def _select_all_images(self) -> None:
         self._list_widget.clearSelection()
@@ -1876,16 +2080,16 @@ class ImagesPage(QWidget):
 
     def _paste_clipboard(self) -> None:
         """Paste clipboard into the current folder (Copy = duplicate, Cut = move)."""
-        if not self._clipboard_mode:
+        valid, mode = self._resolve_paste_sources()
+        if not mode or not valid:
+            if self._clipboard_mode:
+                self._clear_clipboard()
             return
 
         project_dir = self._get_folder_dir()
-        valid = [p for p in self._clipboard_paths if p.exists()]
-        if not valid:
-            self._clear_clipboard()
-            return
-
-        mode = self._clipboard_mode
+        from_internal = bool(self._clipboard_mode) and any(
+            p.exists() for p in self._clipboard_paths
+        )
         try:
             project_dir.mkdir(parents=True, exist_ok=True)
             self._metadata_service.ensure_sstool(project_dir)
@@ -1917,6 +2121,9 @@ class ImagesPage(QWidget):
                         path, project_dir
                     )
                     inserted.append(dest)
+                if from_internal:
+                    # Keep system files available for external paste after in-app Copy
+                    pass
                 self._push_undo(
                     UndoRecord(
                         kind=UNDO_PASTE_COPY,
@@ -2056,6 +2263,10 @@ class ImagesPage(QWidget):
                 ]
                 if remaining:
                     self._clipboard_paths = remaining
+                    set_files_on_clipboard(
+                        remaining, cut=(self._clipboard_mode == CLIPBOARD_CUT)
+                    )
+                    self._apply_cut_visuals()
                 else:
                     self._clear_clipboard()
 
@@ -2305,12 +2516,20 @@ class ImagesPage(QWidget):
             if was_selected:
                 self._clear_preview()
 
+    def _set_list_empty_state(self, folder_image_count: int) -> None:
+        """Show list empty hint only when the current folder has zero PNGs."""
+        if not hasattr(self, "_list_stack"):
+            return
+        empty = folder_image_count <= 0
+        self._list_stack.setCurrentIndex(1 if empty else 0)
+
     def _load_images(self, force_reload_metadata: bool = False) -> None:
         selected_path_str = self._get_selected_path()
         target_dir = self._get_folder_dir()
 
         if not target_dir.exists():
             self._list_widget.clear()
+            self._set_list_empty_state(0)
             self._clear_preview()
             return
 
@@ -2319,6 +2538,7 @@ class ImagesPage(QWidget):
             force_reload=force_reload_metadata,
         )
         png_files = self._get_png_files(target_dir)
+        self._set_list_empty_state(len(png_files))
         filtered_files = self._filter_png_files(
             png_files,
             metadata,
@@ -2340,6 +2560,7 @@ class ImagesPage(QWidget):
         if self._find_list_row(saved_path) != -1:
             return
         self._insert_list_item_sorted(saved_path)
+        self._set_list_empty_state(1)
 
     def _on_search(self) -> None:
         self._active_search_query = self._search_input.text()

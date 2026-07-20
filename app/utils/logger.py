@@ -1,8 +1,13 @@
 import logging
 
 
-def setup_logger(name: str = "ScreenshotManager") -> logging.Logger:
+def setup_logger(name: str | None = None) -> logging.Logger:
     """アプリ全体で使うロガーを設定する"""
+    if name is None:
+        from app.branding import APP_LOGGER_NAME
+
+        name = APP_LOGGER_NAME
+
     logger = logging.getLogger(name)
 
     # 既に設定済みならそのまま返す（二重設定を防ぐ）

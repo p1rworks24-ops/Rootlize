@@ -149,10 +149,13 @@ def test_images_tag_modes_assign_and_tags_page_sync():
         tags_page.show()
         tags_page.refresh()
         app.processEvents()
-        listed = [
-            tags_page._list.item(i).text() for i in range(tags_page._list.count())
-        ]
-        assert listed == ["#alpha", "#beta", "#gamma"]
+        listed = sorted(tags_page._chip_buttons)
+        assert listed == ["alpha", "beta", "gamma"]
+        assert {btn.text() for btn in tags_page._chip_buttons.values()} == {
+            "#alpha",
+            "#beta",
+            "#gamma",
+        }
 
         # Back to existing mode still works
         page._tag_mode_existing_btn.click()

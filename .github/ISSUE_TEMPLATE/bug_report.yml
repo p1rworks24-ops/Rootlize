@@ -1,0 +1,107 @@
+# Capixe — Bug Report issue form
+# Labels: if "bug" does not exist yet, create it once under
+#   Repository → Issues → Labels → New label (name: bug, color e.g. #d73a4a).
+# GitHub still accepts this template if the label is missing; the label is
+# simply not applied until you create it.
+name: Bug Report
+description: Report a problem or unexpected behavior in Capixe.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Capixe.
+
+        Capixe is currently a **Prototype Preview**. We read every report, but we may not be able to fix everything right away.
+
+        **Privacy**
+        - Do not share passwords, API keys, personal names, emails, or private file paths.
+        - If you attach screenshots, recordings, or logs, please check that they do not include personal or confidential information.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: A short description of the problem.
+      placeholder: Example — Capture panel stays open after saving a screenshot.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: List the steps someone else can follow to see the same problem.
+      placeholder: |
+        1. Open Capixe
+        2. …
+        3. …
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect Capixe to do?
+      placeholder: Example — The capture panel should close after a successful save.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened instead?
+      placeholder: Example — The panel stayed open and showed a blank preview.
+    validations:
+      required: true
+
+  - type: input
+    id: capixe-version
+    attributes:
+      label: Capixe version
+      description: You can find this on the About page (for example, 0.1.0 Prototype Preview).
+      placeholder: 0.1.0 Prototype Preview
+    validations:
+      required: true
+
+  - type: input
+    id: windows-version
+    attributes:
+      label: Windows version
+      description: Settings → System → About, or run `winver`.
+      placeholder: Windows 11 24H2
+    validations:
+      required: true
+
+  - type: textarea
+    id: media
+    attributes:
+      label: Screenshots or screen recording
+      description: |
+        Optional. Drag and drop images or a short recording here.
+        Please remove or hide any personal information before uploading.
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: |
+        Optional. Anything else that might help (error messages, recent settings changes, and so on).
+        If you paste logs, make sure they do not include personal or confidential data.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: preview-ack
+    attributes:
+      label: Prototype Preview
+      description: Please confirm before submitting.
+      options:
+        - label: I understand Capixe is a Prototype Preview and not every issue can be fixed right away.
+          required: true

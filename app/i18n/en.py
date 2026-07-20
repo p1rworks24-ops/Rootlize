@@ -3,6 +3,8 @@
 Add other locale modules (e.g. ja.py) later and register them in app.i18n.
 """
 
+from app.branding import APP_NAME, APP_NAME_SHORT
+
 MESSAGES: dict[str, str] = {
     # Common
     "common.error": "Error",
@@ -28,7 +30,10 @@ MESSAGES: dict[str, str] = {
     "nav.ai": "AI (Coming Soon)",
     "nav.ai_tooltip": "AI features will be available in a future version.",
     "nav.settings": "Settings",
-    "nav.brand": "Screenshot\nManager",
+    "nav.about": "About",
+    "nav.brand": APP_NAME,
+    "nav.brand_short": APP_NAME_SHORT,
+    "app.name": APP_NAME,
     "shell.screenshot": "Screenshot",
     "shell.screenshot_tooltip": (
         "Minimize this window and open Win+Shift+S to capture a screenshot"
@@ -44,7 +49,20 @@ MESSAGES: dict[str, str] = {
     ),
     "shell.capture.fullscreen_desc": "Capture the entire screen",
     "shell.capture.cycle_tooltip": "Switch capture mode",
-    "shell.capture.cycle_label": "Switch mode",
+    "shell.capture.cycle_label": "Mode",
+    "shell.capture.mode_caption": "Current",
+    "shell.capture_panel.button": "Capture Panel",
+    "shell.capture_panel.hint": (
+        "Opens a mini panel for capture controls."
+    ),
+    "shell.capture_panel.pop_out_tooltip": (
+        "Open Capture Panel (always on top; drag to move)"
+    ),
+    "shell.capture_panel.title": "Capture Panel",
+    "shell.capture_panel.close": "Close Capture Panel",
+    "shell.capture_panel.settings": "Settings",
+    "shell.capture_panel.settings_tooltip": "Capture settings (save folder, filename, tags)",
+    "shell.capture_panel.back": "Back to capture",
     "shell.save_folder": "Root folder",
     "shell.save_folder_tooltip": "Change the root folder in Settings",
     "shell.save_folder_label": "📂 {name}",
@@ -105,7 +123,8 @@ MESSAGES: dict[str, str] = {
     "home.subtitle": "Overview of your screenshot library.",
     "home.current_folder": "Root Folder",  # legacy alias
     "home.root_folder": "Root Folder",
-    "home.image_count": "Images & storage",
+    "home.browse_root_tooltip": "Browse… (same as Settings → Root Folder)",
+    "home.image_count": "Overview",
     "home.root_totals": "{count} images  ·  {size}",
     "home.quick_actions": "Quick Actions",
     "home.open_images": "Open Images",
@@ -122,6 +141,9 @@ MESSAGES: dict[str, str] = {
         "Compare image counts and disk usage. "
         "Use Display by to switch between folder and tag charts."
     ),
+    "home.empty_title": "No screenshots yet",
+    "home.empty_body": "Use Capture below to take your first screenshot.",
+    "home.empty_save_hint": "Screenshots are saved to the Capture folder.",
     # Sort
     "sort.modified_desc": "Date modified (newest)",
     "sort.modified_asc": "Date modified (oldest)",
@@ -139,6 +161,8 @@ MESSAGES: dict[str, str] = {
     "images.search_placeholder": "Search by filename or tag...",
     "images.search": "Search",
     "images.clear": "Clear",
+    "images.empty_title": "No images in this folder.",
+    "images.empty_body": "Take a screenshot with Capture, or select another folder.",
     "images.sort_label": "Sort",
     "images.group_by_label": "Group By",
     "images.group_by_save_failed": "Failed to save group setting: {error}",
@@ -230,6 +254,13 @@ MESSAGES: dict[str, str] = {
     "tags.title": "Tags",
     "tags.subtitle": "Create and manage tags.",
     "tags.hint": "Assign tags to images on the Images page.",
+    "tags.board_title": "Tag board",
+    "tags.empty": "No tags yet — add one below.",
+    "tags.search_placeholder": "Search tags…",
+    "tags.search": "Search",
+    "tags.clear": "Clear",
+    "tags.search_empty": "No tags match your search.",
+    "tags.select_first": "Select a tag first.",
     "tags.new_placeholder": "New tag name...",
     "tags.add": "Add",
     "tags.rename": "Rename",
@@ -254,15 +285,27 @@ MESSAGES: dict[str, str] = {
         "Select images in the current folder, then apply bulk tag or rename actions."
     ),
     "work.image_list": "Image List",
+    "work.root_folder_label": "Root Folder",
     "work.folder_label": "Folder",
     "work.selected_heading": "Selected",
     "work.selected_count": "{count} Images",
     "work.operations": "Operations",
     "work.operations_hint": (
-        "Choose an operation, then configure it below for the selected images."
+        "Select a batch operation to apply to the selected images."
     ),
-    "work.op_tags": "Tags",
-    "work.op_rename": "Rename",
+    "work.operations_back": "← Back",
+    "work.op_tags": "Batch Tags",
+    "work.op_tags_desc": "Add or remove tags from multiple images.",
+    "work.op_rename": "Batch Rename",
+    "work.op_rename_desc": "Rename selected images with a shared prefix and numbers.",
+    "work.op_convert": "Convert",
+    "work.op_convert_desc": "Convert selected images to another format.",
+    "work.op_resize": "Resize",
+    "work.op_resize_desc": "Resize selected images to a target size.",
+    "work.op_export": "Export",
+    "work.op_export_desc": "Export selected images to another location.",
+    "work.op_status_soon": "Soon",
+    "work.op_coming_soon_hint": "This operation will be available in a future update.",
     "work.current_folder": "Folder: {name}",
     "work.current_context": "Folder: {folder}",
     "work.images": "Images",
@@ -270,10 +313,15 @@ MESSAGES: dict[str, str] = {
     "work.clear_selection": "Clear selection",
     "work.bulk_tags": "Bulk Tags",
     "work.bulk_tags_hint": (
-        "You can add or remove tags on all selected images at once."
+        "Create a new tag, assign an existing one, or remove a tag from all "
+        "selected images."
     ),
+    "work.tag_new": "New tag",
+    "work.tag_new_placeholder": "New tag name…",
+    "work.tag_existing": "Existing tag",
     "work.tag_add": "Add tag",
     "work.tag_remove": "Remove tag",
+    "work.apply_new": "Create & add to selected",
     "work.apply_add": "Add to selected",
     "work.apply_remove": "Remove from selected",
     "work.need_selection": "Select one or more images first.",
@@ -308,11 +356,76 @@ MESSAGES: dict[str, str] = {
     "settings.ui": "UI Settings",
     "settings.window_width": "Window width",
     "settings.window_height": "Window height",
+    "settings.capture_minimize": "Minimize on capture",
+    "settings.capture_minimize_hint": (
+        "When On, the app minimizes before capture so it stays out of the shot. "
+        "When Off, the window stays visible."
+    ),
+    "settings.capture_minimize_on": "On",
+    "settings.capture_minimize_off": "Off",
     "settings.future_hint": "Future settings (theme, language, etc.) will appear here.",
+    "settings.shortcuts": "Keyboard Shortcuts",
+    "settings.shortcuts.hint": (
+        "These shortcuts work only while the app is running. "
+        "They call the same capture actions as the toolbar buttons."
+    ),
+    "settings.shortcuts.change": "Change",
+    "settings.shortcuts.capture_title": "Assign shortcut",
+    "settings.shortcuts.capture_prompt": "Press a key combination…",
+    "settings.shortcuts.capture_hint": (
+        "Use Ctrl / Shift / Alt with a letter or function key. "
+        "PrintScreen alone is allowed. Escape cancels."
+    ),
+    "settings.shortcuts.error_invalid": "That key combination is not valid.",
+    "settings.shortcuts.error_modifiers_only": (
+        "Modifier keys alone are not allowed. Example: Ctrl+Shift+R"
+    ),
+    "settings.shortcuts.error_unsupported_key": "That key is not supported.",
+    "settings.shortcuts.error_duplicate": (
+        "That shortcut is already used by {action}."
+    ),
+    "settings.shortcuts.error_register": (
+        "Could not register that shortcut (it may be in use by Windows or another app)."
+    ),
     "settings.select_directory": "Select Root Directory",
     "settings.path_empty": "Root directory path cannot be empty.",
     "settings.size_invalid": "Window size must be a number.",
     "settings.saved": "Settings saved.",
     "settings.autosaved": "Saved automatically.",
     "settings.save_failed": "Failed to save settings: {error}",
+    "settings.notifications": "Notifications",
+    "settings.notifications.hint": (
+        f"{APP_NAME} shows a floating toast after a screenshot is saved. "
+        "These are not Windows notification-center alerts."
+    ),
+    "settings.notifications.show": "Show save notification",
+    "settings.notifications.duration": "Display Duration",
+    "settings.notifications.duration_sec": "{n} sec",
+    "settings.notifications.on": "On",
+    "settings.notifications.off": "Off",
+    # About page
+    "about.github_heading": "Repository",
+    "about.github_hint": f"Browse the {APP_NAME} source and project on GitHub.",
+    "about.feedback_heading": "Feedback",
+    "about.feedback_hint": (
+        "Share thoughts, report problems, or suggest improvements. "
+        "Each option opens in your default browser."
+    ),
+    "about.link_github": "GitHub",
+    "about.link_feedback": "Send Feedback",
+    "about.link_bug": "Report a Bug",
+    "about.link_feature": "Request a Feature",
+    "about.feedback_desc": "Share your thoughts about the app.",
+    "about.bug_desc": "Tell us about a problem you found.",
+    "about.feature_desc": "Suggest a feature or improvement.",
+    "about.link_open_failed": (
+        "Could not open the link in your browser.\n"
+        "Check that a default browser is set, then try again."
+    ),
+    # Floating toast
+    "toast.save_success_title": "Screenshot Saved",
+    "toast.save_failed_title": "Failed to Save",
+    "toast.project_line": "Project : {name}",
+    "toast.folder_line": "Folder : {name}",
+    "toast.save_failed_generic": "Could not save the screenshot.",
 }

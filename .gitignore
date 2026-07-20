@@ -6,16 +6,29 @@ __pycache__/
 venv/
 .pytest_cache/
 .mypy_cache/
+.coverage
+htmlcov/
 
-# App runtime / local data
+# App runtime / local user data (never commit)
 config.json
 tags.json
 screenshots/
+Capture/
+logs/
 *.log
+.env
+.env.*
+
+# Packaging / release artifacts (attach ZIP via GitHub Releases, not git)
+build/
+dist/
+release/
 
 # IDE / OS
 .idea/
 .vscode/
+.cursor/
 *.swp
 Thumbs.db
 Desktop.ini
+.DS_Store

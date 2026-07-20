@@ -2,18 +2,46 @@
 
 from __future__ import annotations
 
+import hashlib
+
 from PySide6.QtCore import Qt, QRectF, QSize
 from PySide6.QtGui import QColor, QFont, QPainter
-from PySide6.QtWidgets import QScrollArea, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QSizePolicy, QVBoxLayout, QWidget
 
 from app.utils.workspace_stats import StatBar, format_bytes
 
 # Leave headroom so the longest bar never fills the track (easier comparison)
 _MAX_BAR_RATIO = 0.72
+# Segoe MDL2 / Fluent folder glyph (same as app folder icons)
+_FOLDER_GLYPH = "\uE8B7"
+
+# Distinct, readable accents — one stable color per label (folder / tag)
+_CHART_PALETTE = (
+    "#2563eb",  # blue
+    "#059669",  # emerald
+    "#d97706",  # amber
+    "#db2777",  # pink
+    "#7c3aed",  # violet
+    "#0891b2",  # cyan
+    "#ea580c",  # orange
+    "#4f46e5",  # indigo
+    "#16a34a",  # green
+    "#e11d48",  # rose
+    "#0d9488",  # teal
+    "#9333ea",  # purple
+)
+
+
+def color_for_label(label: str) -> QColor:
+    """Stable per-label color so the same folder/tag always matches."""
+    key = (label or "").strip().casefold().encode("utf-8")
+    digest = hashlib.md5(key).hexdigest()
+    index = int(digest[:8], 16) % len(_CHART_PALETTE)
+    return QColor(_CHART_PALETTE[index])
 
 
 class HorizontalBarChart(QWidget):
-    """Simple Notion/Explorer-like horizontal bars with readable proportions."""
+    """Horizontal bars with a color swatch matching each bar."""
 
     BAR_HEIGHT = 12
     ROW_GAP = 16
@@ -21,7 +49,8 @@ class HorizontalBarChart(QWidget):
     META_HEIGHT = 16
     LEFT_PAD = 4
     RIGHT_PAD = 8
-    ACCENT = QColor("#2563eb")
+    SWATCH_SIZE = 10
+    SWATCH_GAP = 8
     TRACK = QColor("#e5e7eb")
     LABEL = QColor("#111827")
     META = QColor("#6b7280")
@@ -30,21 +59,33 @@ class HorizontalBarChart(QWidget):
         super().__init__(parent)
         self._rows: list[StatBar] = []
         self._label_prefix = ""
-        self.setMinimumHeight(120)
-        # Preferred height = content height so the parent scroll area can clip
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self._leading = "swatch"  # "swatch" | "folder"
+        self.setMinimumHeight(80)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
 
-    def set_rows(self, rows: list[StatBar], *, label_prefix: str = "") -> None:
+    def set_rows(
+        self,
+        rows: list[StatBar],
+        *,
+        label_prefix: str = "",
+        leading: str = "swatch",
+    ) -> None:
         self._rows = list(rows)
         self._label_prefix = label_prefix
+        self._leading = leading if leading in ("swatch", "folder") else "swatch"
+        content_h = self.sizeHint().height()
+        self.setMinimumHeight(content_h)
+        self.setFixedHeight(content_h)
         self.updateGeometry()
         self.update()
 
     def sizeHint(self) -> QSize:
-        h = 24 + len(self._rows) * (
+        if not self._rows:
+            return QSize(320, 80)
+        h = 16 + len(self._rows) * (
             self.LABEL_HEIGHT + self.BAR_HEIGHT + self.META_HEIGHT + self.ROW_GAP
         )
-        return QSize(320, max(160, h))
+        return QSize(320, max(80, h))
 
     def minimumSizeHint(self) -> QSize:
         return self.sizeHint()
@@ -61,7 +102,7 @@ class HorizontalBarChart(QWidget):
 
         max_count = max((r.count for r in self._rows), default=1) or 1
         width = max(40.0, self.width() - self.LEFT_PAD - self.RIGHT_PAD)
-        y = 8.0
+        y = 4.0
 
         label_font = QFont(painter.font())
         label_font.setBold(True)
@@ -70,15 +111,58 @@ class HorizontalBarChart(QWidget):
         meta_font.setPointSize(max(meta_font.pointSize() - 1, 8))
 
         for row in self._rows:
+            accent = (
+                QColor(row.accent)
+                if row.accent
+                else color_for_label(row.label)
+            )
             label = (
                 f"{self._label_prefix}{row.label}"
-                if self._label_prefix
+                if self._label_prefix and row.apply_prefix
                 else row.label
             )
+
+            lead_w = float(self.SWATCH_SIZE)
+            swatch_y = y + (self.LABEL_HEIGHT - self.SWATCH_SIZE) / 2.0
+            if self._leading == "folder":
+                # Folder icon before folder name (Fluent glyph)
+                icon_font = QFont("Segoe Fluent Icons")
+                if not icon_font.exactMatch():
+                    icon_font = QFont("Segoe MDL2 Assets")
+                icon_font.setPixelSize(self.SWATCH_SIZE + 4)
+                painter.setFont(icon_font)
+                painter.setPen(accent)
+                painter.drawText(
+                    QRectF(
+                        self.LEFT_PAD,
+                        y,
+                        self.SWATCH_SIZE + 4,
+                        self.LABEL_HEIGHT,
+                    ),
+                    Qt.AlignLeft | Qt.AlignVCenter,
+                    _FOLDER_GLYPH,
+                )
+                lead_w = float(self.SWATCH_SIZE + 4)
+            else:
+                # Color swatch before the name (same hue as the bar)
+                painter.setPen(Qt.NoPen)
+                painter.setBrush(accent)
+                painter.drawRoundedRect(
+                    QRectF(self.LEFT_PAD, swatch_y, self.SWATCH_SIZE, self.SWATCH_SIZE),
+                    3,
+                    3,
+                )
+
+            text_x = self.LEFT_PAD + lead_w + self.SWATCH_GAP
             painter.setFont(label_font)
             painter.setPen(self.LABEL)
             painter.drawText(
-                QRectF(self.LEFT_PAD, y, width, self.LABEL_HEIGHT),
+                QRectF(
+                    text_x,
+                    y,
+                    max(20.0, width - (text_x - self.LEFT_PAD)),
+                    self.LABEL_HEIGHT,
+                ),
                 Qt.AlignLeft | Qt.AlignVCenter,
                 label,
             )
@@ -89,11 +173,10 @@ class HorizontalBarChart(QWidget):
             painter.setBrush(self.TRACK)
             painter.drawRoundedRect(track, 4, 4)
 
-            # Scale against max with headroom so differences stay visible
             frac = (row.count / max_count) * _MAX_BAR_RATIO if max_count else 0.0
             bar_w = max(6.0, width * frac) if row.count else 0.0
             if bar_w:
-                painter.setBrush(self.ACCENT)
+                painter.setBrush(accent)
                 painter.drawRoundedRect(
                     QRectF(self.LEFT_PAD, y, bar_w, self.BAR_HEIGHT), 4, 4
                 )
@@ -113,28 +196,29 @@ class HorizontalBarChart(QWidget):
 
 
 class StatsChartPanel(QWidget):
-    """Scrollable chart host used by Home (and future AI/OCR stats)."""
+    """
+    Chart host for Home (and future AI/OCR stats).
+
+    Grows with the number of rows; scrolling is left to the page, not the chart.
+    """
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("statsChartPanel")
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        self._scroll = QScrollArea(self)
-        self._scroll.setWidgetResizable(True)
-        self._scroll.setFrameShape(QScrollArea.NoFrame)
-        self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self._scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self._chart = HorizontalBarChart(self._scroll)
-        self._scroll.setWidget(self._chart)
-        layout.addWidget(self._scroll)
+        self._chart = HorizontalBarChart(self)
+        layout.addWidget(self._chart)
 
-    def set_rows(self, rows: list[StatBar], *, label_prefix: str = "") -> None:
-        self._chart.set_rows(rows, label_prefix=label_prefix)
-        # Lock content height so the viewport scrolls instead of clipping rows
-        content_h = self._chart.sizeHint().height()
-        self._chart.setMinimumHeight(content_h)
-        self._chart.updateGeometry()
-        self._scroll.updateGeometry()
+    def set_rows(
+        self,
+        rows: list[StatBar],
+        *,
+        label_prefix: str = "",
+        leading: str = "swatch",
+    ) -> None:
+        self._chart.set_rows(rows, label_prefix=label_prefix, leading=leading)
+        self.updateGeometry()

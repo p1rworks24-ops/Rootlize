@@ -117,13 +117,14 @@ def test_full_tag_checklist():
                 chip_texts.append(w.text())
         assert any("testcase" in text for text in chip_texts)
 
-        # ④ Tags page still has master list
+        # ④ Tags page still has master list (chip board)
         tags.refresh()
         app.processEvents()
-        assert [tags._list.item(i).text() for i in range(tags._list.count())] == [
+        assert sorted(tags._chip_buttons) == ["genelar", "testcase"]
+        assert {btn.text() for btn in tags._chip_buttons.values()} == {
             "#testcase",
             "#genelar",
-        ]
+        }
 
         # ⑤⑥⑦⑧ New Tag: Debug
         images._tag_mode_new_btn.click()
@@ -141,9 +142,8 @@ def test_full_tag_checklist():
 
         tags.refresh()
         app.processEvents()
-        assert "#Debug" in [
-            tags._list.item(i).text() for i in range(tags._list.count())
-        ]
+        assert "Debug" in tags._chip_buttons
+        assert tags._chip_buttons["Debug"].text() == "#Debug"
 
         # ⑨ Tags page add → Images combo updates without restart
         images._tag_mode_existing_btn.click()

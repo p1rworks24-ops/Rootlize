@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, QRect, QSize, QModelIndex
+from PySide6.QtCore import Qt, QPoint, QRect, QSize, QModelIndex
 from PySide6.QtGui import QPainter, QColor, QFont, QFontMetrics, QPen, QBrush
 from PySide6.QtWidgets import QStyledItemDelegate, QStyle, QStyleOptionViewItem
 
@@ -19,6 +19,8 @@ HEADER_VARIANT_ROLE = Qt.UserRole + 2
 HEADER_VARIANT_NO_TAG = "no_tag"
 
 GROUP_HEADER_HEIGHT = 40
+# Must match _paint_image outer margin — hit-testing uses the same inset
+CARD_INSET = 4
 
 
 class CaptionIconDelegate(QStyledItemDelegate):
@@ -31,6 +33,7 @@ class CaptionIconDelegate(QStyledItemDelegate):
         cell_width: int = 156,
         cell_height: int = 240,
         list_mode: bool = False,
+        show_selection_badge: bool = True,
         parent=None,
     ):
         super().__init__(parent)
@@ -38,6 +41,7 @@ class CaptionIconDelegate(QStyledItemDelegate):
         self._cell_width = cell_width
         self._cell_height = cell_height
         self._list_mode = list_mode
+        self._show_selection_badge = show_selection_badge
 
     @property
     def cell_width(self) -> int:
@@ -112,8 +116,8 @@ class CaptionIconDelegate(QStyledItemDelegate):
         if index.data(ROLE_DRAG_DIMMED):
             painter.setOpacity(0.35)
 
-        # Balanced outer margin
-        rect = option.rect.adjusted(4, 4, -4, -4)
+        # Balanced outer margin (keep in sync with CARD_INSET / list hit-testing)
+        rect = option.rect.adjusted(CARD_INSET, CARD_INSET, -CARD_INSET, -CARD_INSET)
 
         if option.state & QStyle.State_Selected:
             bg = QColor("#eff6ff")
@@ -148,6 +152,9 @@ class CaptionIconDelegate(QStyledItemDelegate):
             pix = icon.pixmap(self._icon_size, self._icon_size)
             if not pix.isNull():
                 painter.drawPixmap(icon_box, pix)
+
+        if self._show_selection_badge and (option.state & QStyle.State_Selected):
+            self._paint_selection_badge(painter, rect)
 
         text_top = icon_box.bottom() + 4
         text_rect = QRect(
@@ -211,3 +218,23 @@ class CaptionIconDelegate(QStyledItemDelegate):
             )
 
         painter.restore()
+
+    def _paint_selection_badge(self, painter: QPainter, card_rect: QRect) -> None:
+        """Blue circle with white check — selected state cue for Organize."""
+        size = 18
+        margin = 5
+        cx = card_rect.right() - margin - size // 2
+        cy = card_rect.top() + margin + size // 2
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QColor("#2563eb"))
+        painter.drawEllipse(QPoint(cx, cy), size // 2, size // 2)
+        # Soft white ring
+        painter.setPen(QPen(QColor("#ffffff"), 1.5))
+        painter.setBrush(Qt.NoBrush)
+        painter.drawEllipse(QPoint(cx, cy), size // 2 - 1, size // 2 - 1)
+        # Check mark
+        painter.setPen(
+            QPen(QColor("#ffffff"), 2.2, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
+        )
+        painter.drawLine(cx - 4, cy, cx - 1, cy + 3)
+        painter.drawLine(cx - 1, cy + 3, cx + 5, cy - 3)

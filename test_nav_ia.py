@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QApplication, QLabel
 
 from app.i18n import t
 from app.ui.main_window import (
+    PAGE_ABOUT,
     PAGE_HOME,
     PAGE_IMAGES,
     PAGE_ORGANIZE,
@@ -34,7 +35,7 @@ def _make_window() -> MainWindow:
         "save_folder": "Default",
         "window_width": 1000,
         "window_height": 700,
-        "window_title": "Screenshot Manager",
+        "window_title": "Capixe",
     }
     return MainWindow(config)
 
@@ -94,7 +95,7 @@ def test_organize_page_navigable_and_selectable():
     assert window._side_nav._nav_buttons[PAGE_ORGANIZE].isChecked()
     assert not window._side_nav._placeholder_buttons[0].isChecked()
 
-    for page_id in (PAGE_HOME, PAGE_IMAGES, PAGE_TAGS, PAGE_SETTINGS):
+    for page_id in (PAGE_HOME, PAGE_IMAGES, PAGE_TAGS, PAGE_SETTINGS, PAGE_ABOUT):
         window._show_page(page_id)
         app.processEvents()
         assert window._stack.currentIndex() == page_id

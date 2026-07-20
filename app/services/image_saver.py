@@ -9,6 +9,7 @@ from app.utils.filename_template import (
 from app.utils.logger import setup_logger
 from app.utils.tag_format import normalize_tag
 from app.utils.workspace import DEFAULT_FOLDER, resolve_save_folder
+from app.paths import get_legacy_install_root
 
 logger = setup_logger()
 
@@ -30,11 +31,9 @@ class ImageSaver:
         )
         self._capture_tags = self._normalize_capture_tags(config.get("capture_tags"))
         self._metadata_service = metadata_service or MetadataService()
-        self._app_root = (
-            app_root
-            if app_root is not None
-            else Path(__file__).resolve().parent.parent.parent
-        )
+        self._app_root = app_root if app_root is not None else get_legacy_install_root()
+        # Last failure message for toast UI (cleared on each save attempt)
+        self.last_error: str | None = None
 
     @staticmethod
     def _normalize_capture_tags(raw) -> list[str]:
@@ -67,6 +66,7 @@ class ImageSaver:
         Filename comes from config filename_template (with collision numbering).
         Optional capture_tags are applied after register_image.
         """
+        self.last_error = None
         try:
             folder = self._save_folder or DEFAULT_FOLDER
             save_dir = self._metadata_service.resolve_folder_dir(
@@ -107,9 +107,19 @@ class ImageSaver:
                 logger.info("  %s", save_path)
                 return save_path
 
+            self.last_error = f"Could not write file: {save_path.name}"
             logger.error("画像の保存に失敗しました。ファイルパス: %s", save_path)
             return None
 
+        except PermissionError as e:
+            self.last_error = "Access denied."
+            logger.exception("画像の保存中に例外が発生しました: %s", e)
+            return None
+        except OSError as e:
+            self.last_error = str(e) or "File system error."
+            logger.exception("画像の保存中に例外が発生しました: %s", e)
+            return None
         except Exception as e:
+            self.last_error = str(e) or "Unexpected error."
             logger.exception("画像の保存中に例外が発生しました: %s", e)
             return None

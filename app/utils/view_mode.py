@@ -12,6 +12,9 @@ THUMBNAIL_MODE_OPTIONS = [
     ("small", "view.small"),
 ]
 
+# IconMode gap between cards — same with/without Group By (no fixed grid).
+THUMBNAIL_LIST_SPACING = 8
+
 # icon_size, grid_width, grid_height
 # Grid height leaves room for full wrapped filename (+ tags/date on Images).
 # Spacing between cells is controlled by QListWidget.setSpacing (constant).

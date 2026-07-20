@@ -1,0 +1,76 @@
+# Capixe — Feature Request issue form
+# Labels: if "enhancement" does not exist yet, create it once under
+#   Repository → Issues → Labels → New label (name: enhancement, color e.g. #a2eeef).
+# GitHub still accepts this template if the label is missing; the label is
+# simply not applied until you create it.
+name: Feature Request
+description: Suggest a new feature or improvement for Capixe.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for sharing an idea for Capixe.
+
+        Capixe is currently a **Prototype Preview**. We appreciate every suggestion, but we may not be able to build every request.
+
+        **Privacy**
+        - Do not share passwords, API keys, personal names, emails, or private file paths.
+        - If you attach screenshots or examples, please check that they do not include personal or confidential information.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Feature summary
+      description: A short description of the feature or improvement you would like.
+      placeholder: Example — Let me pin favorite folders in the sidebar.
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: What problem or friction would this feature help with?
+      placeholder: Example — It takes too many clicks to switch between folders I use every day.
+    validations:
+      required: true
+
+  - type: textarea
+    id: desired
+    attributes:
+      label: Desired behavior
+      description: How should Capixe work if this feature existed?
+      placeholder: Example — I can pin folders, and they stay at the top of the list.
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case
+      description: Optional. When or how would you use this feature?
+      placeholder: Example — During a long capture session across two project folders.
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Current workaround
+      description: Optional. How do you handle this today, if at all?
+      placeholder: Example — I keep renaming folders so the ones I need sort first.
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: |
+        Optional. Mockups, examples, or related ideas are welcome.
+        Please avoid sharing personal or confidential information.
+    validations:
+      required: false

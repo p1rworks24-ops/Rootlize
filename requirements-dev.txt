@@ -1,0 +1,2 @@
+# Development / packaging tools (not required to run Capixe from source)
+PyInstaller>=6.3.0

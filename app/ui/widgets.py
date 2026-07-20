@@ -4,13 +4,25 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QMimeData, QPoint, QRect, QTimer, Signal, QByteArray
+from PySide6.QtCore import (
+    Qt,
+    QEvent,
+    QItemSelectionModel,
+    QMimeData,
+    QObject,
+    QPoint,
+    QRect,
+    QTimer,
+    Signal,
+    QByteArray,
+)
 from PySide6.QtGui import (
     QBrush,
     QColor,
     QCursor,
     QDrag,
     QFont,
+    QMouseEvent,
     QPainter,
     QPen,
     QPixmap,
@@ -22,11 +34,13 @@ from PySide6.QtWidgets import (
     QLabel,
     QListWidget,
     QListWidgetItem,
+    QRubberBand,
     QTreeWidget,
     QTreeWidgetItem,
+    QWidget,
 )
 
-from app.ui.caption_delegate import ROLE_DRAG_DIMMED
+from app.ui.caption_delegate import CARD_INSET, ROLE_DRAG_DIMMED
 
 MIME_IMAGE_PATHS = "application/x-sstool-image-paths"
 
@@ -148,8 +162,55 @@ class _DragBadgeOverlay(QLabel):
         self.move(QCursor.pos() - self._hotspot)
 
 
+class ListPanelMarqueeBridge(QObject):
+    """
+    Start rubber-band selection from empty chrome around the list
+    (panel padding / gaps outside the list frame).
+    """
+
+    def __init__(self, panel: QWidget, list_widget: "ScreenshotListWidget", parent=None):
+        super().__init__(parent)
+        self._panel = panel
+        self._list = list_widget
+        self._active = False
+        panel.installEventFilter(self)
+
+    def eventFilter(self, obj, event) -> bool:
+        if obj is not self._panel:
+            return False
+        et = event.type()
+        if et == QEvent.Type.MouseButtonPress:
+            if not isinstance(event, QMouseEvent) or event.button() != Qt.LeftButton:
+                return False
+            if not self._is_empty_chrome(event.position().toPoint()):
+                return False
+            self._active = True
+            self._panel.grabMouse()
+            self._list.begin_marquee_from_parent(
+                event.globalPosition().toPoint(),
+                additive=bool(event.modifiers() & Qt.ControlModifier),
+            )
+            return True
+        if et == QEvent.Type.MouseMove and self._active:
+            if isinstance(event, QMouseEvent) and event.buttons() & Qt.LeftButton:
+                self._list.update_marquee_from_parent(event.globalPosition().toPoint())
+                return True
+        if et == QEvent.Type.MouseButtonRelease and self._active:
+            if isinstance(event, QMouseEvent) and event.button() == Qt.LeftButton:
+                self._list.end_marquee_from_parent(event.globalPosition().toPoint())
+                self._panel.releaseMouse()
+                self._active = False
+                return True
+        return False
+
+    def _is_empty_chrome(self, pos: QPoint) -> bool:
+        """True for panel padding / layout gaps (not toolbar, search, or list)."""
+        child = self._panel.childAt(pos)
+        return child is None
+
+
 class ScreenshotListWidget(QListWidget):
-    """Thumbnail list: drag-to-folder only (no in-list reorder)."""
+    """Thumbnail list: Explorer-like selection + optional drag-to-folder."""
 
     WHEEL_ROWS_PER_NOTCH = 1.0
 
@@ -158,7 +219,19 @@ class ScreenshotListWidget(QListWidget):
         self._drag_dimmed_paths: list[str] = []
         self._drag_overlay: _DragBadgeOverlay | None = None
         self._drag_timer: QTimer | None = None
+        self._marquee_origin: QPoint | None = None
+        self._marquee_band: QRubberBand | None = None
+        self._marquee_additive = False
+        self._marquee_active = False
+        self._marquee_base: set[int] = set()
+        self.configure_explorer_selection()
         self.configure_drag_export_only()
+
+    def configure_explorer_selection(self) -> None:
+        """Windows Explorer-style multi-select (Shift/Ctrl + rubber-band)."""
+        self.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.setSelectionBehavior(QAbstractItemView.SelectItems)
+        self.setSelectionRectVisible(True)
 
     def configure_drag_export_only(self) -> None:
         """
@@ -172,6 +245,155 @@ class ScreenshotListWidget(QListWidget):
         self.setAcceptDrops(False)
         self.setDefaultDropAction(Qt.MoveAction)
         self.setDropIndicatorShown(False)
+
+    def _card_rect(self, item: QListWidgetItem) -> QRect:
+        """Visible card frame (matches CaptionIconDelegate painting)."""
+        return self.visualItemRect(item).adjusted(
+            CARD_INSET, CARD_INSET, -CARD_INSET, -CARD_INSET
+        )
+
+    def _selectable_item_at(self, pos: QPoint) -> QListWidgetItem | None:
+        """Item only if the cursor is inside the painted card, not cell padding."""
+        item = self.itemAt(pos)
+        if item is None:
+            return None
+        if not (item.flags() & Qt.ItemIsSelectable):
+            return None
+        if not self._card_rect(item).contains(pos):
+            return None
+        return item
+
+    def _cleanup_marquee(self) -> None:
+        self._marquee_origin = None
+        self._marquee_active = False
+        self._marquee_additive = False
+        self._marquee_base.clear()
+        if self._marquee_band is not None:
+            self._marquee_band.hide()
+            self._marquee_band.deleteLater()
+            self._marquee_band = None
+
+    def _apply_marquee_selection(self, rect: QRect) -> None:
+        """Select items whose card frame intersects the marquee (viewport coords)."""
+        keep = self._marquee_base if self._marquee_additive else set()
+        first: QListWidgetItem | None = None
+        self.blockSignals(True)
+        try:
+            for i in range(self.count()):
+                item = self.item(i)
+                if item is None or not (item.flags() & Qt.ItemIsSelectable):
+                    continue
+                hit = self._card_rect(item).intersects(rect)
+                selected = hit or (i in keep)
+                item.setSelected(selected)
+                if hit and first is None:
+                    first = item
+        finally:
+            self.blockSignals(False)
+        if first is not None:
+            # NoUpdate: keep multi-select; SelectCurrent would collapse it
+            self.setCurrentItem(first, QItemSelectionModel.NoUpdate)
+        self.itemSelectionChanged.emit()
+
+    def begin_marquee_from_parent(self, global_pos: QPoint, *, additive: bool) -> None:
+        """Start rubber-band from a press outside this list (parent panel padding)."""
+        origin = self.viewport().mapFromGlobal(global_pos)
+        self._cleanup_marquee()
+        self._marquee_origin = origin
+        self._marquee_additive = additive
+        self._marquee_active = False
+        if additive:
+            self._marquee_base = {
+                i
+                for i in range(self.count())
+                if (it := self.item(i)) is not None and it.isSelected()
+            }
+        else:
+            self._marquee_base.clear()
+            self.clearSelection()
+            self.setCurrentItem(None)
+
+    def update_marquee_from_parent(self, global_pos: QPoint) -> None:
+        if self._marquee_origin is None:
+            return
+        pos = self.viewport().mapFromGlobal(global_pos)
+        dist = (pos - self._marquee_origin).manhattanLength()
+        if not self._marquee_active:
+            if dist < QApplication.startDragDistance():
+                return
+            self._marquee_active = True
+            self._marquee_band = QRubberBand(QRubberBand.Rectangle, self.viewport())
+        rect = QRect(self._marquee_origin, pos).normalized()
+        assert self._marquee_band is not None
+        self._marquee_band.setGeometry(rect)
+        self._marquee_band.show()
+        self._apply_marquee_selection(rect)
+
+    def end_marquee_from_parent(self, global_pos: QPoint) -> None:
+        if self._marquee_origin is None:
+            return
+        if self._marquee_active:
+            pos = self.viewport().mapFromGlobal(global_pos)
+            self._apply_marquee_selection(
+                QRect(self._marquee_origin, pos).normalized()
+            )
+        self._cleanup_marquee()
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        if event.button() == Qt.LeftButton:
+            pos = event.position().toPoint()
+            item = self._selectable_item_at(pos)
+            if item is None:
+                # Empty / non-selectable (group header): start Explorer rubber-band
+                mods = event.modifiers()
+                self._marquee_origin = pos
+                self._marquee_additive = bool(mods & Qt.ControlModifier)
+                self._marquee_active = False
+                if self._marquee_additive:
+                    self._marquee_base = {
+                        i
+                        for i in range(self.count())
+                        if (it := self.item(i)) is not None and it.isSelected()
+                    }
+                else:
+                    self._marquee_base.clear()
+                    if not (mods & Qt.ShiftModifier):
+                        self.clearSelection()
+                        self.setCurrentItem(None)
+                event.accept()
+                return
+            self._cleanup_marquee()
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:
+        if self._marquee_origin is not None and event.buttons() & Qt.LeftButton:
+            pos = event.position().toPoint()
+            dist = (pos - self._marquee_origin).manhattanLength()
+            if not self._marquee_active:
+                if dist < QApplication.startDragDistance():
+                    event.accept()
+                    return
+                self._marquee_active = True
+                self._marquee_band = QRubberBand(QRubberBand.Rectangle, self.viewport())
+            rect = QRect(self._marquee_origin, pos).normalized()
+            assert self._marquee_band is not None
+            self._marquee_band.setGeometry(rect)
+            self._marquee_band.show()
+            self._apply_marquee_selection(rect)
+            event.accept()
+            return
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+        if event.button() == Qt.LeftButton and self._marquee_origin is not None:
+            if self._marquee_active:
+                pos = event.position().toPoint()
+                rect = QRect(self._marquee_origin, pos).normalized()
+                self._apply_marquee_selection(rect)
+            self._cleanup_marquee()
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
 
     def wheelEvent(self, event: QWheelEvent) -> None:
         dy = event.angleDelta().y()

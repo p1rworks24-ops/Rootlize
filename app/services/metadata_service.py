@@ -382,8 +382,10 @@ class MetadataService:
         return dest
 
     def get_global_tags_path(self, app_root: Path) -> Path:
-        """Common tags are stored at app root (not per project)."""
-        return app_root / GLOBAL_TAGS_FILE_NAME
+        """Global tags live in %APPDATA%\\Capixe (writable); app_root is unused."""
+        from app.paths import get_tags_path
+
+        return get_tags_path()
 
     def load_global_tags(self, app_root: Path, force_reload: bool = False) -> list[str]:
         tags_path = self.get_global_tags_path(app_root)
@@ -420,6 +422,7 @@ class MetadataService:
         tags_path = self.get_global_tags_path(app_root)
         data = {"tags": tags}
         try:
+            tags_path.parent.mkdir(parents=True, exist_ok=True)
             with open(tags_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
             self._global_tags_cache = list(tags)

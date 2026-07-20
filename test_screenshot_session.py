@@ -186,6 +186,73 @@ def test_fullscreen_capture_uses_grab_and_save_path():
         main_window_mod.grab_fullscreen_image = original_grab
 
 
+def test_capture_keeps_already_minimized_window():
+    """If the app was minimized before capture, stay minimized after save."""
+    app = _ensure_app()
+    app.setQuitOnLastWindowClosed(False)
+
+    import app.ui.main_window as main_window_mod
+
+    original = main_window_mod.default_region_trigger
+    main_window_mod.default_region_trigger = lambda: True
+    try:
+        window = MainWindow(_minimal_config())
+        window.show()
+        app.processEvents()
+        window.showMinimized()
+        app.processEvents()
+        assert window.isMinimized() is True
+
+        window._start_capture_session(CAPTURE_REGION)
+        app.processEvents()
+        assert window._keep_minimized_after_capture is True
+
+        window._screenshot_session.complete()
+        app.processEvents()
+
+        assert window.isMinimized() is True
+        window.close()
+        app.processEvents()
+    finally:
+        main_window_mod.default_region_trigger = original
+
+
+def test_session_finish_does_not_activate_window(monkeypatch):
+    """Save/toast must not raise or activate the main window."""
+    app = _ensure_app()
+    app.setQuitOnLastWindowClosed(False)
+
+    import app.ui.main_window as main_window_mod
+
+    original = main_window_mod.default_region_trigger
+    main_window_mod.default_region_trigger = lambda: True
+    try:
+        window = MainWindow(_minimal_config())
+        window.show()
+        app.processEvents()
+        raised = {"raise": 0, "activate": 0}
+        monkeypatch.setattr(
+            window, "raise_", lambda: raised.__setitem__("raise", raised["raise"] + 1)
+        )
+        monkeypatch.setattr(
+            window,
+            "activateWindow",
+            lambda: raised.__setitem__("activate", raised["activate"] + 1),
+        )
+
+        window._start_capture_session(CAPTURE_REGION)
+        app.processEvents()
+        window._screenshot_session.complete()
+        app.processEvents()
+
+        assert raised["raise"] == 0
+        assert raised["activate"] == 0
+        window.close()
+        app.processEvents()
+    finally:
+        main_window_mod.default_region_trigger = original
+
+
 def test_screenshot_restores_previous_page():
     app = _ensure_app()
     app.setQuitOnLastWindowClosed(False)
@@ -282,15 +349,15 @@ def test_capture_mode_cycle_updates_single_button():
     window._refresh_capture_mode_ui(animate=False)
     app.processEvents()
     assert window._capture_btn.objectName() == "fullScreenCaptureButton"
-    assert window._capture_btn.width() == 86
-    assert window._capture_btn.height() == 70
+    assert window._capture_btn.width() == 78
+    assert window._capture_btn.height() == 64
 
     window._capture_mode = CAPTURE_REGION
     window._refresh_capture_mode_ui(animate=False)
     app.processEvents()
     assert window._capture_btn.objectName() == "regionCaptureButton"
-    assert window._capture_btn.width() == 86
-    assert window._capture_btn.height() == 70
+    assert window._capture_btn.width() == 78
+    assert window._capture_btn.height() == 64
 
     window.close()
     app.processEvents()

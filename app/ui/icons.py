@@ -11,6 +11,7 @@ _GLYPH_HOME = "\uE80F"
 _GLYPH_IMAGE = "\uEB9F"
 _GLYPH_TAG = "\uE8EC"
 _GLYPH_SETTINGS = "\uE713"
+_GLYPH_INFO = "\uE946"
 _GLYPH_FOLDER = "\uE8B7"
 _GLYPH_CAMERA = "\uE722"
 _GLYPH_SAVE = "\uE74E"
@@ -45,11 +46,14 @@ def fluent_icon(
     """Render a Fluent glyph into a QIcon (falls back to empty if font missing)."""
     if isinstance(color, str):
         color = QColor(color)
-    pix = QPixmap(size, size)
+    # Logical pixel size only — do not force HiDPI upscaling (clips in tight buttons).
+    side = max(12, int(size))
+    pix = QPixmap(side, side)
     pix.fill(Qt.transparent)
     painter = QPainter(pix)
     painter.setRenderHint(QPainter.TextAntialiasing, True)
-    painter.setFont(_fluent_font(max(size - 2, 12)))
+    # Leave a little inset so MDL2 glyphs are not clipped at the edges.
+    painter.setFont(_fluent_font(max(side - 4, 10)))
     painter.setPen(color)
     painter.drawText(pix.rect(), Qt.AlignCenter, glyph)
     painter.end()
@@ -63,12 +67,22 @@ def std_icon(pixmap: QStyle.StandardPixmap) -> QIcon:
     return style.standardIcon(pixmap)
 
 
+# Nav accent colors (associative, not all-blue)
+NAV_COLOR_HOME = "#ea580c"  # warm home / dashboard
+NAV_COLOR_IMAGES = "#0891b2"  # photos / media
+NAV_COLOR_ORGANIZE = "#2563eb"  # select & act
+NAV_COLOR_TAGS = "#db2777"  # labels
+NAV_COLOR_SETTINGS = "#64748b"  # tools
+NAV_COLOR_ABOUT = "#0f766e"  # brand / about
+NAV_COLOR_AI = "#9ca3af"  # coming soon
+
+
 def icon_home() -> QIcon:
-    return fluent_icon(_GLYPH_HOME, color="#2563eb")
+    return fluent_icon(_GLYPH_HOME, color=NAV_COLOR_HOME)
 
 
 def icon_images() -> QIcon:
-    return fluent_icon(_GLYPH_IMAGE, color="#2563eb")
+    return fluent_icon(_GLYPH_IMAGE, color=NAV_COLOR_IMAGES)
 
 
 def icon_work() -> QIcon:
@@ -77,7 +91,7 @@ def icon_work() -> QIcon:
 
 def icon_action() -> QIcon:
     """Organize page — modern flash / switch glyph."""
-    return fluent_icon(_GLYPH_ACTION, color="#2563eb")
+    return fluent_icon(_GLYPH_ACTION, color=NAV_COLOR_ORGANIZE)
 
 
 def icon_organize() -> QIcon:
@@ -85,17 +99,21 @@ def icon_organize() -> QIcon:
 
 
 def icon_tags() -> QIcon:
-    return fluent_icon(_GLYPH_TAG, color="#2563eb")
+    return fluent_icon(_GLYPH_TAG, color=NAV_COLOR_TAGS)
 
 
 def icon_ai(*, muted: bool = True) -> QIcon:
     """AI nav placeholder — muted until the feature ships."""
-    color = "#9ca3af" if muted else "#2563eb"
+    color = NAV_COLOR_AI if muted else "#7c3aed"
     return fluent_icon(_GLYPH_AI, color=color)
 
 
 def icon_settings() -> QIcon:
-    return fluent_icon(_GLYPH_SETTINGS, color="#2563eb")
+    return fluent_icon(_GLYPH_SETTINGS, color=NAV_COLOR_SETTINGS)
+
+
+def icon_about() -> QIcon:
+    return fluent_icon(_GLYPH_INFO, color=NAV_COLOR_ABOUT)
 
 
 def icon_screenshot() -> QIcon:
@@ -160,9 +178,44 @@ def icon_fullscreen_capture() -> QIcon:
     return fluent_icon(_GLYPH_CAMERA, size=16, color="#ffffff")
 
 
-def icon_capture_mode_cycle() -> QIcon:
-    """Cycle / switch capture mode (refresh-style arrows)."""
-    return fluent_icon(_GLYPH_REFRESH, size=16, color="#475569")
+def icon_capture_mode_cycle(*, size: int = 16, color: str = "#334155") -> QIcon:
+    """Modern mode-switch glyph: two opposing chevrons (swap)."""
+    from PySide6.QtCore import QPointF
+    from PySide6.QtGui import QPainterPath, QPen, QBrush
+
+    pix = QPixmap(size, size)
+    pix.fill(Qt.transparent)
+    painter = QPainter(pix)
+    painter.setRenderHint(QPainter.Antialiasing, True)
+    pen = QPen(QColor(color))
+    pen.setWidthF(max(1.6, size * 0.12))
+    pen.setCapStyle(Qt.RoundCap)
+    pen.setJoinStyle(Qt.RoundJoin)
+    painter.setPen(pen)
+    painter.setBrush(Qt.NoBrush)
+
+    m = size * 0.18
+    mid_y = size * 0.5
+    top = size * 0.32
+    painter.drawLine(QPointF(m, top), QPointF(size - m, top))
+    path_r = QPainterPath()
+    path_r.moveTo(size - m - size * 0.18, top - size * 0.14)
+    path_r.lineTo(size - m, top)
+    path_r.lineTo(size - m - size * 0.18, top + size * 0.14)
+    painter.drawPath(path_r)
+    bot = size * 0.68
+    painter.drawLine(QPointF(size - m, bot), QPointF(m, bot))
+    path_l = QPainterPath()
+    path_l.moveTo(m + size * 0.18, bot - size * 0.14)
+    path_l.lineTo(m, bot)
+    path_l.lineTo(m + size * 0.18, bot + size * 0.14)
+    painter.drawPath(path_l)
+    painter.setPen(Qt.NoPen)
+    painter.setBrush(QBrush(QColor(color)))
+    r = max(1.2, size * 0.07)
+    painter.drawEllipse(QPointF(size * 0.5, mid_y), r, r)
+    painter.end()
+    return QIcon(pix)
 
 
 def icon_save_folder_star(*, size: int = 14) -> QIcon:
