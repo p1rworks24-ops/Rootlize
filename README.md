@@ -4,6 +4,10 @@ Capture less. Find more.
 
 Capixe is a Windows app for capturing and managing screenshots. It helps you save captures into a folder you choose, browse them later, add tags, and organize files — so screenshots stay findable instead of disappearing into the clipboard.
 
+## Screenshot
+
+![Capixe Organize view](docs/images/capixe-organize.png)
+
 ## Preview status
 
 This is a **Prototype Preview** (`v0.1.0-preview`).
