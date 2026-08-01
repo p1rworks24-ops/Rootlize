@@ -28,6 +28,8 @@ _SKIP_OBJECT_NAMES = frozenset(
         "operationMenuDesc",
         "operationMenuStatus",
         "splashTitle",
+        "splashTagline",
+        "splashChannel",
         "splashBadge",
         "splashNavBrand",
     }

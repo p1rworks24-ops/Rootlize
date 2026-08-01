@@ -1533,23 +1533,30 @@ QFrame#aboutCard {
     border-radius: 12px;
 }
 
+QFrame#aboutBrandCard {
+    background-color: #ffffff;
+    border: 1px solid #bfdbfe;
+    border-radius: 16px;
+}
+
 QLabel#aboutBrandTitle {
     color: #111827;
-    font-size: 28px;
+    font-size: 30px;
     font-weight: 700;
-    letter-spacing: -0.3px;
+    letter-spacing: -0.4px;
 }
 
 QLabel#aboutBrandMark {
     background: transparent;
     padding: 0;
     margin: 0;
+    border: none;
 }
 
 QLabel#aboutTagline {
-    color: #4b5563;
-    font-size: 14px;
-    font-weight: 500;
+    color: #1d4ed8;
+    font-size: 15px;
+    font-weight: 600;
 }
 
 QLabel#aboutVersionBadge {

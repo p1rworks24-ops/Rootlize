@@ -228,42 +228,37 @@ class AboutPage(QWidget):
 
     def _append_brand_card(self, parent: QWidget) -> None:
         card, card_layout = self._make_card(parent)
-
-        hero = QHBoxLayout()
-        hero.setContentsMargins(0, 0, 0, 0)
-        hero.setSpacing(16)
+        card.setObjectName("aboutBrandCard")
+        card_layout.setContentsMargins(28, 28, 28, 28)
+        card_layout.setSpacing(14)
 
         mark = QLabel(card)
         mark.setObjectName("aboutBrandMark")
         mark.setAlignment(Qt.AlignCenter)
-        mark.setPixmap(app_mark_pixmap(72))
-        hero.addWidget(mark, 0, Qt.AlignTop)
-
-        text_col = QVBoxLayout()
-        text_col.setContentsMargins(0, 2, 0, 0)
-        text_col.setSpacing(8)
+        mark.setFixedSize(120, 120)
+        mark.setPixmap(app_mark_pixmap(112))
+        card_layout.addWidget(mark, 0, Qt.AlignHCenter)
 
         title = QLabel(APP_NAME, card)
         title.setObjectName("aboutBrandTitle")
-        title.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        text_col.addWidget(title)
+        title.setAlignment(Qt.AlignCenter)
+        card_layout.addWidget(title)
 
         tagline = QLabel(TAGLINE, card)
         tagline.setObjectName("aboutTagline")
+        tagline.setAlignment(Qt.AlignCenter)
         tagline.setWordWrap(True)
-        text_col.addWidget(tagline)
+        card_layout.addWidget(tagline)
 
         version = QLabel(DISPLAY_VERSION, card)
         version.setObjectName("aboutVersionBadge")
         version.setAlignment(Qt.AlignCenter)
         badge_row = QHBoxLayout()
-        badge_row.setContentsMargins(0, 2, 0, 0)
-        badge_row.addWidget(version, 0, Qt.AlignLeft)
+        badge_row.setContentsMargins(0, 4, 0, 0)
         badge_row.addStretch(1)
-        text_col.addLayout(badge_row)
-
-        hero.addLayout(text_col, stretch=1)
-        card_layout.addLayout(hero)
+        badge_row.addWidget(version, 0, Qt.AlignCenter)
+        badge_row.addStretch(1)
+        card_layout.addLayout(badge_row)
 
         assert self._section_host is not None
         self._section_host.addWidget(card)

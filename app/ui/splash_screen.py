@@ -1,4 +1,4 @@
-"""Startup splash overlay — simple brand screen on top of the main window."""
+"""Startup splash overlay — brand screen on top of the main window."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.branding import APP_NAME, DISPLAY_VERSION
+from app.branding import APP_NAME, DISPLAY_VERSION, RELEASE_CHANNEL, TAGLINE
 from app.config import DEFAULT_CONFIG
 from app.ui.app_icon import app_mark_pixmap
 
@@ -22,6 +22,9 @@ SPLASH_MIN_MS = 2000
 SPLASH_DEFAULT_WIDTH = int(DEFAULT_CONFIG["window_width"])
 SPLASH_DEFAULT_HEIGHT = int(DEFAULT_CONFIG["window_height"])
 SPLASH_SIZE = (SPLASH_DEFAULT_WIDTH, SPLASH_DEFAULT_HEIGHT)
+
+# Large mark so the new icon reads clearly on HiDPI
+_SPLASH_MARK_PX = 168
 
 
 class SplashScreen(QWidget):
@@ -62,33 +65,51 @@ class SplashScreen(QWidget):
         card = QFrame(self)
         card.setObjectName("splashCard")
         lay = QVBoxLayout(card)
-        lay.setContentsMargins(48, 48, 48, 48)
+        lay.setContentsMargins(48, 40, 48, 40)
         lay.setSpacing(0)
-        lay.addStretch(1)
+        lay.addStretch(2)
 
         logo = QLabel(card)
         logo.setObjectName("splashLogo")
         logo.setAlignment(Qt.AlignCenter)
-        logo.setPixmap(app_mark_pixmap(96))
+        logo.setFixedSize(_SPLASH_MARK_PX + 8, _SPLASH_MARK_PX + 8)
+        logo.setPixmap(app_mark_pixmap(_SPLASH_MARK_PX))
         lay.addWidget(logo, 0, Qt.AlignHCenter)
-        lay.addSpacing(18)
+
+        lay.addSpacing(22)
 
         title = QLabel(APP_NAME, card)
         title.setObjectName("splashTitle")
         title.setAlignment(Qt.AlignCenter)
         title_font = QFont(title.font())
-        title_font.setPointSize(24)
+        title_font.setPointSize(28)
         title_font.setBold(True)
         title.setFont(title_font)
         lay.addWidget(title)
 
-        lay.addSpacing(12)
+        lay.addSpacing(8)
+        tagline = QLabel(TAGLINE, card)
+        tagline.setObjectName("splashTagline")
+        tagline.setAlignment(Qt.AlignCenter)
+        tagline.setWordWrap(True)
+        lay.addWidget(tagline)
+
+        lay.addSpacing(18)
+        badge_row = QHBoxLayout()
+        badge_row.setSpacing(8)
+        badge_row.addStretch(1)
+        channel = QLabel(RELEASE_CHANNEL, card)
+        channel.setObjectName("splashChannel")
+        channel.setAlignment(Qt.AlignCenter)
+        badge_row.addWidget(channel)
         badge = QLabel(DISPLAY_VERSION, card)
         badge.setObjectName("splashBadge")
         badge.setAlignment(Qt.AlignCenter)
-        lay.addWidget(badge, 0, Qt.AlignHCenter)
+        badge_row.addWidget(badge)
+        badge_row.addStretch(1)
+        lay.addLayout(badge_row)
 
-        lay.addSpacing(28)
+        lay.addSpacing(32)
         dots_row = QHBoxLayout()
         dots_row.setSpacing(8)
         dots_row.addStretch(1)
@@ -96,12 +117,12 @@ class SplashScreen(QWidget):
         for _ in range(3):
             dot = QLabel(card)
             dot.setObjectName("splashDot")
-            dot.setFixedSize(7, 7)
+            dot.setFixedSize(8, 8)
             dots_row.addWidget(dot)
             self._dots.append(dot)
         dots_row.addStretch(1)
         lay.addLayout(dots_row)
-        lay.addStretch(1)
+        lay.addStretch(3)
         root.addWidget(card)
 
         self.setStyleSheet(
@@ -113,20 +134,39 @@ class SplashScreen(QWidget):
                 background-color: #f5f6f8;
                 border: none;
             }
+            QLabel#splashLogo {
+                background: transparent;
+                border: none;
+            }
             QLabel#splashTitle {
                 color: #111827;
+                letter-spacing: -0.4px;
             }
-            QLabel#splashBadge {
+            QLabel#splashTagline {
                 color: #1d4ed8;
+                font-size: 15px;
+                font-weight: 600;
+            }
+            QLabel#splashChannel {
+                color: #1e40af;
                 background-color: #eff6ff;
                 border: 1px solid #bfdbfe;
                 border-radius: 10px;
-                padding: 5px 14px;
+                padding: 5px 12px;
+                font-size: 12px;
+                font-weight: 600;
+            }
+            QLabel#splashBadge {
+                color: #0f766e;
+                background-color: #f0fdfa;
+                border: 1px solid #99f6e4;
+                border-radius: 10px;
+                padding: 5px 12px;
                 font-size: 12px;
                 font-weight: 600;
             }
             QLabel#splashDot {
-                background-color: #e5e7eb;
+                background-color: #dbeafe;
                 border-radius: 4px;
             }
             QLabel#splashDot[on="true"] {
