@@ -12,7 +12,7 @@ htmlcov/
 # App runtime / local user data (never commit)
 config.json
 tags.json
-screenshots/
+/screenshots/
 Capture/
 logs/
 *.log
