@@ -38,8 +38,13 @@ def _is_canvas_black(r: int, g: int, b: int) -> bool:
     return r <= 45 and g <= 45 and b <= 45 and max(r, g, b) - min(r, g, b) <= 8
 
 
-def _is_icon_blue(r: int, g: int, b: int) -> bool:
-    return b >= 150 and (b - r) >= 50 and g >= 90
+def _is_canvas_white(r: int, g: int, b: int) -> bool:
+    """Outer presentation canvas (near-white / light gray studio backgrounds)."""
+    return r >= 235 and g >= 235 and b >= 235 and max(r, g, b) - min(r, g, b) <= 12
+
+
+def _is_outer_canvas(r: int, g: int, b: int) -> bool:
+    return _is_canvas_black(r, g, b) or _is_canvas_white(r, g, b)
 
 
 def extract_mark(src: Path) -> Image.Image:
@@ -49,7 +54,7 @@ def extract_mark(src: Path) -> Image.Image:
     px = im.load()
     assert px is not None
 
-    # Flood-fill outer black canvas → transparent. Inner black strokes stay
+    # Flood-fill outer studio canvas → transparent. Inner white strokes stay
     # because they are enclosed by blue and are not reached from the corners.
     visited = bytearray(w * h)
     q: deque[tuple[int, int]] = deque(
@@ -72,31 +77,24 @@ def extract_mark(src: Path) -> Image.Image:
         if visited[idx]:
             continue
         r, g, b, a = px[x, y]
-        if a < 10 or not _is_canvas_black(r, g, b):
+        if a < 10 or not _is_outer_canvas(r, g, b):
             continue
         visited[idx] = 1
         px[x, y] = (0, 0, 0, 0)
         q.extend(((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)))
 
-    # Crop to blue mark (+ small pad), keep overlays
-    xs: list[int] = []
-    ys: list[int] = []
-    for y in range(h):
-        for x in range(w):
-            r, g, b, a = px[x, y]
-            if a > 0 and _is_icon_blue(r, g, b):
-                xs.append(x)
-                ys.append(y)
-    if not xs:
-        raise RuntimeError("Could not locate blue Capixe mark")
+    # Crop to full mark (blue + yellow tag + glass), not blue pixels alone
+    bbox = im.getbbox()
+    if bbox is None:
+        raise RuntimeError("Could not locate Capixe mark after canvas removal")
 
-    left, top, right, bottom = min(xs), min(ys), max(xs), max(ys)
-    pad = 6
+    left, top, right, bottom = bbox
+    pad = 8
     left = max(0, left - pad)
     top = max(0, top - pad)
-    right = min(w - 1, right + pad)
-    bottom = min(h - 1, bottom + pad)
-    side = max(right - left + 1, bottom - top + 1)
+    right = min(w, right + pad)
+    bottom = min(h, bottom + pad)
+    side = max(right - left, bottom - top)
     cx, cy = (left + right) // 2, (top + bottom) // 2
     left = max(0, cx - side // 2)
     top = max(0, cy - side // 2)
