@@ -32,7 +32,10 @@ window.CAPIXE = {
   urls: {
     github: "https://github.com/p1rworks24-ops/Capixe",
     releases: "https://github.com/p1rworks24-ops/Capixe/releases",
-    download: "https://github.com/p1rworks24-ops/Capixe/releases",
+    releasesApi:
+      "https://api.github.com/repos/p1rworks24-ops/Capixe/releases?per_page=10",
+    download:
+      "https://github.com/p1rworks24-ops/Capixe/releases/download/v0.1.0-preview/Capixe-v0.1.0-preview-win64.zip",
     license: "https://github.com/p1rworks24-ops/Capixe/blob/master/LICENSE",
     issues: "https://github.com/p1rworks24-ops/Capixe/issues",
     bugReport:

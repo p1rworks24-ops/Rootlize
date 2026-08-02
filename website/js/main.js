@@ -19,6 +19,44 @@
     });
   }
 
+  function resolveLatestDownload() {
+    if (!C.urls.releasesApi || typeof window.fetch !== "function") return;
+
+    window
+      .fetch(C.urls.releasesApi, {
+        headers: { Accept: "application/vnd.github+json" },
+      })
+      .then(function (response) {
+        if (!response.ok) throw new Error("GitHub Releases request failed");
+        return response.json();
+      })
+      .then(function (releases) {
+        if (!Array.isArray(releases)) return;
+
+        var asset = null;
+        releases.some(function (release) {
+          if (!release || release.draft || !Array.isArray(release.assets)) {
+            return false;
+          }
+          asset =
+            release.assets.find(function (item) {
+              return /^Capixe-.*\.zip$/i.test(item.name || "");
+            }) ||
+            release.assets.find(function (item) {
+              return /\.zip$/i.test(item.name || "");
+            });
+          return Boolean(asset);
+        });
+
+        if (asset && asset.browser_download_url) {
+          setHref("[data-url-download]", asset.browser_download_url);
+        }
+      })
+      .catch(function () {
+        /* Keep the known working direct-download URL from content.js. */
+      });
+  }
+
   function renderGallery() {
     var gallery = document.getElementById("screenshot-gallery");
     if (!gallery || !Array.isArray(C.screenshots)) return;
@@ -191,6 +229,7 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     bindContent();
+    resolveLatestDownload();
     setupLightbox();
     setupSmoothScroll();
     setupYear();
