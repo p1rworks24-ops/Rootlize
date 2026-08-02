@@ -135,7 +135,7 @@ def test_full_tag_checklist():
         app.processEvents()
 
         assert "Debug" in service.get_image_tags(project_dir, "shot.png")
-        tags_on_disk = _read_json(root / "tags.json")["tags"]
+        tags_on_disk = _read_json(service.get_global_tags_path(root))["tags"]
         assert "Debug" in tags_on_disk
         meta = _read_json(meta_path)
         assert "Debug" in meta["images"]["shot.png"]["tags"]
