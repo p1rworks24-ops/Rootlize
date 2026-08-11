@@ -2,89 +2,60 @@
 
 Capture less. Find more.
 
-Capixe is a Windows app for capturing and managing screenshots. It helps you save captures into a folder you choose, browse them later, add tags, and organize files — so screenshots stay findable instead of disappearing into the clipboard.
+Capixe is a local-first Windows app for capturing screenshots and finding them again. Choose an Images folder, analyze its PNG files on your PC, then search by filename or text visible inside each image.
 
 ## Screenshot
 
-![Capixe Organize view](docs/images/capixe-organize.png)
+![Capixe Images search](website/assets/screenshots/images-search.png)
 
 ## Preview status
 
-This is a **Prototype Preview** (`v0.1.0-preview`).
-
-It is not a final release. Bugs, incomplete features, and breaking changes are expected.
+This is a **Prototype Preview** (`v0.1.0-preview`). Bugs, incomplete features, and breaking changes are expected.
 
 ## Features
 
-Available in this preview:
+- Region and full-screen capture
+- Configurable save location, filename rule, and keyboard shortcuts
+- Browse a selected Images folder
+- Local image analysis using bundled OCR models
+- Search by filename and text found inside images
+- Grid/list viewing, grouping, preview, and zoom
+- First-run guide for the Folder -> Analyze -> Search flow
 
-- Region capture
-- Full-screen capture
-- Local screenshot folder management
-- Folder browsing
-- Tag management
-- Search
-- Bulk tag operations
-- Bulk rename
-- Configurable save location
-- Configurable keyboard shortcuts
+Image analysis runs locally. Capixe does not upload screenshots to a Capixe cloud service.
 
-Not included yet:
+## Download and installation
 
-- AI features (the AI page is a placeholder only)
-- OCR
+Download `Capixe-v0.1.0-preview-win64.zip` from [GitHub Releases](https://github.com/p1rworks24-ops/Capixe/releases), extract it completely, then run `Capixe.exe` inside the extracted `Capixe` folder.
 
-## Download
-
-Download the Windows portable ZIP from GitHub Releases:
-
-https://github.com/p1rworks24-ops/Capixe/releases
-
-Look for `Capixe-v0.1.0-preview-win64.zip` when the preview Release is published.
-
-## Installation
-
-1. Download the ZIP from Releases.
-2. Extract the ZIP completely to a folder you can write to.
-3. Open the extracted `Capixe` folder and run `Capixe.exe`.
-4. Keep `Capixe.exe` together with the `_internal` folder — do not move the EXE alone.
-
-Python is **not** required for the Release ZIP build.
-
-There is no installer. This is a portable preview build.
+Keep `Capixe.exe` together with the `_internal` folder. Python is not required. This preview has no installer or automatic updater.
 
 ### Windows security warning
 
-This preview build is **not code-signed**. Windows SmartScreen, Microsoft Defender, or your organization policy may show a warning when you download or run `Capixe.exe`.
-
-Only continue if you trust this GitHub repository / Release and have verified the file you downloaded. Capixe does not ask you to bypass security tools blindly.
+This preview is not code-signed, so Windows SmartScreen, Microsoft Defender, or an organization policy may show a warning. Continue only if you trust this repository and the downloaded Release.
 
 ## Data storage
 
-Capixe stores settings and tags under your user profile, not inside the app folder:
+- Settings: `%APPDATA%\Capixe`
+- Local image-analysis index: `%LOCALAPPDATA%\Capixe`
+- Default screenshot root for new users: `%USERPROFILE%\Pictures\Capixe`
 
-- Settings / tags: `%APPDATA%\Capixe`
-- Default screenshot root (new installs): `%USERPROFILE%\Pictures\Capixe`
+Changing or moving the application folder does not move screenshots or settings.
 
-If you already chose another Root Folder in Settings, Capixe continues to use that path.
+## Known limitations
 
-Expanding or moving the Capixe app folder does not move your screenshots or settings.
+- Windows 10/11 (64-bit) only
+- Prototype Preview; features may change
+- Unsigned portable build; no installer or auto-update
+- Image analysis currently supports PNG files
+- Capture shortcuts work only while Capixe is running
 
 ## Feedback
 
 - [Bug report](https://github.com/p1rworks24-ops/Capixe/issues/new?template=bug_report.yml)
 - [Feature request](https://github.com/p1rworks24-ops/Capixe/issues/new?template=feature_request.yml)
 
-Please do not post passwords, API keys, personal emails, or private file paths in Issues.
-
-## Known limitations
-
-- Windows only
-- Prototype Preview — expect bugs and changes
-- Unsigned build (SmartScreen may warn)
-- No installer and no auto-update
-- AI and OCR features are not included yet
-- Capture shortcuts work only while Capixe is running
+Do not post passwords, API keys, personal emails, or private file paths in Issues.
 
 ## Development
 
@@ -95,7 +66,9 @@ python -m pip install -r requirements.txt
 python main.py
 ```
 
-Packaging (developers):
+For source runs, set `CAPIXE_OCR_PYTHON` to a Python environment containing the OCR dependencies and `CAPIXE_OCR_MODEL_DIR` to the three local PP-OCR model files. The Release build bundles both and does not need these variables.
+
+Packaging:
 
 ```text
 python -m pip install -r requirements-dev.txt
@@ -103,11 +76,10 @@ python -m PyInstaller Capixe.spec --clean --noconfirm
 powershell -ExecutionPolicy Bypass -File packaging\pack_release_zip.ps1
 ```
 
+The packaging step expects local OCR model files under `tools\ocr_poc\models`; that directory is intentionally excluded from Git.
+
 ## License
 
-Capixe is proprietary software.
-Copyright © 2026 Capixe. All rights reserved.
-
-This repository may be public for distribution and feedback, but that does **not** grant permission to copy, modify, redistribute, or sell the software or its source code.
+Capixe is proprietary software. Copyright © 2026 Capixe. All rights reserved.
 
 See [LICENSE](LICENSE) for details.

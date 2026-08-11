@@ -1,16 +1,17 @@
-"""Images Viewing folder panel: collapse chrome and expand-on-click."""
+"""Images selected-folder UI and empty states."""
 
 from __future__ import annotations
 
-import tempfile
 from pathlib import Path
 
-from PySide6.QtCore import QPoint, Qt
-from PySide6.QtGui import QMouseEvent
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QFileDialog
 
 from app.services.metadata_service import MetadataService
-from app.ui.pages.images_page import FOLDER_PANEL_COLLAPSED_WIDTH, ImagesPage
+from app.ui.design_tokens import (
+    IMAGES_FOLDER_LOCATOR_MAX_WIDTH,
+    IMAGES_FOLDER_LOCATOR_MIN_WIDTH,
+)
+from app.ui.pages.images_page import ImagesPage
 from app.utils.thumbnail_cache import ThumbnailCache
 
 
@@ -18,80 +19,92 @@ def _ensure_app() -> QApplication:
     return QApplication.instance() or QApplication([])
 
 
-def _make_page(tmp: str) -> ImagesPage:
-    root = Path(tmp)
-    (root / "screenshots").mkdir()
+def _make_page(tmp_path: Path, selected: str = "") -> ImagesPage:
     config = {
-        "screenshot_dir": "screenshots",
-        "window_width": 1050,
-        "window_height": 600,
-        "filename_template": "{date}_{time}",
+        "screenshot_dir": str(tmp_path / "legacy-root"),
+        "selected_folder": selected,
         "current_folder": "Capture",
         "save_folder": "Capture",
-        "images_folder_tree_expanded": True,
     }
-    return ImagesPage(config, MetadataService(), ThumbnailCache(size=64), root)
+    return ImagesPage(config, MetadataService(), ThumbnailCache(size=64), tmp_path)
 
 
-def test_images_splitter_has_no_gray_handle_style_object():
-    _ensure_app()
-    with tempfile.TemporaryDirectory() as tmp:
-        page = _make_page(tmp)
-        assert page._splitter.objectName() == "imagesSplitter"
-        assert page._folder_panel.layout().contentsMargins().left() == 10
-        page.close()
-
-
-def test_viewing_folder_starts_expanded_even_if_config_says_collapsed():
-    _ensure_app()
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        (root / "screenshots").mkdir()
-        config = {
-            "screenshot_dir": "screenshots",
-            "window_width": 1050,
-            "window_height": 600,
-            "filename_template": "{date}_{time}",
-            "images_folder_tree_expanded": False,
-        }
-        page = ImagesPage(config, MetadataService(), ThumbnailCache(size=64), root)
-        assert page._folder_tree_expanded is True
-        assert not page._folder_header.isHidden()
-        assert not page._folder_body.isHidden()
-        assert page._folder_expand_glyph.isHidden()
-        assert config["images_folder_tree_expanded"] is True
-        page.close()
-
-
-def test_collapsed_folder_panel_expands_on_frame_click():
+def test_images_replaces_root_tree_with_selected_folder_ui(tmp_path: Path):
     app = _ensure_app()
-    with tempfile.TemporaryDirectory() as tmp:
-        page = _make_page(tmp)
-        page.show()
-        app.processEvents()
-        page._apply_folder_tree_expanded(False, persist=False)
-        app.processEvents()
-        assert page._folder_tree_expanded is False
-        assert page._folder_panel.maximumWidth() == FOLDER_PANEL_COLLAPSED_WIDTH
-        assert page._folder_panel.cursor().shape() == Qt.PointingHandCursor
-        assert page._folder_expand_glyph.isVisible()
-        assert page._folder_expand_glyph.text() == "▶"
-        assert not page._folder_collapse_btn.isVisible()
-        assert not page._folder_header.isVisible()
+    selected = tmp_path / "Pictures"
+    selected.mkdir()
+    page = _make_page(tmp_path, str(selected))
+    page.refresh()
+    assert page._folder_panel.isHidden()
+    assert page._selected_folder_value.toolTip() == str(selected.resolve())
+    assert page._choose_folder_btn.text() == "Choose Folder"
+    assert not page._choose_folder_btn.icon().isNull()
+    assert page._selected_folder_value.objectName() == "folderSelectorPath"
 
-        release = QMouseEvent(
-            QMouseEvent.Type.MouseButtonRelease,
-            QPoint(8, 20),
-            Qt.LeftButton,
-            Qt.LeftButton,
-            Qt.NoModifier,
-        )
-        app.sendEvent(page._folder_panel, release)
-        app.processEvents()
-        assert page._folder_tree_expanded is True
-        assert not page._folder_expand_glyph.isVisible()
-        assert page._folder_collapse_btn.isVisible()
-        assert page._folder_header.isVisible()
-        assert page._folder_body.isVisible()
-        assert "Viewing" in (page._folder_header_title.text() if page._folder_header_title else "")
-        page.close()
+    page.resize(1100, 720)
+    page.show()
+    app.processEvents()
+    page._sync_primary_control_widths()
+    assert IMAGES_FOLDER_LOCATOR_MIN_WIDTH <= page._folder_selector.width()
+    assert page._folder_selector.maximumWidth() <= IMAGES_FOLDER_LOCATOR_MAX_WIDTH
+    # The redesign gives the selected folder its own full-width context row.
+    left_layout = page._left_workspace.layout()
+    assert left_layout.indexOf(page._folder_selector) >= 0
+    assert left_layout.indexOf(page._folder_selector) < left_layout.indexOf(
+        page._command_surface
+    )
+    assert page._command_primary_layout.indexOf(page._folder_selector) == -1
+    assert page._command_primary_layout.indexOf(page._search_row) >= 0
+    assert abs(page._command_surface.width() - page._list_panel.width()) <= 1
+    folder_top = page._folder_selector.mapToGlobal(
+        page._folder_selector.rect().topLeft()
+    ).y()
+    preview_top = page._preview_card.mapToGlobal(
+        page._preview_card.rect().topLeft()
+    ).y()
+    assert abs(folder_top - preview_top) <= 1
+    assert page._tags_card.isHidden()
+    assert page._right_scroll_host.layout().indexOf(page._tags_card) == -1
+    assert page._tags_card.parentWidget() is page._content
+
+
+def test_images_unselected_and_missing_folder_states(tmp_path: Path):
+    _ensure_app()
+    page = _make_page(tmp_path)
+    page.refresh()
+    assert page._list_empty_title.text() == "Choose a folder to get started"
+    assert page._list_empty_body.text() == (
+        "Select a screenshot folder, analyze your images, then search using "
+        "the words you remember."
+    )
+
+    missing = tmp_path / "Removed"
+    page._config["selected_folder"] = str(missing)
+    page.refresh()
+    assert page._list_empty_title.text() == (
+        "The previously selected folder could not be found."
+    )
+
+
+def test_images_choose_folder_persists_and_loads_direct_pngs(
+    tmp_path: Path, monkeypatch
+):
+    app = _ensure_app()
+    selected = tmp_path / "Chosen"
+    selected.mkdir()
+    from PySide6.QtCore import Qt
+    from PySide6.QtGui import QImage
+
+    image = QImage(8, 8, QImage.Format_RGB32)
+    image.fill(Qt.blue)
+    assert image.save(str(selected / "direct.png"), "PNG")
+
+    page = _make_page(tmp_path)
+    monkeypatch.setattr(
+        QFileDialog, "getExistingDirectory", lambda *args, **kwargs: str(selected)
+    )
+    page._choose_selected_folder()
+    app.processEvents()
+    assert page._config["selected_folder"] == str(selected.resolve())
+    assert page._get_folder_dir() == selected.resolve()
+    assert page._list_widget.count() == 1

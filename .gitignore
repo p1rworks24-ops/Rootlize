@@ -5,6 +5,9 @@ __pycache__/
 .venv/
 venv/
 .pytest_cache/
+.pytest-*/
+.codex-test-*/
+.build-venv/
 .mypy_cache/
 .coverage
 htmlcov/
@@ -16,6 +19,10 @@ tags.json
 Capture/
 logs/
 *.log
+# Regenerable local OCR index and SQLite sidecar files
+ocr-index.sqlite3
+ocr-index.sqlite3-wal
+ocr-index.sqlite3-shm
 .env
 .env.*
 
@@ -32,3 +39,12 @@ release/
 Thumbs.db
 Desktop.ini
 .DS_Store
+.ai/
+Run Capixe.bat
+Run Capixe OCR Test.bat
+# Independent RapidOCR PoC: local environment, models, private samples, and results
+tools/ocr_poc/.venv/
+tools/ocr_poc/models/
+tools/ocr_poc/output/
+tools/ocr_poc/evaluation-images/
+tools/ocr_poc/evaluation-manifest.local.json

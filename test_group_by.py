@@ -10,6 +10,7 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QImage
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
 from app.services.metadata_service import MetadataService
@@ -22,12 +23,23 @@ from app.ui.pages.images_page import (
 from app.utils.group_by import (
     DEFAULT_GROUP_BY,
     GROUP_BY_DATE,
+    GROUP_BY_ANALYSIS,
     GROUP_BY_NONE,
     GROUP_BY_TAG,
     NO_TAG_GROUP_KEY,
+    ANALYZED_GROUP_KEY,
+    UNANALYZED_GROUP_KEY,
     build_groups,
     normalize_group_by,
 )
+
+
+def _wait_for_image_search(page: ImagesPage) -> None:
+    for _ in range(150):
+        if not page._search_tasks:
+            return
+        QTest.qWait(20)
+    assert not page._search_tasks
 from app.utils.sort_order import SORT_FILENAME_ASC, SORT_MODIFIED_DESC
 from app.utils.thumbnail_cache import ThumbnailCache
 
@@ -114,6 +126,27 @@ def test_build_groups_tag_multi_membership_and_no_tag():
         assert {p.name for p in chrome} == {"a.png", "b.png"}
         assert {p.name for p in debug} == {"a.png"}
         assert [p.name for p in dict(groups)[NO_TAG_GROUP_KEY]] == ["c.png"]
+
+
+def test_build_groups_analysis_separates_pending_images():
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        ready = _touch_png(root / "ready.png")
+        pending = _touch_png(root / "pending.png")
+        groups = build_groups(
+            [ready, pending],
+            GROUP_BY_ANALYSIS,
+            {},
+            SORT_FILENAME_ASC,
+            {"pending.png"},
+        )
+        assert [key for key, _ in groups] == [
+            UNANALYZED_GROUP_KEY,
+            ANALYZED_GROUP_KEY,
+        ]
+        assert [p.name for p in dict(groups)[UNANALYZED_GROUP_KEY]] == [
+            "pending.png"
+        ]
 
 
 def test_images_page_group_by_ui_and_persistence():
@@ -211,7 +244,7 @@ def test_images_page_group_by_ui_and_persistence():
         # ⑤ Search keeps group by
         page._search_input.setText("Debug")
         page._on_search()
-        app.processEvents()
+        _wait_for_image_search(page)
         assert page._group_by == GROUP_BY_TAG
         headers = [
             page._list_widget.item(i).text()

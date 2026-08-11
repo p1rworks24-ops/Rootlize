@@ -13,7 +13,7 @@ import tempfile
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QImage
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QLabel
 
 from app.i18n import t
 from app.services.metadata_service import MetadataService
@@ -70,7 +70,7 @@ def _setup(tmp: str) -> tuple[Path, Path, Path, dict, MetadataService, ImagesPag
     return root, project_dir, image_path, config, service, images, tags
 
 
-def test_full_tag_checklist():
+def test_full_tag_checklist(monkeypatch):
     app = _ensure_app()
     with tempfile.TemporaryDirectory() as tmp:
         root, project_dir, image_path, config, service, images, tags = _setup(tmp)
@@ -80,8 +80,8 @@ def test_full_tag_checklist():
         assert t("images.tag.mode_existing") == "Existing Tag"
         assert t("images.tag.mode_new") == "New Tag"
         assert t("images.tag.assign") == "Add"
-        assert images._tag_assign_btn.text() == "Add"
-        assert images._tag_create_btn.text() == "Add"
+        assert images._tag_assign_btn.text() == "Add Tag"
+        assert not hasattr(images, "_tag_delete_btn")
 
         # Select image
         images.refresh()
@@ -92,7 +92,6 @@ def test_full_tag_checklist():
         assert images._info_widget.isEnabled()
 
         # ① Existing Tag: combo shows tags.json
-        assert images._tag_mode_existing_btn.isChecked()
         combo_tags = [
             images._tag_combo.itemText(i) for i in range(images._tag_combo.count())
         ]
@@ -113,8 +112,12 @@ def test_full_tag_checklist():
         chip_texts = []
         for i in range(images._tags_layout.count()):
             w = images._tags_layout.itemAt(i).widget()
-            if w is not None and hasattr(w, "text"):
-                chip_texts.append(w.text())
+            if w is not None:
+                label = w.findChild(QLabel, "currentTagChipLabel")
+                if label is not None:
+                    chip_texts.append(label.text())
+                    assert label.sizeHint().width() > 0
+                    assert w.sizeHint().width() > label.sizeHint().width()
         assert any("testcase" in text for text in chip_texts)
 
         # ④ Tags page still has master list (chip board)
@@ -127,11 +130,7 @@ def test_full_tag_checklist():
         }
 
         # ⑤⑥⑦⑧ New Tag: Debug
-        images._tag_mode_new_btn.click()
-        app.processEvents()
-        assert images._tag_new_row.isVisible()
-        images._tag_new_input.setText("Debug")
-        images._tag_create_btn.click()
+        images._create_and_assign_tag_name("Debug")
         app.processEvents()
 
         assert "Debug" in service.get_image_tags(project_dir, "shot.png")
@@ -146,8 +145,6 @@ def test_full_tag_checklist():
         assert tags._chip_buttons["Debug"].text() == "#Debug"
 
         # ⑨ Tags page add → Images combo updates without restart
-        images._tag_mode_existing_btn.click()
-        app.processEvents()
         tags._new_tag_input.setText("FromTags")
         tags._on_add()
         app.processEvents()
@@ -170,17 +167,12 @@ def test_full_tag_checklist():
         # ⑩ Duplicate assign
         # Put testcase back in combo by removing... it's already assigned so excluded.
         # Assign Debug again via create path (already global)
-        images._tag_mode_new_btn.click()
-        app.processEvents()
-        images._tag_new_input.setText("testcase")
-        images._tag_create_btn.click()
+        images._create_and_assign_tag_name("testcase")
         app.processEvents()
         tags_now = service.get_image_tags(project_dir, "shot.png")
         assert tags_now.count("testcase") == 1
 
         # Existing mode: pick FromTags and assign twice
-        images._tag_mode_existing_btn.click()
-        app.processEvents()
         idx = next(
             i
             for i in range(images._tag_combo.count())
@@ -193,8 +185,9 @@ def test_full_tag_checklist():
         app.processEvents()
         assert service.get_image_tags(project_dir, "shot.png").count("FromTags") == 1
 
-        # ⑪ Delete tag chip
-        images._delete_tag(image_path, "FromTags")
+        # ⑪ Delete selected tag from the Preview image
+        monkeypatch.setattr(images, "_confirm_tag_removal_dialog", lambda _tag: True)
+        images._confirm_remove_tag(image_path, "FromTags")
         app.processEvents()
         assert "FromTags" not in service.get_image_tags(project_dir, "shot.png")
 

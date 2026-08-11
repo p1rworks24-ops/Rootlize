@@ -5,15 +5,17 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-from PySide6.QtWidgets import QApplication, QListWidget
+from PySide6.QtWidgets import QApplication, QListWidget, QListWidgetItem, QStyleOptionViewItem
 
 from app.services.metadata_service import MetadataService
 from app.ui.caption_delegate import (
     ITEM_KIND_HEADER,
     ITEM_KIND_ROLE,
+    ITEM_KIND_IMAGE,
     ROLE_CAPTION_DATE,
     ROLE_CAPTION_NAME,
     ROLE_CAPTION_TAGS,
+    CaptionIconDelegate,
 )
 from app.ui.pages.images_page import ImagesPage
 from app.utils.group_by import GROUP_BY_TAG
@@ -101,6 +103,33 @@ def test_icon_mode_sets_caption_roles():
         ]
         assert headers
         assert headers[0].sizeHint().width() >= page._list_widget.viewport().width() - 16
+
+
+def test_long_filename_expands_card_height_for_full_caption():
+    app = _ensure_app()
+    widget = QListWidget()
+    delegate = CaptionIconDelegate(icon_size=64, cell_width=100, cell_height=128)
+    option = QStyleOptionViewItem()
+    option.font = widget.font()
+
+    short_item = QListWidgetItem()
+    short_item.setData(ITEM_KIND_ROLE, ITEM_KIND_IMAGE)
+    short_item.setData(ROLE_CAPTION_NAME, "short.png")
+    widget.addItem(short_item)
+
+    long_item = QListWidgetItem()
+    long_item.setData(ITEM_KIND_ROLE, ITEM_KIND_IMAGE)
+    long_item.setData(
+        ROLE_CAPTION_NAME,
+        "this_is_a_very_long_capture_filename_that_must_be_visible_in_full.png",
+    )
+    widget.addItem(long_item)
+    app.processEvents()
+
+    short_size = delegate.sizeHint(option, widget.model().index(0, 0))
+    long_size = delegate.sizeHint(option, widget.model().index(1, 0))
+    assert short_size.height() >= 128
+    assert long_size.height() > short_size.height()
 
 
 if __name__ == "__main__":

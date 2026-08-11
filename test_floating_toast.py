@@ -28,13 +28,13 @@ def test_toast_host_replaces_instead_of_stacking():
     app = _ensure_app()
     host = FloatingToastHost()
     host.show_success(
-        filename="a.png", project="Root", folder="Capture", duration_ms=5000
+        filename="a.png", folder="Capture", duration_ms=5000
     )
     app.processEvents()
     assert host._toast.isVisible()
 
     host.show_success(
-        filename="b.png", project="Root", folder="Other", duration_ms=5000
+        filename="b.png", folder="Other", duration_ms=5000
     )
     app.processEvents()
     assert host._toast.isVisible()
@@ -44,6 +44,7 @@ def test_toast_host_replaces_instead_of_stacking():
     ]
     assert "b.png" in lines
     assert any("Other" in line for line in lines)
+    assert not any("Project" in line for line in lines)
     host.shutdown()
 
 
@@ -60,7 +61,7 @@ def test_toast_hover_pauses_auto_timer():
     app = _ensure_app()
     host = FloatingToastHost()
     host.show_success(
-        filename="x.png", project="Root", folder="Capture", duration_ms=3000
+        filename="x.png", folder="Capture", duration_ms=3000
     )
     app.processEvents()
     toast = host._toast
@@ -81,7 +82,7 @@ def test_toast_close_button_dismisses():
     app = _ensure_app()
     host = FloatingToastHost()
     host.show_success(
-        filename="x.png", project="Root", folder="Capture", duration_ms=8000
+        filename="x.png", folder="Capture", duration_ms=8000
     )
     app.processEvents()
     host._toast.dismiss_now()
@@ -190,5 +191,14 @@ def test_main_window_shows_toast_after_save():
         app.processEvents()
         assert "filename" in shown
         assert shown["folder"] == "Capture"
+
+        # Toast folder follows the actual written path, not a stale/default
+        # config value.
+        shown.clear()
+        window._config["save_folder"] = "Default"
+        window._show_save_success_toast(
+            root / "screenshots" / "Configured Folder" / "saved.png"
+        )
+        assert shown["folder"] == "Configured Folder"
         window.close()
         app.processEvents()

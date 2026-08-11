@@ -1,4 +1,4 @@
-"""Tests for i18n catalog and Images tag assign modes."""
+"""Tests for i18n catalog and Images Preview tag actions."""
 
 from pathlib import Path
 import tempfile
@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QApplication, QListWidgetItem
 from app.i18n import get_locale, set_locale, t
 from app.i18n.en import MESSAGES
 from app.services.metadata_service import MetadataService
-from app.ui.pages.images_page import TAG_MODE_EXISTING, TAG_MODE_NEW, ImagesPage
+from app.ui.pages.images_page import ImagesPage
 from app.ui.pages.tags_page import TagsPage
 from app.utils.sort_order import sort_option_labels
 from app.utils.thumbnail_cache import ThumbnailCache
@@ -37,10 +37,24 @@ def test_i18n_default_locale_is_english():
     assert t("images.tag.create_assign") == "Add"
     assert t("images.tag.mode_existing") == "Existing Tag"
     assert t("images.tag.mode_new") == "New Tag"
+    assert t("images.tag.add_button") == "Add Tag"
+    assert t("images.tag.remove_title") == "Remove Tag"
 
 
 def test_i18n_format_kwargs():
     assert "boom" in t("images.tag.save_failed", error="boom")
+
+
+def test_preview_tag_copy_is_available_in_japanese():
+    set_locale("ja")
+    try:
+        assert t("images.tag.select_placeholder") == "タグを選択..."
+        assert t("images.tag.add_button") == "タグを追加"
+        assert t("images.tag.remove_title") == "タグを外す"
+        assert t("images.tag.current") == "現在のタグ"
+        assert t("images.tag.new_action") == "+ 新しいタグ"
+    finally:
+        set_locale("en")
 
 
 def test_i18n_unknown_key_returns_key():
@@ -63,10 +77,10 @@ def test_sort_and_view_labels_resolve():
     assert all(isinstance(label, str) and label for _, label in view_labels)
 
 
-def test_images_tag_modes_assign_and_tags_page_sync():
+def test_images_preview_tag_actions_and_tags_page_sync():
     """
     - Select existing tag from combo and Assign
-    - Switch mode, create new tag and assign
+    - Create a new tag and assign it to the Preview image
     - New tag appears on Tags page
     """
     app = _ensure_app()
@@ -106,11 +120,13 @@ def test_images_tag_modes_assign_and_tags_page_sync():
         app.processEvents()
 
         assert page._info_widget.isEnabled() is True
-        assert page._tag_mode_existing_btn.isChecked()
-        assert page._tag_existing_row.isVisible()
-        assert page._tag_new_row.isHidden()
         assert page._tag_combo.count() == 2
-        assert page._tag_assign_btn.isEnabled() is True
+        assert page._tag_combo.text() == "Select a tag..."
+        assert page._tag_assign_btn.isEnabled() is False
+        assert page._tag_combo._new_tag_button.text() == "+ New Tag"
+        assert not hasattr(page, "_tag_delete_btn")
+        assert not hasattr(page, "_tag_mode_existing_btn")
+        assert not hasattr(page, "_tag_mode_new_btn")
 
         # Existing: select alpha and Assign via button
         page._tag_combo.setCurrentIndex(
@@ -124,20 +140,14 @@ def test_images_tag_modes_assign_and_tags_page_sync():
         app.processEvents()
         assert service.get_image_tags(project_dir, image_path.name) == ["alpha"]
         assert [page._tag_combo.itemText(i) for i in range(page._tag_combo.count())] == [
+            "#alpha",
             "#beta"
         ]
-
-        # New: switch mode, create gamma, verify Tags page
-        page._tag_mode_new_btn.click()
-        app.processEvents()
-        assert page._tag_new_row.isVisible()
-        assert page._tag_existing_row.isHidden()
 
         emitted = {"count": 0}
         page.tags_changed.connect(lambda: emitted.__setitem__("count", emitted["count"] + 1))
 
-        page._tag_new_input.setText("gamma")
-        page._tag_create_btn.click()
+        page._create_and_assign_tag_name("  gamma  ")
         app.processEvents()
 
         tags = service.get_image_tags(project_dir, image_path.name)
@@ -157,10 +167,8 @@ def test_images_tag_modes_assign_and_tags_page_sync():
             "#gamma",
         }
 
-        # Back to existing mode still works
-        page._tag_mode_existing_btn.click()
-        app.processEvents()
-        assert page._tag_existing_row.isVisible()
+        assert page._current_tags_label.text() == "Current Tags"
+        assert not hasattr(page, "_tag_remove_btn")
 
 
 def test_invalid_png_still_allows_tagging():
@@ -206,6 +214,6 @@ if __name__ == "__main__":
     test_i18n_unknown_key_returns_key()
     test_i18n_catalog_has_no_empty_values()
     test_sort_and_view_labels_resolve()
-    test_images_tag_modes_assign_and_tags_page_sync()
+    test_images_preview_tag_actions_and_tags_page_sync()
     test_invalid_png_still_allows_tagging()
     print("All i18n / tag mode tests passed.")

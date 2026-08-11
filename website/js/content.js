@@ -1,95 +1,56 @@
-/**
- * Capixe landing page content — edit URLs, version, and copy here.
- * Loaded before main.js; HTML data-* keys are filled at runtime.
- *
- * Screenshots: append objects to `screenshots` to grow the gallery (6+ supported).
- * Each item needs: src, alt, caption, slot (unique id). Optional: placeholder: true
- */
+/** Capixe landing-page content. */
 window.CAPIXE = {
   brand: {
     name: "Capixe",
     tagline: "Find the screenshot you need. Right now.",
-    description:
-      "Stop digging through folders for an image you know you saved. Capixe gives every capture a searchable home, so you can recover the right information without breaking your flow.",
+    description: "Stop digging through folders for an image you know you saved. Capixe gives every capture a searchable home, so you can recover the right information without breaking your flow.",
   },
   version: {
-    /** Shown as the channel line, e.g. Prototype Preview */
     channel: "Prototype Preview",
-    /** Semver-style value without a leading "v" */
     number: "0.1.0-preview",
-    /** Full line: Version 0.1.0-preview */
-    get label() {
-      return "Version " + this.number;
-    },
+    get label() { return "Version " + this.number; },
     platform: "Windows",
   },
-  downloadBadges: [
-    "Windows",
-    "Free",
-    "No account required",
-    "Local-first",
-  ],
+  downloadBadges: ["Windows", "Free", "No account required", "Local-first"],
   urls: {
     github: "https://github.com/p1rworks24-ops/Capixe",
     releases: "https://github.com/p1rworks24-ops/Capixe/releases",
-    releasesApi:
-      "https://api.github.com/repos/p1rworks24-ops/Capixe/releases?per_page=10",
-    download:
-      "https://github.com/p1rworks24-ops/Capixe/releases/download/v0.1.0-preview/Capixe-v0.1.0-preview-win64.zip",
+    releasesApi: "https://api.github.com/repos/p1rworks24-ops/Capixe/releases?per_page=10",
+    download: "https://github.com/p1rworks24-ops/Capixe/releases/download/v0.1.0-preview/Capixe-v0.1.0-preview-win64.zip",
     license: "https://github.com/p1rworks24-ops/Capixe/blob/master/LICENSE",
     issues: "https://github.com/p1rworks24-ops/Capixe/issues",
-    bugReport:
-      "https://github.com/p1rworks24-ops/Capixe/issues/new?template=bug_report.yml",
-    featureRequest:
-      "https://github.com/p1rworks24-ops/Capixe/issues/new?template=feature_request.yml",
-    contact:
-      "https://github.com/p1rworks24-ops/Capixe/issues/new?template=feature_request.yml",
+    bugReport: "https://github.com/p1rworks24-ops/Capixe/issues/new?template=bug_report.yml",
+    featureRequest: "https://github.com/p1rworks24-ops/Capixe/issues/new?template=feature_request.yml",
+    contact: "https://github.com/p1rworks24-ops/Capixe/issues/new?template=feature_request.yml",
   },
-  /**
-   * Gallery is data-driven. Add more entries (and image files) to expand past 6.
-   * CSS uses auto-fit grid — no layout change required when the list grows.
-   * Prefer full-window PNGs; CSS uses object-fit: contain (no cropping).
-   */
   screenshots: [
     {
       src: "assets/screenshots/images.png",
-      alt: "Capixe Images — browse screenshots grouped by tag with search",
-      caption: "Images — find the right screenshot instantly",
+      alt: "Capixe Images - browse and analyze a selected screenshot folder",
+      caption: "Images - choose a folder, analyze, and search",
       slot: "images",
     },
     {
-      src: "assets/screenshots/organize.png",
-      alt: "Capixe Organize — bulk tags and rename on a screenshot grid",
-      caption: "Organize — update entire sets in a few clicks",
-      slot: "organize",
-    },
-    {
       src: "assets/screenshots/home.png",
-      alt: "Capixe Home — library overview, root folder, and capture bar",
-      caption: "Home — see your whole library at a glance",
+      alt: "Capixe Home - library overview, root folder, and capture bar",
+      caption: "Home - see your whole library at a glance",
       slot: "home",
     },
     {
-      src: "assets/screenshots/tags.png",
-      alt: "Capixe Tags — create and manage tags for your library",
-      caption: "Tags — organize images using words you remember",
-      slot: "tags",
-    },
-    {
       src: "assets/screenshots/about.png",
-      alt: "Capixe About — brand, version, repository and feedback links",
-      caption: "About — check version details and share feedback",
+      alt: "Capixe About - brand, version, repository, and feedback links",
+      caption: "About - check version details and share feedback",
       slot: "about",
     },
   ],
   faq: [
     {
       q: "Is my data sent to the cloud?",
-      a: "No. Capixe is local-first. Screenshots, settings, and tags stay on your PC. Capixe does not upload your images to a Capixe cloud service.",
+      a: "No. Capixe is local-first. Screenshots, settings, and the image-analysis index stay on your PC. Capixe does not upload your images to a Capixe cloud service.",
     },
     {
       q: "Does Capixe work offline?",
-      a: "Yes. After you download the app, capture, browsing, tags, and organize tools work without an internet connection.",
+      a: "Yes. After you download the app, capture, browsing, local image analysis, and search work without an internet connection.",
     },
     {
       q: "Is Capixe free?",

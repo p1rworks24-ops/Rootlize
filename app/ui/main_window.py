@@ -5,6 +5,7 @@ from PySide6.QtCore import (
     QEasingCurve,
     QPropertyAnimation,
     QParallelAnimationGroup,
+    QPoint,
     QSize,
     Qt,
     QTimer,
@@ -18,8 +19,8 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QPushButton,
     QStackedWidget,
-    QComboBox,
     QFrame,
+    QFileDialog,
     QGraphicsOpacityEffect,
     QLabel,
     QScrollArea,
@@ -27,21 +28,58 @@ from PySide6.QtWidgets import (
     QToolButton,
 )
 
-# Soft floor so Settings defaults (e.g. 1050×600) are not also the drag minimum
+from app.ui.design_tokens import (
+    CAPTURE_BAR_HEIGHT,
+    CAPTURE_BAR_ITEM_GAP,
+    CAPTURE_BAR_PADDING_X,
+    CAPTURE_BUTTON_HEIGHT,
+    CAPTURE_BUTTON_WIDTH,
+    CAPTURE_EDGE_BUTTON_HEIGHT,
+    CAPTURE_FIELD_HEIGHT,
+    CAPTURE_FIELD_TITLE_HEIGHT,
+    NAV_RESPONSIVE_BREAKPOINT,
+    apply_card_shadow,
+)
+
+# Soft floor so the configured default size is not also the drag minimum
 _WINDOW_MIN_WIDTH = 720
 _WINDOW_MIN_HEIGHT = 480
 
 
-class _BottomBarScroll(QScrollArea):
-    """Horizontal strip that must not inflate the main window minimum width."""
+class _CaptureSettingsScroll(QScrollArea):
+    """Shrinkable settings strip that leaves toolbar actions in the main layout."""
 
     def minimumSizeHint(self) -> QSize:
         hint = super().minimumSizeHint()
-        return QSize(0, max(hint.height(), 88))
+        return QSize(0, max(hint.height(), CAPTURE_BAR_HEIGHT))
 
     def sizeHint(self) -> QSize:
         hint = super().sizeHint()
-        return QSize(min(hint.width(), 800), max(hint.height(), 88))
+        return QSize(min(hint.width(), 640), max(hint.height(), CAPTURE_BAR_HEIGHT))
+
+
+class _CaptureFlatField(QWidget):
+    """Mode-like label + control without a surrounding setting card."""
+
+    def __init__(self, label_text: str, control: QWidget, parent=None) -> None:
+        super().__init__(parent)
+        self.setObjectName("captureFlatField")
+        self.setFixedHeight(CAPTURE_FIELD_HEIGHT)
+        self._control = control
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(2)
+        label = QLabel(label_text, self)
+        label.setObjectName("captureModeSelectorLabel")
+        label.setFixedHeight(CAPTURE_FIELD_TITLE_HEIGHT)
+        self.label = label
+        layout.addWidget(label)
+        control.setObjectName("captureFlatCombo")
+        control.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        layout.addWidget(control)
+
+    def set_hint(self, text: str) -> None:
+        self._control.setToolTip((text or "").strip())
 
 from app.config import save_config
 from app.i18n import t
@@ -65,25 +103,25 @@ from app.services.shortcut_spec import (
     ACTION_REGION_CAPTURE,
     load_shortcuts_from_config,
 )
-from app.ui.capture_mode_cycle import CaptureModeCycleButton
+from app.ui.capture_mode_selector import CaptureModeSelector
 from app.ui.capture_panel_window import CapturePanelWindow
 from app.ui.capture_settings import (
     CaptureTagCombo,
-    CompactField,
     FilenameRuleCombo,
-    UpwardComboBox,
     field_separator,
 )
 from app.ui.floating_toast import FloatingToastHost
 from app.ui.icons import (
     icon_about,
     icon_ai,
+    icon_collapse_capture,
+    icon_capture_panel,
+    icon_expand_capture,
     icon_organize,
     icon_fullscreen_capture,
     icon_home,
     icon_images,
     icon_region_capture,
-    icon_save_folder_star,
     icon_settings,
     icon_tags,
 )
@@ -91,14 +129,19 @@ from app.ui.pages.about_page import AboutPage
 from app.ui.pages.home_page import HomePage
 from app.ui.pages.images_page import ImagesPage, THUMBNAIL_ICON_SIZE
 from app.ui.pages.settings_page import SettingsPage
+from app.ui.ocr_test_controller import ImageAnalysisController
 from app.ui.pages.tags_page import TagsPage
 from app.ui.pages.work_page import WorkPage
 from app.ui.side_nav import SideNav
 from app.ui.styles import APP_STYLE
+from app.ui.welcome_dialog import WelcomeDialog
+from app.paths import is_frozen
 from app.utils.filename_template import DEFAULT_FILENAME_TEMPLATE
 from app.utils.save_folder import list_folder_names
+from app.utils.selected_folder import selected_folder_state
 from app.utils.snipping_toast import snipping_toast_suppressor
 from app.utils.thumbnail_cache import ThumbnailCache
+from app.utils.window_acrylic import set_windows_caption_color
 from app.utils.workspace import (
     DEFAULT_FOLDER,
     pick_folder_name,
@@ -117,6 +160,10 @@ PAGE_ACTION = PAGE_ORGANIZE  # backward-compatible alias
 PAGE_TAGS = 3
 PAGE_SETTINGS = 4
 PAGE_ABOUT = 5
+
+# Temporarily retired from the product navigation. Keep the implementations and
+# stack positions intact so restoring both pages is a one-line change.
+MANAGEMENT_PAGES_ENABLED = False
 
 # (page_id, i18n key, icon factory, navAccent for per-item colors)
 NAV_ITEMS = [
@@ -161,17 +208,17 @@ class MainWindow(QMainWindow):
         if not _icon.isNull():
             self.setWindowIcon(_icon)
         self.resize(
-            config.get("window_width", 1050),
-            config.get("window_height", 600),
+            config.get("window_width", 1600),
+            config.get("window_height", 900),
         )
         self.setStyleSheet(APP_STYLE)
+        set_windows_caption_color(self, "#F3F6FA")
 
         self._metadata_service = MetadataService()
         self._thumbnail_cache = ThumbnailCache(size=THUMBNAIL_ICON_SIZE)
         self._image_saver = ImageSaver(config, self._metadata_service, self._app_root)
         self._screenshot_session = ScreenshotSession(parent=self)
         self._screenshot_session.finished.connect(self._on_screenshot_session_finished)
-        self._pending_recent_path: str | None = None
         self._page_before_screenshot = PAGE_HOME
         self._minimized_for_capture = False
         self._keep_minimized_after_capture = False
@@ -208,22 +255,61 @@ class MainWindow(QMainWindow):
         # App-owned floating toast (not Windows notification center)
         self._toast_host = FloatingToastHost(self)
 
-        self._show_page(PAGE_HOME)
+        _selected, folder_state = selected_folder_state(
+            self._config, self._app_root
+        )
+        self._show_page(PAGE_HOME if folder_state == "ready" else PAGE_IMAGES)
 
     def arm_capture_hotkeys(self) -> None:
         """Enable global Capture shortcuts after startup UI is ready."""
         if hasattr(self, "_hotkey_manager"):
             self._hotkey_manager.set_armed(True)
 
+    def show_welcome_if_needed(self) -> None:
+        """Show the lightweight first-run guide after the main UI is visible."""
+        # Source launches are the local design/QA environment and intentionally
+        # preview onboarding every time. Packaged users see it only once.
+        if is_frozen() and bool(self._config.get("onboarding_completed", False)):
+            return
+        existing = getattr(self, "_welcome_dialog", None)
+        if existing is not None and existing.isVisible():
+            existing.raise_()
+            existing.activateWindow()
+            return
+        dialog = WelcomeDialog(self)
+        self._welcome_dialog = dialog
+        dialog.finished.connect(
+            lambda _result, current=dialog: self._complete_welcome(current)
+        )
+        dialog.open()
+        dialog.raise_()
+        dialog.activateWindow()
+
+    def _complete_welcome(self, dialog: WelcomeDialog) -> None:
+        """Persist completion only after the displayed dialog actually closes."""
+        if getattr(self, "_welcome_dialog", None) is not dialog:
+            return
+        self._welcome_dialog = None
+        self._config["onboarding_completed"] = True
+        try:
+            save_config(self._config)
+        except OSError:
+            pass
+        if dialog.go_to_images:
+            self._show_page(PAGE_IMAGES)
+
     def _init_ui(self) -> None:
         central = QWidget(self)
+        central.setObjectName("appShell")
         root = QHBoxLayout(central)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
         self._side_nav = SideNav(self)
-        # Home → Images → Organize → Tags, then AI placeholder, then Settings → About
-        for page_id, label_key, icon_fn, accent in NAV_ITEMS[:4]:
+        primary_nav_items = NAV_ITEMS[:2]
+        if MANAGEMENT_PAGES_ENABLED:
+            primary_nav_items += NAV_ITEMS[2:4]
+        for page_id, label_key, icon_fn, accent in primary_nav_items:
             self._side_nav.add_nav_item(
                 page_id, t(label_key), icon_fn(), accent=accent
             )
@@ -238,10 +324,15 @@ class MainWindow(QMainWindow):
                 page_id, t(label_key), icon_fn(), accent=accent
             )
         self._side_nav.add_stretch()
+        self._side_nav.add_test_user()
         self._side_nav.page_selected.connect(self._show_page)
+        self._side_nav._anim.valueChanged.connect(
+            lambda _value: self._sync_capture_bar_geometry()
+        )
         root.addWidget(self._side_nav)
 
         content_column = QWidget(self)
+        content_column.setObjectName("appContent")
         content_layout = QVBoxLayout(content_column)
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(0)
@@ -254,28 +345,30 @@ class MainWindow(QMainWindow):
             self._thumbnail_cache,
             self._app_root,
             self,
+            management_pages_enabled=MANAGEMENT_PAGES_ENABLED,
         )
-        self._home_page.open_images_requested.connect(
-            lambda: self._show_page(PAGE_IMAGES)
-        )
-        self._home_page.open_action_requested.connect(
-            lambda: self._show_page(PAGE_ORGANIZE)
-        )
-        self._home_page.open_tags_requested.connect(
-            lambda: self._show_page(PAGE_TAGS)
-        )
-        self._home_page.open_settings_requested.connect(
-            lambda: self._show_page(PAGE_SETTINGS)
-        )
+        self._home_page.folder_changed.connect(self._on_home_folder_changed)
 
+        self._image_analysis_controller = ImageAnalysisController(self)
         self._images_page = ImagesPage(
             self._config,
             self._metadata_service,
             self._thumbnail_cache,
             self._app_root,
             self,
+            analysis_controller=self._image_analysis_controller,
         )
         self._images_page.folder_changed.connect(self._on_images_folder_changed)
+        if self._images_page._analysis_bar is not None:
+            self._images_page._analysis_bar.analysis_summary_changed.connect(
+                self._home_page.set_analysis_summary
+            )
+            self._images_page._analysis_bar.analysis_progress_changed.connect(
+                self._home_page.set_analysis_progress
+            )
+        self._images_page._splitter.splitterMoved.connect(
+            lambda _pos, _index: self._sync_capture_bar_geometry()
+        )
 
         self._work_page = WorkPage(
             self._config,
@@ -296,17 +389,21 @@ class MainWindow(QMainWindow):
         )
         self._tags_page.tags_changed.connect(self._on_tags_changed)
         self._images_page.tags_changed.connect(self._on_images_tags_changed)
+        self._images_page.tags_page_requested.connect(
+            lambda: self._show_page(PAGE_TAGS)
+        )
 
-        self._settings_page = SettingsPage(self._config, self._app_root, self)
+        self._settings_page = SettingsPage(
+            self._config,
+            self._app_root,
+            self,
+            ocr_controller=self._image_analysis_controller,
+        )
         self._settings_page.settings_saved.connect(self._on_settings_saved)
         self._settings_page.shortcuts_changed.connect(self._reload_capture_hotkeys)
         self._settings_page.window_size_changed.connect(
             self._apply_window_size_from_settings
         )
-        self._home_page.browse_root_requested.connect(
-            self._settings_page.browse_root_folder
-        )
-
         self._about_page = AboutPage(self)
 
         self._stack.addWidget(self._home_page)  # 0
@@ -321,107 +418,172 @@ class MainWindow(QMainWindow):
         # Capture toolbar — separate controls, aligned with settings fields
         bottom_host = QWidget(self)
         bottom_host.setObjectName("globalBottomBarHost")
+        self._capture_bar_host = bottom_host
         bottom_host.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         bottom_host_layout = QVBoxLayout(bottom_host)
-        bottom_host_layout.setContentsMargins(16, 10, 16, 12)
-        bottom_host_layout.setSpacing(0)
+        bottom_host_layout.setContentsMargins(12, 4, 12, 8)
+        bottom_host_layout.setSpacing(2)
 
-        # Horizontal scroll when the window is narrower than the capture chrome
-        bottom_scroll = _BottomBarScroll(bottom_host)
-        bottom_scroll.setObjectName("globalBottomBarScroll")
-        bottom_scroll.setWidgetResizable(True)
-        bottom_scroll.setFrameShape(QFrame.NoFrame)
-        bottom_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        bottom_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        bottom_scroll.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        bottom_scroll.setMinimumHeight(88)
-        bottom_scroll.setMinimumWidth(0)
+        self._capture_bar_restore_row = QWidget(bottom_host)
+        self._capture_bar_restore_row.setObjectName("captureBarRestoreRow")
+        restore_layout = QHBoxLayout(self._capture_bar_restore_row)
+        restore_layout.setContentsMargins(0, 6, CAPTURE_BAR_PADDING_X, 0)
+        restore_layout.setSpacing(0)
+        self._capture_bar_restore_btn = QPushButton("", self._capture_bar_restore_row)
+        self._capture_bar_restore_btn.setObjectName("captureBarToggleButton")
+        self._capture_bar_restore_btn.setIcon(icon_expand_capture())
+        self._capture_bar_restore_btn.setIconSize(QSize(14, 14))
+        self._capture_bar_restore_btn.setCursor(Qt.PointingHandCursor)
+        self._capture_bar_restore_btn.setFixedSize(
+            CAPTURE_EDGE_BUTTON_HEIGHT, CAPTURE_EDGE_BUTTON_HEIGHT
+        )
+        self._capture_bar_restore_btn.clicked.connect(self._toggle_capture_bar)
+        restore_layout.addStretch(1)
+        restore_layout.addWidget(self._capture_bar_restore_btn)
+        bottom_host_layout.addWidget(self._capture_bar_restore_row)
 
-        bottom_bar = QWidget(bottom_scroll)
+        # One stable toolbar layout. Only the settings group may scroll when the
+        # window is narrow; Hide / Capture / Capture Panel stay in this row.
+        bottom_bar = QWidget(bottom_host)
         bottom_bar.setObjectName("globalBottomBar")
+        self._capture_bar = bottom_bar
         bottom_bar.setMinimumWidth(0)
-        bottom_bar_layout = QHBoxLayout(bottom_bar)
-        bottom_bar_layout.setContentsMargins(18, 12, 18, 12)
-        bottom_bar_layout.setSpacing(12)
+        bottom_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+
+        capture_card_layout = QVBoxLayout(bottom_bar)
+        capture_card_layout.setContentsMargins(
+            CAPTURE_BAR_PADDING_X,
+            18,
+            CAPTURE_BAR_PADDING_X,
+            19,
+        )
+        capture_card_layout.setSpacing(0)
+
+        capture_title_row = QWidget(bottom_bar)
+        capture_title_row.setObjectName("captureBarTitleRow")
+        capture_title_row.setFixedHeight(CAPTURE_EDGE_BUTTON_HEIGHT)
+        self._capture_bar_title_row = capture_title_row
+        capture_title_layout = QHBoxLayout(capture_title_row)
+        capture_title_layout.setContentsMargins(0, 0, 0, 0)
+        capture_title_layout.setSpacing(7)
+
+        capture_title_icon = QLabel(capture_title_row)
+        capture_title_icon.setObjectName("captureBarTitleIcon")
+        capture_title_icon.setFixedSize(20, 20)
+        capture_title_icon.setPixmap(
+            icon_fullscreen_capture(color="#2563eb").pixmap(18, 18)
+        )
+        capture_title_icon.setAlignment(Qt.AlignCenter)
+        self._capture_bar_title_icon = capture_title_icon
+        capture_title_layout.addWidget(capture_title_icon)
+
+        capture_title = QLabel(t("shell.capture_bar.title"), capture_title_row)
+        capture_title.setObjectName("captureBarTitle")
+        self._capture_bar_title = capture_title
+        capture_title_layout.addWidget(capture_title)
+        capture_title_layout.addStretch(1)
+
+        self._capture_bar_toggle_btn = QPushButton("", capture_title_row)
+        self._capture_bar_toggle_btn.setObjectName("captureBarToggleButton")
+        self._capture_bar_toggle_btn.setIcon(icon_collapse_capture())
+        self._capture_bar_toggle_btn.setIconSize(QSize(14, 14))
+        self._capture_bar_toggle_btn.setCursor(Qt.PointingHandCursor)
+        self._capture_bar_toggle_btn.setFixedSize(
+            CAPTURE_EDGE_BUTTON_HEIGHT, CAPTURE_EDGE_BUTTON_HEIGHT
+        )
+        self._capture_bar_toggle_btn.clicked.connect(self._toggle_capture_bar)
+        capture_title_layout.addWidget(self._capture_bar_toggle_btn)
+
+        capture_controls_row = QWidget(bottom_bar)
+        capture_controls_row.setObjectName("captureBarControlsRow")
+        bottom_bar_layout = QHBoxLayout(capture_controls_row)
+        self._capture_bar_layout = bottom_bar_layout
+        bottom_bar_layout.setContentsMargins(0, 0, 0, 0)
+        bottom_bar_layout.setSpacing(CAPTURE_BAR_ITEM_GAP)
         bottom_bar_layout.setAlignment(Qt.AlignVCenter)
+
         bottom_bar_layout.addStretch(1)
 
-        # 1) Capture button (primary action)
-        self._capture_btn = QToolButton(bottom_bar)
+        # 1) Capture button (primary action). Its icon and mode label live in
+        # the button itself, matching the compact reference CTA.
+        capture_action_field = QWidget(bottom_bar)
+        capture_action_field.setObjectName("captureActionField")
+        capture_action_field.setFixedHeight(CAPTURE_BUTTON_HEIGHT)
+        self._capture_action_field = capture_action_field
+        capture_action_layout = QVBoxLayout(capture_action_field)
+        # Extra trailing inset separates the primary action from Mode without
+        # changing the spacing used by the rest of the capture bar.
+        capture_action_layout.setContentsMargins(0, 0, 8, 0)
+        capture_action_layout.setSpacing(0)
+
+        self._capture_btn = QToolButton(capture_action_field)
         self._capture_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self._capture_btn.setAccessibleName(t("shell.capture.action"))
         self._capture_btn.setCursor(Qt.PointingHandCursor)
-        self._capture_btn.setFixedSize(78, 64)
+        self._capture_btn.setFixedSize(CAPTURE_BUTTON_WIDTH, CAPTURE_BUTTON_HEIGHT)
         self._capture_btn.setIconSize(QSize(20, 20))
         self._capture_btn.clicked.connect(self._on_capture_clicked)
-        self._capture_btn_fx = QGraphicsOpacityEffect(self._capture_btn)
-        self._capture_btn.setGraphicsEffect(self._capture_btn_fx)
-        bottom_bar_layout.addWidget(self._capture_btn, 0, Qt.AlignVCenter)
+        capture_action_layout.addWidget(self._capture_btn, 0, Qt.AlignHCenter)
+        bottom_bar_layout.addWidget(capture_action_field, 0, Qt.AlignVCenter)
+        bottom_bar_layout.addSpacing(12)
 
-        # 2) Mode cycle (own control — CompactField-like height)
-        self._cycle_mode_btn = CaptureModeCycleButton(bottom_bar)
-        self._cycle_mode_btn.clicked.connect(self._cycle_capture_mode)
-        bottom_bar_layout.addWidget(self._cycle_mode_btn, 0, Qt.AlignVCenter)
-
-        # 3) Mode description (own column — mirrors CompactField label/value)
-        desc_card = QFrame(bottom_bar)
-        desc_card.setObjectName("captureModeDescCard")
-        desc_card.setMinimumWidth(128)
-        desc_card.setMaximumWidth(168)
-        desc_card_layout = QVBoxLayout(desc_card)
-        desc_card_layout.setContentsMargins(0, 0, 0, 0)
-        desc_card_layout.setSpacing(4)
-        self._capture_desc_caption = QLabel(t("shell.capture.mode_caption"), desc_card)
-        self._capture_desc_caption.setObjectName("captureModeDescCaption")
-        desc_card_layout.addWidget(self._capture_desc_caption)
-        self._capture_desc = QLabel(desc_card)
-        self._capture_desc.setObjectName("captureModeDescription")
-        self._capture_desc.setWordWrap(True)
-        self._capture_desc.setAlignment(Qt.AlignLeft | Qt.AlignTop)
-        # No QGraphicsOpacityEffect on description — it vanishes on window resize
-        desc_card_layout.addWidget(self._capture_desc, stretch=1)
-        bottom_bar_layout.addWidget(desc_card, 0, Qt.AlignVCenter)
+        # 2) Explicit mode selector. It changes state only; Capture executes it.
+        self._capture_mode_selector = CaptureModeSelector(bottom_bar)
+        self._capture_mode_selector.mode_selected.connect(self._set_capture_mode)
+        bottom_bar_layout.addWidget(
+            self._capture_mode_selector, 0, Qt.AlignVCenter
+        )
 
         # Soft separator before settings (keeps capture controls distinct)
         bar_divider = QFrame(bottom_bar)
         bar_divider.setObjectName("captureBarDivider")
         bar_divider.setFixedWidth(1)
-        bar_divider.setFixedHeight(48)
-        bottom_bar_layout.addSpacing(4)
+        bar_divider.setFixedHeight(36)
+        bottom_bar_layout.addSpacing(2)
         bottom_bar_layout.addWidget(bar_divider, 0, Qt.AlignVCenter)
-        bottom_bar_layout.addSpacing(4)
+        bottom_bar_layout.addSpacing(2)
 
-        # 4) Settings fields
-        settings_strip = QFrame(bottom_bar)
-        settings_strip.setObjectName("captureSettingsStrip")
+        # 4) Settings fields. This is the only shrinkable/scrollable segment;
+        # the primary and secondary actions remain ordinary toolbar widgets.
+        settings_scroll = _CaptureSettingsScroll(bottom_bar)
+        self._capture_settings_scroll = settings_scroll
+        settings_scroll.setObjectName("captureSettingsScroll")
+        settings_scroll.setWidgetResizable(True)
+        settings_scroll.setFrameShape(QFrame.NoFrame)
+        settings_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        settings_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        settings_scroll.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        settings_scroll.setFixedHeight(CAPTURE_FIELD_HEIGHT)
+        settings_scroll.setMinimumWidth(0)
+        settings_scroll.setMaximumWidth(360)
+
+        settings_strip = QWidget(settings_scroll)
+        settings_strip.setObjectName("captureSettingsFlatStrip")
+        self._capture_settings_strip = settings_strip
         settings_strip.setMinimumWidth(0)
-        settings_strip.setMaximumWidth(640)
+        settings_strip.setMaximumWidth(360)
         settings_strip.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         strip_layout = QHBoxLayout(settings_strip)
-        strip_layout.setContentsMargins(14, 8, 14, 8)
-        strip_layout.setSpacing(12)
+        strip_layout.setContentsMargins(0, 0, 0, 0)
+        strip_layout.setSpacing(8)
         strip_layout.setAlignment(Qt.AlignVCenter)
 
-        self._folder_combo = UpwardComboBox(settings_strip)
-        self._folder_combo.setCursor(Qt.PointingHandCursor)
-        self._folder_combo.setToolTip(t("shell.save_destination_tooltip"))
-        self._folder_combo.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-        self._folder_combo.setMinimumWidth(110)
-        self._folder_combo.activated.connect(self._on_toolbar_folder_chosen)
-        strip_layout.addWidget(
-            CompactField(
-                t("shell.save_destination"),
-                self._folder_combo,
-                settings_strip,
-                leading_icon=icon_save_folder_star(size=12),
-            ),
-            stretch=1,
+        self._save_folder_btn = QPushButton(settings_strip)
+        self._save_folder_btn.setObjectName("captureSaveFolderButton")
+        self._save_folder_btn.setCursor(Qt.PointingHandCursor)
+        self._save_folder_btn.setMinimumWidth(110)
+        self._save_folder_btn.clicked.connect(self._choose_capture_save_folder)
+        self._save_folder_field = _CaptureFlatField(
+            t("shell.capture_bar.folder"), self._save_folder_btn, settings_strip
         )
+        self._save_folder_btn.setObjectName("captureSaveFolderButton")
+        strip_layout.addWidget(self._save_folder_field, stretch=1)
         strip_layout.addWidget(field_separator(settings_strip))
 
         self._filename_combo = FilenameRuleCombo(settings_strip)
         self._filename_combo.template_changed.connect(self._on_filename_template_changed)
-        self._filename_field = CompactField(
-            t("shell.save_filename_title"),
+        self._filename_field = _CaptureFlatField(
+            t("shell.capture_bar.filename"),
             self._filename_combo,
             settings_strip,
         )
@@ -434,53 +596,73 @@ class MainWindow(QMainWindow):
         )
         self._capture_tag_combo.set_tags(list(self._config.get("capture_tags") or []))
         self._capture_tag_combo.tags_changed.connect(self._on_capture_tags_changed)
-        strip_layout.addWidget(
-            CompactField(
-                t("shell.capture_tags"), self._capture_tag_combo, settings_strip
-            ),
-            stretch=1,
+        self._capture_tags_field = _CaptureFlatField(
+            t("shell.capture_bar.tags"), self._capture_tag_combo, settings_strip
         )
+        strip_layout.addWidget(self._capture_tags_field, stretch=1)
 
-        bottom_bar_layout.addWidget(settings_strip, 0, Qt.AlignVCenter)
+        settings_scroll.setWidget(settings_strip)
+        bottom_bar_layout.addWidget(settings_scroll, 0, Qt.AlignVCenter)
+
+        # Secondary utility group: keep it in the stable toolbar layout while
+        # distinguishing it from the save settings group.
+        secondary_divider = QFrame(bottom_bar)
+        secondary_divider.setObjectName("captureBarDivider")
+        secondary_divider.setFixedWidth(1)
+        secondary_divider.setFixedHeight(36)
+        bottom_bar_layout.addSpacing(2)
+        bottom_bar_layout.addWidget(secondary_divider, 0, Qt.AlignVCenter)
+        bottom_bar_layout.addSpacing(2)
 
         # Capture Panel opener — button + short hint (matches CompactField rhythm)
         panel_field = QWidget(bottom_bar)
         panel_field.setObjectName("capturePanelField")
-        panel_field_layout = QVBoxLayout(panel_field)
+        self._capture_panel_field = panel_field
+        panel_field.setFixedHeight(CAPTURE_FIELD_HEIGHT)
+        panel_field_layout = QHBoxLayout(panel_field)
         panel_field_layout.setContentsMargins(0, 0, 0, 0)
-        panel_field_layout.setSpacing(2)
-        panel_field_layout.setAlignment(Qt.AlignTop)
+        panel_field_layout.setSpacing(8)
+        panel_field_layout.setAlignment(Qt.AlignVCenter)
 
         self._capture_panel_btn = QPushButton(
-            t("shell.capture_panel.button"), panel_field
+            "", panel_field
         )
         self._capture_panel_btn.setObjectName("capturePanelPopOutButton")
+        self._capture_panel_btn.setIcon(icon_capture_panel())
+        self._capture_panel_btn.setIconSize(QSize(20, 20))
         self._capture_panel_btn.setCursor(Qt.PointingHandCursor)
+        self._capture_panel_btn.setFixedSize(36, 36)
+        self._capture_panel_btn.setAccessibleName(t("shell.capture_panel.button"))
         self._capture_panel_btn.setToolTip(t("shell.capture_panel.pop_out_tooltip"))
         self._capture_panel_btn.clicked.connect(self._toggle_capture_panel)
         panel_field_layout.addWidget(self._capture_panel_btn)
 
-        panel_hint = QLabel(t("shell.capture_panel.hint"), panel_field)
-        panel_hint.setObjectName("capturePanelFieldHint")
-        panel_hint.setWordWrap(True)
-        panel_hint.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        panel_hint = QLabel(t("shell.capture_panel.use_hint"), panel_field)
+        panel_hint.setObjectName("capturePanelUseHint")
+        panel_hint.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self._capture_panel_use_hint = panel_hint
         panel_field_layout.addWidget(panel_hint)
 
         bottom_bar_layout.addWidget(panel_field, 0, Qt.AlignVCenter)
 
         bottom_bar_layout.addStretch(1)
-        bottom_scroll.setWidget(bottom_bar)
-        bottom_host_layout.addWidget(bottom_scroll)
 
-        # Fixed footer — page content scrolls; bar scrolls horizontally when narrow
+        capture_card_layout.addWidget(capture_controls_row)
+        bottom_host_layout.addWidget(bottom_bar)
+        capture_title_row.raise_()
+        apply_card_shadow(bottom_bar, blue_tinted=True)
+
+        # Fixed footer; only the settings segment scrolls when space is limited.
         content_layout.addWidget(bottom_host, stretch=0)
 
         self._mode_fade = QParallelAnimationGroup(self)
         self._mode_fade_gen = 0
+        self._capture_bar_animation: QPropertyAnimation | None = None
         self._refresh_capture_mode_ui(animate=False)
 
         root.addWidget(content_column, stretch=1)
         self.setCentralWidget(central)
+        self._apply_navigation_density()
 
         self._refresh_folder_selector()
         self._filename_combo.set_template(
@@ -489,13 +671,108 @@ class MainWindow(QMainWindow):
         self._capture_tag_combo.set_tags(list(self._config.get("capture_tags") or []))
         # Ensure Settings page widgets mirror the last-used config on launch
         self._settings_page.refresh()
+        self._set_capture_bar_visible(
+            bool(self._config.get("capture_bar_visible", True)),
+            persist=False,
+            animate=False,
+        )
+
+    def _toggle_capture_bar(self) -> None:
+        self._set_capture_bar_visible(not self._capture_bar_visible)
+
+    def _set_capture_bar_visible(
+        self,
+        visible: bool,
+        *,
+        persist: bool = True,
+        animate: bool = True,
+    ) -> None:
+        """Show/hide compact capture controls while leaving a small restore action."""
+        visible = bool(visible)
+        self._capture_bar_visible = visible
+        self._capture_bar_host.layout().setContentsMargins(
+            8,
+            2,
+            8,
+            4,
+        )
+        self._capture_bar_toggle_btn.setText("")
+        self._capture_bar_restore_btn.setText("")
+        self._capture_bar_toggle_btn.setIcon(icon_collapse_capture())
+        self._capture_bar_restore_btn.setIcon(icon_expand_capture())
+        self._capture_bar_toggle_btn.setToolTip(t("shell.capture_bar.hide_tooltip"))
+        self._capture_bar_restore_btn.setToolTip(t("shell.capture_bar.show_tooltip"))
+        self._capture_bar_toggle_btn.setAccessibleName(
+            t("shell.capture_bar.hide_tooltip")
+        )
+        self._capture_bar_restore_btn.setAccessibleName(
+            t("shell.capture_bar.show_tooltip")
+        )
+        self._capture_bar_host.setProperty("captureBarVisible", visible)
+        self._sync_capture_bar_geometry()
+        if self._capture_bar_animation is not None:
+            self._capture_bar_animation.stop()
+
+        expanded_height = max(
+            CAPTURE_BAR_HEIGHT, self._capture_bar.sizeHint().height()
+        )
+        if not animate:
+            self._capture_bar.setMaximumHeight(16777215)
+            self._capture_bar.setVisible(visible)
+            self._capture_bar_restore_row.setVisible(not visible)
+        elif visible:
+            self._capture_bar_restore_row.hide()
+            self._capture_bar.setMaximumHeight(0)
+            self._capture_bar.show()
+            animation = QPropertyAnimation(
+                self._capture_bar, b"maximumHeight", self
+            )
+            animation.setDuration(240)
+            animation.setStartValue(0)
+            animation.setEndValue(expanded_height)
+            animation.setEasingCurve(QEasingCurve.OutCubic)
+            animation.finished.connect(
+                lambda: self._capture_bar.setMaximumHeight(16777215)
+            )
+            self._capture_bar_animation = animation
+            animation.start()
+        else:
+            self._capture_bar_restore_row.hide()
+            self._capture_bar.show()
+            animation = QPropertyAnimation(
+                self._capture_bar, b"maximumHeight", self
+            )
+            animation.setDuration(210)
+            animation.setStartValue(max(1, self._capture_bar.height()))
+            animation.setEndValue(0)
+            animation.setEasingCurve(QEasingCurve.InOutCubic)
+
+            def finish_collapse() -> None:
+                self._capture_bar.hide()
+                self._capture_bar.setMaximumHeight(16777215)
+                self._capture_bar_restore_row.show()
+
+            animation.finished.connect(finish_collapse)
+            self._capture_bar_animation = animation
+            animation.start()
+        self._config["capture_bar_visible"] = visible
+        if persist:
+            try:
+                save_config(self._config)
+            except OSError:
+                pass
 
     def _persist_runtime_settings(self) -> None:
         """Write last-used shell settings so the next launch restores them.
 
-        Window size is owned by Settings (default 1050×600) — do not overwrite
+        Window size is owned by Settings (default 1600×900) — do not overwrite
         it from the live geometry here.
         """
+        # Only load_config() supplies this marker. Lightweight/test-created
+        # MainWindow configs must never leak into the real AppData config when
+        # their windows are closed after path overrides have been released.
+        if "window_size_default_version" not in self._config:
+            return
         self._config["capture_mode"] = self._capture_mode
         self._config["save_folder"] = resolve_save_folder(self._config)
         self._config["current_folder"] = resolve_current_folder(self._config)
@@ -550,22 +827,42 @@ class MainWindow(QMainWindow):
                 pass
             self._image_saver.update_config(self._config)
 
-        self._folder_combo.blockSignals(True)
-        self._folder_combo.clear()
-        if not names:
-            self._folder_combo.addItem(t("shell.save_destination_empty"), "")
-            self._folder_combo.setEnabled(False)
-        else:
-            self._folder_combo.setEnabled(True)
-            for name in names:
-                self._folder_combo.addItem(name, name)
-            index = self._folder_combo.findData(current)
-            self._folder_combo.setCurrentIndex(index if index >= 0 else 0)
-        self._folder_combo.blockSignals(False)
         folder = resolve_save_folder(self._config) or DEFAULT_FOLDER
+        if hasattr(self, "_save_folder_btn"):
+            root = resolve_screenshot_root(
+                self._config.get("screenshot_dir", "screenshots"), self._app_root
+            )
+            destination = root / folder
+            self._save_folder_btn.setText(destination.name or folder)
+            self._save_folder_btn.setToolTip(str(destination))
         if hasattr(self, "_filename_combo"):
             self._filename_combo.set_folder(folder)
         self._sync_capture_panel_settings()
+
+    def _choose_capture_save_folder(self) -> None:
+        """Choose the exact directory used for new captures."""
+        root = resolve_screenshot_root(
+            self._config.get("screenshot_dir", "screenshots"), self._app_root
+        )
+        current = root / (resolve_save_folder(self._config) or DEFAULT_FOLDER)
+        selected = QFileDialog.getExistingDirectory(
+            self,
+            t("shell.save_folder_choose_title"),
+            str(current if current.exists() else root),
+            QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks,
+        )
+        if not selected:
+            return
+        destination = Path(selected).resolve()
+        if not destination.name:
+            return
+
+        parent = destination.parent
+        self._config["screenshot_dir"] = str(parent)
+        self._apply_save_folder(destination.name)
+        self._refresh_folder_selector()
+        self._images_page.refresh()
+        self._home_page.refresh()
 
     def _apply_save_folder(self, name: str) -> None:
         """Persist save folder and keep toolbar / panel / saver in sync."""
@@ -579,6 +876,13 @@ class MainWindow(QMainWindow):
             pass
         self._image_saver.update_config(self._config)
         self._filename_combo.set_folder(str(name))
+        if hasattr(self, "_save_folder_btn"):
+            root = resolve_screenshot_root(
+                self._config.get("screenshot_dir", "screenshots"), self._app_root
+            )
+            destination = root / str(name)
+            self._save_folder_btn.setText(destination.name)
+            self._save_folder_btn.setToolTip(str(destination))
         # Refresh ★ marker on Viewing folder tree
         self._images_page.refresh_save_folder_marker()
         if self._capture_panel_window is not None:
@@ -586,21 +890,6 @@ class MainWindow(QMainWindow):
                 list_folder_names(self._config, self._app_root),
                 str(name),
             )
-
-    def _on_toolbar_folder_chosen(self, index: int) -> None:
-        name = self._folder_combo.itemData(index)
-        if not name:
-            name = self._folder_combo.itemText(index)
-        self._apply_save_folder(str(name) if name else "")
-
-    def _on_panel_folder_chosen(self, name: str) -> None:
-        self._apply_save_folder(name)
-        # Keep main toolbar combo selected
-        index = self._folder_combo.findData(name)
-        if index >= 0:
-            self._folder_combo.blockSignals(True)
-            self._folder_combo.setCurrentIndex(index)
-            self._folder_combo.blockSignals(False)
 
     def _sync_capture_panel_settings(self) -> None:
         panel = self._capture_panel_window
@@ -615,17 +904,22 @@ class MainWindow(QMainWindow):
         panel.sync_capture_tags(list(self._config.get("capture_tags") or []))
 
     def _show_page(self, page_id: int) -> None:
+        if not MANAGEMENT_PAGES_ENABLED and page_id in (PAGE_ORGANIZE, PAGE_TAGS):
+            page_id = PAGE_IMAGES
         self._stack.setCurrentIndex(page_id)
         self._side_nav.set_current_page(page_id)
+        # Capture controls belong to the Images workspace only. Hiding the
+        # host removes its height from every information/settings page.
+        self._capture_bar_host.setVisible(page_id == PAGE_IMAGES)
+        if page_id == PAGE_IMAGES:
+            QTimer.singleShot(0, self._sync_capture_bar_geometry)
         self._refresh_folder_selector()
 
         if page_id == PAGE_HOME:
             self._home_page.refresh()
+            self._images_page._refresh_analysis_preview()
         elif page_id == PAGE_IMAGES:
             self._images_page.refresh()
-            if self._pending_recent_path:
-                self._images_page.select_image_path(self._pending_recent_path)
-                self._pending_recent_path = None
         elif page_id == PAGE_ORGANIZE:
             self._work_page.refresh()
         elif page_id == PAGE_TAGS:
@@ -641,6 +935,11 @@ class MainWindow(QMainWindow):
         self._home_page.refresh()
         if self._stack.currentIndex() == PAGE_ORGANIZE:
             self._work_page.refresh()
+
+    def _on_home_folder_changed(self, path: str) -> None:
+        """Refresh Images and related views after Home changes the folder."""
+        self._images_page.refresh()
+        self._on_images_folder_changed(Path(path).name)
 
     def _on_tags_changed(self) -> None:
         self._images_page.refresh()
@@ -696,20 +995,82 @@ class MainWindow(QMainWindow):
     def _apply_configured_window_size(self) -> None:
         """Honor Settings size without locking that size as the drag minimum."""
         try:
-            width = int(self._config.get("window_width", 1050) or 1050)
+            width = int(self._config.get("window_width", 1600) or 1600)
         except (TypeError, ValueError):
-            width = 1050
+            width = 1600
         try:
-            height = int(self._config.get("window_height", 600) or 600)
+            height = int(self._config.get("window_height", 900) or 900)
         except (TypeError, ValueError):
-            height = 600
+            height = 900
         self.setMinimumSize(_WINDOW_MIN_WIDTH, _WINDOW_MIN_HEIGHT)
         self.resize(max(width, _WINDOW_MIN_WIDTH), max(height, _WINDOW_MIN_HEIGHT))
 
+    def _apply_navigation_density(self) -> None:
+        if hasattr(self, "_side_nav"):
+            self._side_nav.set_responsive_compact(
+                self.width() < NAV_RESPONSIVE_BREAKPOINT
+            )
+
+    def _sync_capture_bar_geometry(self) -> None:
+        """Align the footer card with the Images gallery workspace."""
+        if not hasattr(self, "_capture_bar_host"):
+            return
+        try:
+            host = self._capture_bar_host
+            host_width = host.width()
+        except RuntimeError:
+            # A queued resize callback may arrive after Qt destroys the shell.
+            return
+        left = 16
+        right = 16
+        if host_width > 0 and hasattr(self, "_images_page"):
+            workspace = self._images_page._left_workspace
+            point = host.mapFromGlobal(
+                workspace.mapToGlobal(QPoint(0, 0))
+            )
+            target_width = workspace.width()
+            # The fixed Capture/Mode/Panel actions need a safe floor. At the
+            # normal 1600px window the card aligns to the gallery; narrower
+            # windows fall back to the available footer width.
+            required_width = max(620, self._capture_bar.minimumSizeHint().width())
+            if target_width >= required_width:
+                left = max(12, point.x())
+                right = max(12, host_width - left - target_width)
+        try:
+            host.layout().setContentsMargins(left, 2, right, 10)
+        except RuntimeError:
+            return
+        QTimer.singleShot(0, self._position_capture_bar_header)
+
+    def _position_capture_bar_header(self) -> None:
+        """Overlay the card heading without changing the capture bar height."""
+        if not hasattr(self, "_capture_bar_title_row"):
+            return
+        try:
+            inset = CAPTURE_BAR_PADDING_X
+            self._capture_bar_title_row.setGeometry(
+                inset,
+                6,
+                max(0, self._capture_bar.width() - (inset * 2)),
+                CAPTURE_EDGE_BUTTON_HEIGHT,
+            )
+            self._capture_bar_title_row.raise_()
+        except RuntimeError:
+            return
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._apply_navigation_density()
+        QTimer.singleShot(0, self._sync_capture_bar_geometry)
+        QTimer.singleShot(40, self._sync_capture_bar_geometry)
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        QTimer.singleShot(0, self._sync_capture_bar_geometry)
+        QTimer.singleShot(40, self._sync_capture_bar_geometry)
+
     def _on_capture_clicked(self) -> None:
         """Toolbar Capture — defer so we are not inside the mouse-press stack."""
-        # Mode-cycle fade can leave opacity low; restore hit-target chrome first
-        self._capture_btn_fx.setOpacity(1.0)
         mode = normalize_capture_mode(self._capture_mode)
         if mode == CAPTURE_FULLSCREEN:
             QTimer.singleShot(0, lambda: self._capture_fullscreen(from_panel=False))
@@ -753,7 +1114,6 @@ class MainWindow(QMainWindow):
             panel.setStyleSheet(APP_STYLE)
             panel.capture_clicked.connect(self._on_panel_capture_clicked)
             panel.mode_cycle_clicked.connect(self._cycle_capture_mode)
-            panel.folder_chosen.connect(self._on_panel_folder_chosen)
             panel.filename_template_changed.connect(self._on_filename_template_changed)
             panel.capture_tags_changed.connect(self._on_capture_tags_changed)
             panel.settings_page_requested.connect(self._sync_capture_panel_settings)
@@ -777,27 +1137,31 @@ class MainWindow(QMainWindow):
         panel.show_panel()
 
     def _cycle_capture_mode(self) -> None:
-        self._capture_mode = next_capture_mode(self._capture_mode)
+        """Cycle mode for the compact floating Capture Panel control."""
+        self._set_capture_mode(next_capture_mode(self._capture_mode))
+
+    def _set_capture_mode(self, mode: str) -> None:
+        """Persist and present a mode selection without starting a capture."""
+        self._capture_mode = normalize_capture_mode(mode)
         self._config["capture_mode"] = self._capture_mode
         try:
             save_config(self._config)
         except OSError:
             pass
-        self._refresh_capture_mode_ui(animate=True)
+        self._refresh_capture_mode_ui(animate=False)
 
     def _apply_capture_mode_chrome(self) -> None:
         info = capture_mode_info(self._capture_mode)
         icon = (
-            icon_fullscreen_capture()
+            icon_fullscreen_capture(color="#2563eb")
             if info.mode_id == CAPTURE_FULLSCREEN
-            else icon_region_capture()
+            else icon_region_capture(color="#2563eb")
         )
-        # Two-line label keeps the near-square button readable
-        label = t(info.label_key).replace(" Capture", "\nCapture")
-        if "\n" not in label and " " in label:
-            parts = label.split(" ", 1)
-            label = f"{parts[0]}\n{parts[1]}"
-        self._capture_btn.setText(label)
+        self._capture_btn.setText(
+            "Full Screen\nCapture"
+            if info.mode_id == CAPTURE_FULLSCREEN
+            else "Region\nCapture"
+        )
         self._capture_btn.setIcon(icon)
         self._capture_btn.setToolTip(t(info.tooltip_key))
         self._capture_btn.setObjectName(info.button_object_name)
@@ -805,23 +1169,12 @@ class MainWindow(QMainWindow):
         style.unpolish(self._capture_btn)
         style.polish(self._capture_btn)
         self._capture_btn.update()
-        # Caption = mode name; body = short how-to (mode-colored)
-        mode_name = t(info.label_key).replace(" Capture", "")
-        self._capture_desc_caption.setText(mode_name)
-        self._capture_desc.setText(t(info.description_key))
-        mode_attr = (
-            "fullscreen" if info.mode_id == CAPTURE_FULLSCREEN else "region"
-        )
-        for widget in (self._capture_desc_caption, self._capture_desc):
-            widget.setProperty("mode", mode_attr)
-            widget.style().unpolish(widget)
-            widget.style().polish(widget)
-            widget.update()
+        self._capture_mode_selector.set_mode(info.mode_id)
         if self._capture_panel_window is not None:
             self._capture_panel_window.apply_mode(self._capture_mode)
 
     def _capture_mode_opacity_effects(self) -> list[QGraphicsOpacityEffect]:
-        effects = [self._capture_btn_fx]
+        effects: list[QGraphicsOpacityEffect] = []
         panel = self._capture_panel_window
         if panel is not None:
             effects.append(panel.capture_btn_opacity_effect)
@@ -829,7 +1182,7 @@ class MainWindow(QMainWindow):
 
     def _refresh_capture_mode_ui(self, *, animate: bool = False) -> None:
         effects = self._capture_mode_opacity_effects()
-        if not animate:
+        if not animate or not effects:
             for fx in effects:
                 fx.setOpacity(1.0)
             self._apply_capture_mode_chrome()
@@ -872,7 +1225,10 @@ class MainWindow(QMainWindow):
     ) -> None:
         """Start a capture; mode only changes how the image is obtained."""
         if self._screenshot_session.is_active:
-            return
+            # A missed clipboard event or a rejected OS capture request must
+            # never turn the Capture control into a dead button. The new click
+            # explicitly replaces the stale request.
+            self._screenshot_session.cancel()
 
         mode = normalize_capture_mode(mode or self._capture_mode)
         self._page_before_screenshot = self._stack.currentIndex()
@@ -907,7 +1263,13 @@ class MainWindow(QMainWindow):
                 self.showMinimized()
                 delay_ms = _SNIP_HOTKEY_DELAY_MS
             else:
-                delay_ms = 80 if mode == CAPTURE_FULLSCREEN else 40
+                # Region capture is triggered by a synthetic Win+Shift+S.
+                # Give the Capture button click time to fully release even
+                # when the window stays visible; firing too early can make
+                # Windows ignore the shortcut.
+                delay_ms = (
+                    80 if mode == CAPTURE_FULLSCREEN else _SNIP_HOTKEY_DELAY_MS
+                )
 
         self._screenshot_session.start(mode)
         QTimer.singleShot(
@@ -926,7 +1288,11 @@ class MainWindow(QMainWindow):
             self._run_fullscreen_capture()
             return
         # Default / region — OS snipping UI; clipboard watcher → ImageSaver
-        default_region_trigger()
+        if not default_region_trigger():
+            # Do not leave the capture session locked until its 60-second
+            # timeout when Windows rejects the shortcut. Completing it makes
+            # the Capture button immediately usable again.
+            self._screenshot_session.complete()
 
     def _run_fullscreen_capture(self) -> None:
         # Flush pending hide/minimize so the grab does not race the UI
@@ -1034,15 +1400,12 @@ class MainWindow(QMainWindow):
     def _show_save_success_toast(self, saved_path: Path) -> None:
         if not bool(self._config.get("show_save_notification", True)):
             return
-        folder = resolve_save_folder(self._config) or DEFAULT_FOLDER
-        root = resolve_screenshot_root(
-            self._config.get("screenshot_dir", "screenshots"),
-            self._app_root,
-        )
-        project = root.name or "Root"
+        # The written path is authoritative. This keeps the notification in
+        # sync with the folder selected in Capture settings even if config/UI
+        # state changes around the save operation.
+        folder = saved_path.parent.name or resolve_save_folder(self._config) or DEFAULT_FOLDER
         self._toast_host.show_success(
             filename=saved_path.name,
-            project=project,
             folder=folder,
             duration_ms=self._notification_duration_ms(),
         )
@@ -1057,6 +1420,10 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent) -> None:
         self._persist_runtime_settings()
+        if hasattr(self, "_images_page") and self._images_page._analysis_bar is not None:
+            self._images_page._analysis_bar.stop_polling()
+        if hasattr(self, "_image_analysis_controller"):
+            self._image_analysis_controller.close(timeout=3.0)
         snipping_toast_suppressor.exit()
         if hasattr(self, "_hotkey_manager"):
             self._hotkey_manager.stop()
@@ -1066,7 +1433,8 @@ class MainWindow(QMainWindow):
             self._capture_panel_window.close()
             self._capture_panel_window = None
         self._screenshot_session.cancel()
-        self._clipboard_watcher.stop()
+        if hasattr(self, "_clipboard_watcher"):
+            self._clipboard_watcher.stop()
 
         app = QApplication.instance()
         if app is not None:

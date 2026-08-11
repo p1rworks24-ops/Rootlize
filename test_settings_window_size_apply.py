@@ -79,11 +79,12 @@ def test_window_size_changed_only_on_size_edit():
 
         with patch("app.ui.pages.settings_page.save_config"):
             page._on_minimize_changed(1)  # Off — not a window-size edit
-            assert saved_events
+            assert not saved_events
             assert not size_events
 
             page._width_edit.setText("1200")
             page._height_edit.setText("700")
             page._autosave_window_size()
+            assert saved_events
             assert size_events
             assert config["window_width"] == 1200

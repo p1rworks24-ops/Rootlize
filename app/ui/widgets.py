@@ -110,7 +110,7 @@ def build_folder_drop_pixmap(
     if count > 1:
         badge_text = str(count) if count < 100 else "99+"
         font = QFont(painter.font())
-        font.setBold(True)
+        font.setWeight(QFont.Weight.DemiBold)
         font.setPointSize(7)
         painter.setFont(font)
         badge = QRect(size - 15, 1, 14, 14)
@@ -252,6 +252,26 @@ class ScreenshotListWidget(QListWidget):
             CARD_INSET, CARD_INSET, -CARD_INSET, -CARD_INSET
         )
 
+    def _content_pos(self, viewport_pos: QPoint) -> QPoint:
+        """Map a viewport point to stable scroll-content coordinates."""
+        return viewport_pos + QPoint(
+            self.horizontalScrollBar().value(),
+            self.verticalScrollBar().value(),
+        )
+
+    def _content_card_rect(self, item: QListWidgetItem) -> QRect:
+        """Card frame in coordinates that do not move when the view scrolls."""
+        return self._card_rect(item).translated(
+            self.horizontalScrollBar().value(),
+            self.verticalScrollBar().value(),
+        )
+
+    def _viewport_rect(self, content_rect: QRect) -> QRect:
+        return content_rect.translated(
+            -self.horizontalScrollBar().value(),
+            -self.verticalScrollBar().value(),
+        )
+
     def _selectable_item_at(self, pos: QPoint) -> QListWidgetItem | None:
         """Item only if the cursor is inside the painted card, not cell padding."""
         item = self.itemAt(pos)
@@ -274,7 +294,7 @@ class ScreenshotListWidget(QListWidget):
             self._marquee_band = None
 
     def _apply_marquee_selection(self, rect: QRect) -> None:
-        """Select items whose card frame intersects the marquee (viewport coords)."""
+        """Select cards intersecting a marquee expressed in content coordinates."""
         keep = self._marquee_base if self._marquee_additive else set()
         first: QListWidgetItem | None = None
         self.blockSignals(True)
@@ -283,7 +303,7 @@ class ScreenshotListWidget(QListWidget):
                 item = self.item(i)
                 if item is None or not (item.flags() & Qt.ItemIsSelectable):
                     continue
-                hit = self._card_rect(item).intersects(rect)
+                hit = self._content_card_rect(item).intersects(rect)
                 selected = hit or (i in keep)
                 item.setSelected(selected)
                 if hit and first is None:
@@ -297,7 +317,7 @@ class ScreenshotListWidget(QListWidget):
 
     def begin_marquee_from_parent(self, global_pos: QPoint, *, additive: bool) -> None:
         """Start rubber-band from a press outside this list (parent panel padding)."""
-        origin = self.viewport().mapFromGlobal(global_pos)
+        origin = self._content_pos(self.viewport().mapFromGlobal(global_pos))
         self._cleanup_marquee()
         self._marquee_origin = origin
         self._marquee_additive = additive
@@ -316,7 +336,7 @@ class ScreenshotListWidget(QListWidget):
     def update_marquee_from_parent(self, global_pos: QPoint) -> None:
         if self._marquee_origin is None:
             return
-        pos = self.viewport().mapFromGlobal(global_pos)
+        pos = self._content_pos(self.viewport().mapFromGlobal(global_pos))
         dist = (pos - self._marquee_origin).manhattanLength()
         if not self._marquee_active:
             if dist < QApplication.startDragDistance():
@@ -325,7 +345,7 @@ class ScreenshotListWidget(QListWidget):
             self._marquee_band = QRubberBand(QRubberBand.Rectangle, self.viewport())
         rect = QRect(self._marquee_origin, pos).normalized()
         assert self._marquee_band is not None
-        self._marquee_band.setGeometry(rect)
+        self._marquee_band.setGeometry(self._viewport_rect(rect))
         self._marquee_band.show()
         self._apply_marquee_selection(rect)
 
@@ -333,7 +353,7 @@ class ScreenshotListWidget(QListWidget):
         if self._marquee_origin is None:
             return
         if self._marquee_active:
-            pos = self.viewport().mapFromGlobal(global_pos)
+            pos = self._content_pos(self.viewport().mapFromGlobal(global_pos))
             self._apply_marquee_selection(
                 QRect(self._marquee_origin, pos).normalized()
             )
@@ -346,7 +366,7 @@ class ScreenshotListWidget(QListWidget):
             if item is None:
                 # Empty / non-selectable (group header): start Explorer rubber-band
                 mods = event.modifiers()
-                self._marquee_origin = pos
+                self._marquee_origin = self._content_pos(pos)
                 self._marquee_additive = bool(mods & Qt.ControlModifier)
                 self._marquee_active = False
                 if self._marquee_additive:
@@ -367,7 +387,7 @@ class ScreenshotListWidget(QListWidget):
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
         if self._marquee_origin is not None and event.buttons() & Qt.LeftButton:
-            pos = event.position().toPoint()
+            pos = self._content_pos(event.position().toPoint())
             dist = (pos - self._marquee_origin).manhattanLength()
             if not self._marquee_active:
                 if dist < QApplication.startDragDistance():
@@ -377,7 +397,7 @@ class ScreenshotListWidget(QListWidget):
                 self._marquee_band = QRubberBand(QRubberBand.Rectangle, self.viewport())
             rect = QRect(self._marquee_origin, pos).normalized()
             assert self._marquee_band is not None
-            self._marquee_band.setGeometry(rect)
+            self._marquee_band.setGeometry(self._viewport_rect(rect))
             self._marquee_band.show()
             self._apply_marquee_selection(rect)
             event.accept()
@@ -387,7 +407,7 @@ class ScreenshotListWidget(QListWidget):
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
         if event.button() == Qt.LeftButton and self._marquee_origin is not None:
             if self._marquee_active:
-                pos = event.position().toPoint()
+                pos = self._content_pos(event.position().toPoint())
                 rect = QRect(self._marquee_origin, pos).normalized()
                 self._apply_marquee_selection(rect)
             self._cleanup_marquee()

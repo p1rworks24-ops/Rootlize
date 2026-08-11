@@ -34,6 +34,8 @@ class CaptionIconDelegate(QStyledItemDelegate):
         cell_height: int = 240,
         list_mode: bool = False,
         show_selection_badge: bool = True,
+        show_tags: bool = True,
+        pastel_emphasis: bool = False,
         parent=None,
     ):
         super().__init__(parent)
@@ -42,6 +44,8 @@ class CaptionIconDelegate(QStyledItemDelegate):
         self._cell_height = cell_height
         self._list_mode = list_mode
         self._show_selection_badge = show_selection_badge
+        self._show_tags = show_tags
+        self._pastel_emphasis = bool(pastel_emphasis)
 
     @property
     def cell_width(self) -> int:
@@ -56,13 +60,63 @@ class CaptionIconDelegate(QStyledItemDelegate):
         # Kept for API compatibility; all modes use icon cards now.
         self._list_mode = enabled
 
+    def set_show_tags(self, enabled: bool) -> None:
+        self._show_tags = bool(enabled)
+
     def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize:
         if index.data(ITEM_KIND_ROLE) == ITEM_KIND_HEADER:
             widget = option.widget
             viewport_w = widget.viewport().width() if widget is not None else 400
             # Full row: forces header alone on a line, images wrap underneath
             return QSize(max(viewport_w - 8, self._cell_width * 2), GROUP_HEADER_HEIGHT)
-        return QSize(self._cell_width, self._cell_height)
+
+        # Filenames are never elided. Grow each card by the amount required for
+        # its complete wrapped caption while retaining the configured minimum
+        # height for short names.
+        name_font, meta_font = self._caption_fonts(option.font)
+        text_width = max(self._cell_width - (CARD_INSET * 2) - 12, 1)
+        name_height = self._wrapped_name_height(
+            name_font,
+            text_width,
+            str(index.data(ROLE_CAPTION_NAME) or index.data(Qt.DisplayRole) or ""),
+        )
+        meta_height = QFontMetrics(meta_font).height()
+        metadata_height = meta_height
+        if self._show_tags:
+            metadata_height += meta_height + 1
+        required_height = (
+            CARD_INSET * 2
+            + 6
+            + self._icon_size
+            + 4
+            + name_height
+            + 2
+            + metadata_height
+            + 4
+        )
+        return QSize(self._cell_width, max(self._cell_height, required_height))
+
+    @staticmethod
+    def _caption_fonts(base_font: QFont) -> tuple[QFont, QFont]:
+        name_font = QFont(base_font)
+        name_font.setPointSize(max(name_font.pointSize(), 8))
+        name_font.setWeight(QFont.Weight.Medium)
+        meta_font = QFont(base_font)
+        meta_font.setPointSize(max(meta_font.pointSize() - 1, 7))
+        meta_font.setWeight(QFont.Weight.Normal)
+        return name_font, meta_font
+
+    @staticmethod
+    def _wrapped_name_height(font: QFont, width: int, name: str) -> int:
+        metrics = QFontMetrics(font)
+        return max(
+            metrics.height(),
+            metrics.boundingRect(
+                QRect(0, 0, max(width, 1), 100_000),
+                Qt.TextWordWrap | Qt.TextWrapAnywhere | Qt.AlignHCenter | Qt.AlignTop,
+                name,
+            ).height(),
+        )
 
     def paint(
         self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex
@@ -120,12 +174,12 @@ class CaptionIconDelegate(QStyledItemDelegate):
         rect = option.rect.adjusted(CARD_INSET, CARD_INSET, -CARD_INSET, -CARD_INSET)
 
         if option.state & QStyle.State_Selected:
-            bg = QColor("#eff6ff")
+            bg = QColor("#dbeafe" if self._pastel_emphasis else "#eff6ff")
             border = QColor("#2563eb")
             border_w = 2
         elif option.state & QStyle.State_MouseOver:
-            bg = QColor("#f8fafc")
-            border = QColor("#bfdbfe")
+            bg = QColor("#ecfeff" if self._pastel_emphasis else "#f8fafc")
+            border = QColor("#67e8f9" if self._pastel_emphasis else "#bfdbfe")
             border_w = 1
         else:
             bg = QColor("#ffffff")
@@ -164,29 +218,15 @@ class CaptionIconDelegate(QStyledItemDelegate):
             max(rect.bottom() - text_top - 4, 0),
         )
 
-        name_font = QFont(option.font)
-        name_font.setPointSize(max(name_font.pointSize(), 8))
-        name_font.setBold(True)
-        meta_font = QFont(option.font)
-        meta_font.setPointSize(max(meta_font.pointSize() - 1, 7))
+        name_font, meta_font = self._caption_fonts(option.font)
 
         fm_name = QFontMetrics(name_font)
         fm_meta = QFontMetrics(meta_font)
         meta_line = fm_meta.height()
-        name_budget = min(
-            fm_name.height() * 2 + 2,
-            max(text_rect.height() - meta_line * 2 - 4, fm_name.height()),
-        )
-
         y = text_rect.y()
         painter.setPen(QColor("#111827"))
         painter.setFont(name_font)
-        name_h = fm_name.boundingRect(
-            QRect(0, 0, text_rect.width(), 10_000),
-            Qt.TextWordWrap | Qt.AlignHCenter | Qt.AlignTop,
-            str(name),
-        ).height()
-        name_h = min(name_h, name_budget)
+        name_h = self._wrapped_name_height(name_font, text_rect.width(), str(name))
         name_area = QRect(text_rect.x(), y, text_rect.width(), name_h)
         painter.drawText(
             name_area,
@@ -196,7 +236,7 @@ class CaptionIconDelegate(QStyledItemDelegate):
         y = name_area.bottom() + 2
 
         painter.setFont(meta_font)
-        if tags and y < text_rect.bottom():
+        if self._show_tags and tags and y < text_rect.bottom():
             muted = bool(index.data(ROLE_CAPTION_TAGS_MUTED))
             # Real tags: accent blue. Untagged state: muted gray helper text.
             painter.setPen(QColor("#9ca3af") if muted else QColor("#2563eb"))

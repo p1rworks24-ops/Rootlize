@@ -24,20 +24,29 @@ from app.utils.workspace import DEFAULT_FOLDER
 
 logger = setup_logger()
 
+WINDOW_SIZE_DEFAULT_VERSION = 7
+LEGACY_DEFAULT_WINDOW_SIZE = (1050, 600)
+CURRENT_DEFAULT_WINDOW_SIZE = (1600, 900)
+
 # Template defaults (screenshot_dir filled at runtime via build_default_config)
 DEFAULT_CONFIG: dict = {
     "screenshot_dir": "",  # filled with Pictures\\Capixe for new installs
+    "selected_folder": "",
     "current_folder": DEFAULT_FOLDER,
     "save_folder": DEFAULT_FOLDER,
-    "window_width": 1050,
-    "window_height": 600,
+    "window_width": 1600,
+    "window_height": 900,
+    "window_size_default_version": WINDOW_SIZE_DEFAULT_VERSION,
     "window_title": APP_NAME,
     "clipboard_check_interval_ms": 500,
     "images_folder_tree_expanded": True,
+    "show_tags_in_image_list": True,
+    "show_tags_in_organize_list": True,
     "filename_template": "{date}_{time}",
     "capture_tags": [],
     "capture_mode": "region",
     "capture_minimize": True,
+    "capture_bar_visible": True,
     "home_stats_mode": "folder",
     "shortcuts": {
         "region_capture": "Ctrl+Shift+R",
@@ -63,7 +72,8 @@ def build_default_config() -> dict:
 
 def _read_json_file(path: Path) -> dict | None:
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        # Accept standard UTF-8 and JSON written by Windows tools with a BOM.
+        with open(path, "r", encoding="utf-8-sig") as f:
             data = json.load(f)
         if isinstance(data, dict):
             return data
@@ -255,6 +265,9 @@ def load_config() -> dict:
     Migrates legacy project-root config when the new file is absent.
     """
     new_path = get_config_path()
+    # A legacy or existing config belongs to an existing user. Only a truly
+    # fresh install should enter onboarding when the key does not exist yet.
+    is_new_user = not new_path.exists() and not get_legacy_config_path().is_file()
 
     config: dict | None = None
     if new_path.exists():
@@ -271,8 +284,42 @@ def load_config() -> dict:
             config = build_default_config()
 
     assert config is not None
-    updated = _merge_defaults(config)
+    had_selected_folder = "selected_folder" in config
+    updated = False
+    # Existing installations keep persisted settings, so changing only
+    # DEFAULT_CONFIG would leave the former 1050x600 default visible forever.
+    # Migrate that exact legacy default once; preserve every custom size.
+    size_version = config.get("window_size_default_version")
+    current_size = (
+        config.get("window_width"),
+        config.get("window_height"),
+    )
+    if (
+        size_version is None
+        and current_size == LEGACY_DEFAULT_WINDOW_SIZE
+    ):
+        config["window_width"], config["window_height"] = (
+            CURRENT_DEFAULT_WINDOW_SIZE
+        )
+        updated = True
+    elif size_version in (2, 3, 4, 5, 6):
+        # Older versions could retain a stale size in the live AppData config.
+        # Reset it once; later explicit user edits remain respected in v7.
+        config["window_width"], config["window_height"] = (
+            CURRENT_DEFAULT_WINDOW_SIZE
+        )
+        config["window_size_default_version"] = WINDOW_SIZE_DEFAULT_VERSION
+        updated = True
+    if _merge_defaults(config):
+        updated = True
+    if "onboarding_completed" not in config:
+        config["onboarding_completed"] = not is_new_user
+        updated = True
     if normalize_screenshot_dir(config):
+        updated = True
+    if not had_selected_folder:
+        # T1 migration: the former Root Folder becomes the last selected folder.
+        config["selected_folder"] = str(config.get("screenshot_dir") or "")
         updated = True
 
     ensure_runtime_directories(config)

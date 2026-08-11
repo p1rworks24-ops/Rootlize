@@ -8,7 +8,6 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
-    QFileDialog,
     QMessageBox,
     QFrame,
     QComboBox,
@@ -26,13 +25,12 @@ from app.services.shortcut_spec import (
     validate_shortcut,
 )
 from app.ui.filename_rule_panel import FilenameRulePanel
-from app.ui.icons import icon_folder
+from app.ui.design_tokens import apply_card_shadow
 from app.ui.scroll_page import make_page_scroll
 from app.ui.segmented_toggle import SegmentedToggle
 from app.ui.shortcut_capture_dialog import ShortcutCaptureDialog
 from app.utils.filename_template import DEFAULT_FILENAME_TEMPLATE
 from app.utils.logger import setup_logger
-from app.utils.save_folder import apply_screenshot_dir
 from app.utils.workspace import resolve_save_folder
 
 logger = setup_logger()
@@ -47,11 +45,12 @@ class SettingsPage(QWidget):
     # Emitted when capture shortcuts change (shell re-registers hotkeys)
     shortcuts_changed = Signal()
 
-    def __init__(self, config: dict, app_root: Path, parent=None):
+    def __init__(self, config: dict, app_root: Path, parent=None, *, ocr_controller=None):
         super().__init__(parent)
         self._config = config
         self._app_root = app_root
         self._loading = False
+        self._ocr_controller = ocr_controller
         self._shortcut_value_labels: dict[str, QLabel] = {}
         self._status_clear_timer = QTimer(self)
         self._status_clear_timer.setSingleShot(True)
@@ -84,31 +83,6 @@ class SettingsPage(QWidget):
         autosave_hint.setObjectName("settingsAutosaveHint")
         autosave_hint.setWordWrap(True)
         layout.addWidget(autosave_hint)
-
-        save_section = QFrame(content)
-        save_section.setObjectName("infoPanel")
-        save_layout = QVBoxLayout(save_section)
-        save_layout.setContentsMargins(16, 14, 16, 14)
-        save_layout.setSpacing(8)
-
-        save_title = QLabel(t("settings.save_folder"), content)
-        save_title.setObjectName("sectionTitle")
-        save_layout.addWidget(save_title)
-
-        path_row = QHBoxLayout()
-        self._path_edit = QLineEdit(content)
-        self._path_edit.setText(self._config.get("screenshot_dir", "screenshots"))
-        self._path_edit.editingFinished.connect(self._autosave_path)
-        path_row.addWidget(self._path_edit)
-
-        browse_btn = QPushButton(t("common.browse"), content)
-        browse_btn.setObjectName("secondaryButton")
-        browse_btn.setIcon(icon_folder())
-        browse_btn.setCursor(Qt.PointingHandCursor)
-        browse_btn.clicked.connect(self._on_browse)
-        path_row.addWidget(browse_btn)
-        save_layout.addLayout(path_row)
-        layout.addWidget(save_section)
 
         name_section = QFrame(content)
         name_section.setObjectName("infoPanel")
@@ -275,7 +249,7 @@ class SettingsPage(QWidget):
         width_row = QHBoxLayout()
         width_row.addWidget(QLabel(t("settings.window_width"), content))
         self._width_edit = QLineEdit(content)
-        self._width_edit.setText(str(self._config.get("window_width", 1050)))
+        self._width_edit.setText(str(self._config.get("window_width", 1600)))
         self._width_edit.editingFinished.connect(self._autosave_window_size)
         width_row.addWidget(self._width_edit)
         ui_layout.addLayout(width_row)
@@ -283,7 +257,7 @@ class SettingsPage(QWidget):
         height_row = QHBoxLayout()
         height_row.addWidget(QLabel(t("settings.window_height"), content))
         self._height_edit = QLineEdit(content)
-        self._height_edit.setText(str(self._config.get("window_height", 600)))
+        self._height_edit.setText(str(self._config.get("window_height", 900)))
         self._height_edit.editingFinished.connect(self._autosave_window_size)
         height_row.addWidget(self._height_edit)
         ui_layout.addLayout(height_row)
@@ -298,6 +272,9 @@ class SettingsPage(QWidget):
         self._status_label.setObjectName("mutedLabel")
         layout.addWidget(self._status_label)
 
+        for card in content.findChildren(QFrame, "infoPanel"):
+            apply_card_shadow(card)
+
         layout.addStretch()
         content.setMinimumWidth(420)
         content.setMinimumHeight(480)
@@ -309,9 +286,8 @@ class SettingsPage(QWidget):
     def refresh(self) -> None:
         self._loading = True
         try:
-            self._path_edit.setText(self._config.get("screenshot_dir", "screenshots"))
-            self._width_edit.setText(str(self._config.get("window_width", 1050)))
-            self._height_edit.setText(str(self._config.get("window_height", 600)))
+            self._width_edit.setText(str(self._config.get("window_width", 1600)))
+            self._height_edit.setText(str(self._config.get("window_height", 900)))
             self._minimize_toggle.set_current(
                 0 if self._config.get("capture_minimize", True) else 1
             )
@@ -383,7 +359,12 @@ class SettingsPage(QWidget):
         if bool(self._config.get("capture_minimize", True)) == enabled:
             return
         self._config["capture_minimize"] = enabled
-        if self._persist():
+        # MainWindow reads this shared config value when Capture starts. Avoid
+        # the broad settings_saved refresh here: synchronously refreshing the
+        # whole shell from inside the toggle click could leave the footer
+        # Capture control unable to complete its next click.
+        if self._persist(notify=False):
+            self._show_autosaved()
             logger.info("Settings autosaved. capture_minimize=%s", enabled)
 
     def _on_notify_changed(self, index: int) -> None:
@@ -441,78 +422,6 @@ class SettingsPage(QWidget):
         self._config["filename_template"] = new_value
         self._persist()
 
-    def browse_root_folder(self) -> None:
-        """Public entry for Browse (Settings button / Home Root Folder gear)."""
-        self._on_browse()
-
-    def _on_browse(self) -> None:
-        current_dir = self._path_edit.text()
-        resolved_current = Path(current_dir)
-        if not resolved_current.is_absolute():
-            resolved_current = (self._app_root / resolved_current).resolve()
-
-        selected = QFileDialog.getExistingDirectory(
-            self,
-            t("settings.select_directory"),
-            str(resolved_current),
-            QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks,
-        )
-        if not selected:
-            return
-
-        selected_path = Path(selected)
-        try:
-            relative_path = selected_path.relative_to(self._app_root)
-            self._path_edit.setText(str(relative_path))
-        except ValueError:
-            self._path_edit.setText(str(selected_path))
-        self._autosave_path()
-
-    def _autosave_path(self) -> None:
-        if self._loading:
-            return
-        selected_path = self._path_edit.text().strip()
-        if not selected_path:
-            QMessageBox.warning(
-                self, t("common.warning"), t("settings.path_empty")
-            )
-            self._path_edit.setText(
-                self._config.get("screenshot_dir", "screenshots")
-            )
-            return
-
-        if selected_path == str(self._config.get("screenshot_dir", "")).strip():
-            return
-
-        try:
-            apply_screenshot_dir(self._config, self._app_root, selected_path)
-            # apply_screenshot_dir already persisted; sync UI text + notify shell
-            self._loading = True
-            try:
-                self._path_edit.setText(
-                    self._config.get("screenshot_dir", selected_path)
-                )
-            finally:
-                self._loading = False
-            self.settings_saved.emit()
-            self._show_autosaved()
-            logger.info(
-                "Settings autosaved. Directory: %s",
-                self._config.get("screenshot_dir"),
-            )
-        except Exception as e:
-            logger.exception("Failed to autosave screenshot dir: %s", e)
-            QMessageBox.critical(
-                self, t("common.error"), t("settings.save_failed", error=e)
-            )
-            self._loading = True
-            try:
-                self._path_edit.setText(
-                    self._config.get("screenshot_dir", "screenshots")
-                )
-            finally:
-                self._loading = False
-
     def _autosave_window_size(self) -> None:
         if self._loading:
             return
@@ -528,10 +437,10 @@ class SettingsPage(QWidget):
             self._loading = True
             try:
                 self._width_edit.setText(
-                    str(self._config.get("window_width", 1050))
+                    str(self._config.get("window_width", 1600))
                 )
                 self._height_edit.setText(
-                    str(self._config.get("window_height", 600))
+                    str(self._config.get("window_height", 900))
                 )
             finally:
                 self._loading = False

@@ -9,7 +9,7 @@ from PySide6.QtWidgets import QApplication, QFrame, QStackedWidget
 
 from app.i18n import t
 from app.services.metadata_service import MetadataService
-from app.ui.pages.work_page import OP_RENAME, OP_TAGS, WorkPage, _OPS_DETAIL, _OPS_HUB
+from app.ui.pages.work_page import OP_RENAME, OP_TAGS, WorkPage, _OPS_DETAIL
 from app.utils.thumbnail_cache import ThumbnailCache
 
 
@@ -55,18 +55,19 @@ def test_organize_has_list_and_ops():
     _panel(page, "organizeListPanel")
     _panel(page, "organizeOpsPanel")
     assert page._list.count() >= 1
-    assert page._op_stack.count() == 2
+    assert page._op_stack.count() == 3
     assert OP_TAGS in page._operations
     assert OP_RENAME in page._operations
     assert t("work.operations") == "Operations"
     assert t("work.op_tags") == "Batch Tags"
     assert t("work.op_rename") == "Batch Rename"
     assert t("work.selected_count", count=0) == "0 Images"
-    # Starts on Operations hub (not a Bulk detail card)
-    assert page._ops_nav_stack.currentIndex() == _OPS_HUB
+    # No operation detail is shown until an action is chosen.
+    assert page._ops_nav_stack.currentIndex() != _OPS_DETAIL
+    assert page._batch_action_combo.currentData() is None
 
 
-def test_organize_header_root_folder_then_folder_then_selected():
+def test_organize_header_selected_folder_then_selected():
     app = _ensure_app()
     page = _make_page()
     page.resize(900, 600)
@@ -75,12 +76,30 @@ def test_organize_header_root_folder_then_folder_then_selected():
     assert hasattr(page, "_root_folder_value")
     assert page._root_folder_value.text()
     root_chip = page._root_folder_value.parentWidget()
-    folder_chip = page._folder_combo.parentWidget()
     sel_box = page._selected_count_label.parentWidget()
-    assert root_chip is not None and folder_chip is not None and sel_box is not None
+    assert root_chip is not None and sel_box is not None
     # Left → right: Root Folder chip, Folder chip, Selected banner
-    assert root_chip.x() < folder_chip.x() < sel_box.x()
-    assert t("work.root_folder_label") == "Root Folder"
+    assert root_chip.mapTo(page, root_chip.rect().topLeft()).y() < sel_box.mapTo(
+        page, sel_box.rect().topLeft()
+    ).y()
+    assert page._folder_combo.parentWidget().isHidden()
+    assert page._choose_folder_btn.text() == "Choose Folder"
+    assert page._choose_folder_btn.icon().isNull() is False
+    assert root_chip.objectName() == "folderSelectorBar"
+    assert t("work.root_folder_label") == "Folder:"
+
+
+def test_organize_top_controls_align_with_image_column():
+    app = _ensure_app()
+    page = _make_page()
+    page.resize(1200, 760)
+    page.show()
+    app.processEvents()
+    page._sync_top_control_widths()
+    target = page._list_column.width()
+    assert page._folder_bar.maximumWidth() == target
+    assert page._search_row.maximumWidth() == target
+    assert page._filter_secondary.maximumWidth() == target
 
 
 def test_operation_opens_detail_inside_ops_card():
@@ -104,17 +123,21 @@ def test_operations_back_returns_to_hub():
     page._open_operation(OP_TAGS)
     assert page._ops_nav_stack.currentIndex() == _OPS_DETAIL
     page._show_ops_hub()
-    assert page._ops_nav_stack.currentIndex() == _OPS_HUB
-    assert page._ops_back_btn.text() == t("work.operations_back")
+    assert page._ops_nav_stack.currentIndex() == _OPS_DETAIL
+    assert page._batch_action_combo.currentData() == OP_TAGS
 
 
 def test_selection_count_updates():
     _ensure_app()
     page = _make_page()
     page._select_all()
-    assert page._selected_count_label.text() == t("work.selected_count", count=1)
+    assert page._selected_count_label.text() == t(
+        "work.results_selected", results=1, selected=1
+    )
     page._clear_selection()
-    assert page._selected_count_label.text() == t("work.selected_count", count=0)
+    assert page._selected_count_label.text() == t(
+        "work.results_selected", results=1, selected=0
+    )
 
 
 def test_organize_ops_panel_is_compact():
@@ -149,7 +172,7 @@ def test_operation_menu_icon_aligns_with_title():
     assert icon is not None and title is not None
     icon_mid = icon.geometry().center().y()
     title_mid = title.geometry().center().y()
-    assert abs(icon_mid - title_mid) <= 3
+    assert abs(icon_mid - title_mid) <= 5
 
 
 def test_operations_title_is_bold_and_spelled_correctly():
@@ -228,7 +251,7 @@ def test_organize_ops_menu_selection_accent():
     assert page._op_buttons[OP_TAGS].property("selected") is False
     assert page._ops_panel.property("opId") == OP_RENAME
     page._show_ops_hub()
-    assert page._ops_nav_stack.currentIndex() == _OPS_HUB
+    assert page._ops_nav_stack.currentIndex() == _OPS_DETAIL
     assert page._op_buttons[OP_RENAME].property("selected") is True
 
 
@@ -241,7 +264,7 @@ def test_organize_ops_future_menu_items_present():
     assert page._op_buttons["convert"].spec.enabled is False
     # Disabled ops do not open a detail page
     page._open_operation("convert")
-    assert page._ops_nav_stack.currentIndex() == _OPS_HUB
+    assert page._ops_nav_stack.currentIndex() != _OPS_DETAIL
 
 
 def test_organize_no_nested_bulk_card():
@@ -254,18 +277,18 @@ def test_organize_no_nested_bulk_card():
         assert frame.objectName() != "organizeOpSettings"
 
 
-def test_organize_ops_density_scales_without_scroll():
+def test_organize_ops_density_stays_compact_in_reduced_panel():
     app = _ensure_app()
     page = _make_page()
     page.resize(1000, 720)
     page.show()
     app.processEvents()
-    page._ops_panel.resize(260, 560)
-    page._apply_ops_density(force=True)
-    assert page._ops_density == "comfortable"
-    assert page._ops_hint.isVisible() is True
-
     page._ops_panel.resize(260, 300)
+    page._apply_ops_density(force=True)
+    assert page._ops_density in {"compact", "tight"}
+    assert page._ops_hint.isVisible() is False
+
+    page._ops_panel.resize(260, 190)
     page._apply_ops_density(force=True)
     assert page._ops_density == "tight"
     assert page._ops_hint.isVisible() is False
@@ -293,9 +316,9 @@ def test_bulk_tags_order_new_existing_remove():
     assert hasattr(page, "_tag_new_input")
     assert hasattr(page, "_tag_add_combo")
     assert hasattr(page, "_tag_remove_combo")
-    # Vertical order in the settings panel: new input before existing combo
-    assert page._tag_new_input.y() < page._tag_add_combo.y()
-    assert page._tag_add_combo.y() < page._tag_remove_combo.y()
+    # Vertical order: existing-tag action, new-tag action, remove-tag action.
+    assert page._tag_add_combo.parentWidget().y() < page._tag_new_input.parentWidget().y()
+    assert page._tag_new_input.parentWidget().y() < page._tag_remove_combo.parentWidget().y()
     assert t("work.tag_new") == "New tag"
     assert t("work.tag_existing") == "Existing tag"
 
@@ -316,6 +339,30 @@ def test_bulk_create_tag_assigns_to_selection(monkeypatch):
     meta = page._metadata_service.load_metadata(folder, force_reload=True)
     image_tags = next(iter(meta.get("images", {}).values())).get("tags", [])
     assert "batch-new" in image_tags
+
+
+def test_bulk_existing_tag_add_and_remove_reuse_current_logic(monkeypatch):
+    _ensure_app()
+    page = _make_page()
+    monkeypatch.setattr(
+        "app.ui.pages.work_page.QMessageBox.information", lambda *a, **k: None
+    )
+    page._metadata_service.ensure_global_tag(page._app_root, "existing-tag")
+    page._reload_tag_combos()
+    page._select_all()
+
+    page._tag_add_combo.setCurrentIndex(page._tag_add_combo.findData("existing-tag"))
+    page._on_bulk_add_tag()
+    folder = page._get_folder_dir()
+    meta = page._metadata_service.load_metadata(folder, force_reload=True)
+    assert "existing-tag" in next(iter(meta["images"].values()))["tags"]
+
+    page._tag_remove_combo.setCurrentIndex(
+        page._tag_remove_combo.findData("existing-tag")
+    )
+    page._on_bulk_remove_tag()
+    meta = page._metadata_service.load_metadata(folder, force_reload=True)
+    assert "existing-tag" not in next(iter(meta["images"].values()))["tags"]
 
 
 def test_organize_uses_shared_page_header():

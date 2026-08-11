@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 from app.i18n import t
 from app.services.metadata_service import MetadataService
 from app.ui.flow_layout import FlowLayout
+from app.ui.design_tokens import apply_card_shadow
 from app.ui.icons import icon_add, icon_clear, icon_search
 from app.ui.scroll_page import make_page_scroll
 from app.utils.tag_format import format_tag, normalize_tag
@@ -103,6 +104,7 @@ class TagsPage(QWidget):
         # Chip board — compact tag pills, not full-width rows
         chip_panel = QFrame(content)
         chip_panel.setObjectName("tagsChipPanel")
+        apply_card_shadow(chip_panel)
         chip_panel.setMinimumHeight(160)
         chip_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
         chip_outer = QVBoxLayout(chip_panel)

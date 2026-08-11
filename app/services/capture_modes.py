@@ -107,7 +107,7 @@ def grab_fullscreen_image() -> QImage | None:
 
 
 def default_region_trigger() -> bool:
-    """Open Windows region snipping (Win+Shift+S)."""
+    """Open Windows region snipping with Win+Shift+S."""
     from app.utils.windows_hotkey import send_win_shift_s
 
     return send_win_shift_s()

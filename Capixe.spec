@@ -14,12 +14,18 @@ Distribute the entire dist/Capixe/ folder (not Capixe.exe alone).
 from __future__ import annotations
 
 import os
+from PyInstaller.utils.hooks import collect_all
 
 block_cipher = None
 
 _SPEC_ROOT = os.path.abspath(SPECPATH)
 _ICON_DIR = os.path.join(_SPEC_ROOT, "resources", "icons")
+_FONT_DIR = os.path.join(_SPEC_ROOT, "resources", "fonts")
+_OCR_MODEL_DIR = os.path.join(_SPEC_ROOT, "tools", "ocr_poc", "models")
 _ICON_ICO = os.path.join(_ICON_DIR, "capixe.ico")
+
+_rapidocr_datas, _rapidocr_binaries, _rapidocr_hiddenimports = collect_all("rapidocr")
+_onnx_datas, _onnx_binaries, _onnx_hiddenimports = collect_all("onnxruntime")
 
 # Qt modules Capixe never imports — keep them out of the graph when possible.
 _UNUSED_QTPACKAGES = [
@@ -209,13 +215,15 @@ def _denied(path_str: str) -> bool:
 a = Analysis(
     ["main.py"],
     pathex=[],
-    binaries=[],
+    binaries=[*_rapidocr_binaries, *_onnx_binaries],
     datas=[
         # Official app mark (ICO + PNG sizes) for window / splash / About
         (_ICON_DIR, "resources/icons"),
-    ]
-    if os.path.isdir(_ICON_DIR)
-    else [],
+        *([(_FONT_DIR, "resources/fonts")] if os.path.isdir(_FONT_DIR) else []),
+        *([(_OCR_MODEL_DIR, "resources/ocr_models")] if os.path.isdir(_OCR_MODEL_DIR) else []),
+        *_rapidocr_datas,
+        *_onnx_datas,
+    ] if os.path.isdir(_ICON_DIR) else [],
     hiddenimports=[
         # Runtime Qt (app uses these only)
         "PySide6.QtCore",
@@ -226,6 +234,8 @@ a = Analysis(
         "app.i18n.en",
         "app.i18n.ja",
         "app.ui.app_icon",
+        *_rapidocr_hiddenimports,
+        *_onnx_hiddenimports,
     ],
     hookspath=[],
     hooksconfig={},

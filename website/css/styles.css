@@ -236,6 +236,10 @@ p {
   text-align: center;
 }
 
+.download-frame {
+  display: none;
+}
+
 .hero-proof {
   margin: 0.85rem 0 0;
   color: var(--text-muted);

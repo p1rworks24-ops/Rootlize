@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QIcon, QKeyEvent, QMouseEvent
+from PySide6.QtGui import QFont, QIcon, QKeyEvent, QMouseEvent
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -266,7 +266,9 @@ class OperationMenuItem(QFrame):
         ):
             font = label.font()
             font.setPointSize(pt)
-            font.setBold(bold)
+            font.setWeight(
+                QFont.Weight.DemiBold if bold else QFont.Weight.Normal
+            )
             label.setFont(font)
         if self._status is not None:
             font = self._status.font()

@@ -1,6 +1,6 @@
 """Thumbnail / list view modes for the Images page."""
 
-DEFAULT_THUMBNAIL_MODE = "large"
+DEFAULT_THUMBNAIL_MODE = "small"
 
 # small = former details (list), medium/large = icon grids with caption metadata
 VALID_THUMBNAIL_MODES = {"large", "medium", "small"}
@@ -13,17 +13,17 @@ THUMBNAIL_MODE_OPTIONS = [
 ]
 
 # IconMode gap between cards — same with/without Group By (no fixed grid).
-THUMBNAIL_LIST_SPACING = 8
+THUMBNAIL_LIST_SPACING = 6
 
 # icon_size, grid_width, grid_height
 # Grid height leaves room for full wrapped filename (+ tags/date on Images).
 # Spacing between cells is controlled by QListWidget.setSpacing (constant).
 THUMBNAIL_MODE_SIZES = {
-    # icon, grid_w, grid_h — balanced cards (Explorer / Notion gallery feel)
-    # Small uses compact cards (not a full-width list row)
-    "large": (120, 152, 236),
-    "medium": (88, 120, 200),
-    "small": (56, 92, 168),
+    # The compact default follows the dense reference gallery while retaining
+    # larger choices for inspection-heavy workflows.
+    "large": (120, 176, 216),
+    "medium": (88, 140, 174),
+    "small": (64, 100, 128),
 }
 
 # Map legacy "details" → "small"

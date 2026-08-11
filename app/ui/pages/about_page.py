@@ -28,6 +28,7 @@ from app.branding import (
 )
 from app.i18n import t
 from app.ui.app_icon import app_mark_pixmap
+from app.ui.design_tokens import apply_card_shadow
 from app.ui.icons import fluent_icon
 from app.ui.scroll_page import make_page_scroll
 from app.utils.logger import setup_logger
@@ -221,6 +222,7 @@ class AboutPage(QWidget):
     def _make_card(self, parent: QWidget) -> tuple[QFrame, QVBoxLayout]:
         card = QFrame(parent)
         card.setObjectName("aboutCard")
+        apply_card_shadow(card)
         card_layout = QVBoxLayout(card)
         card_layout.setContentsMargins(24, 20, 24, 20)
         card_layout.setSpacing(12)

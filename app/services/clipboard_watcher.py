@@ -30,7 +30,11 @@ class ClipboardWatcher:
         self._timer.timeout.connect(self._check_clipboard)
 
     def start(self) -> None:
-        """監視を開始する"""
+        """監視を開始し、起動前から残っている画像を基準値として無視する。"""
+        existing = self._clipboard.image()
+        self._last_hash = (
+            self._calc_image_hash(existing) if not existing.isNull() else None
+        )
         self._timer.start()
         logger.info(
             "クリップボード監視を開始しました（間隔: %d ms）",

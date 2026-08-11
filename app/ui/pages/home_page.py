@@ -1,51 +1,108 @@
+"""Home dashboard for the selected library and plan usage."""
+
+from __future__ import annotations
+
 from pathlib import Path
 
-from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtCore import QRectF, Qt, Signal, QSize
+from PySide6.QtGui import QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
+    QFrame,
+    QFileDialog,
     QHBoxLayout,
     QLabel,
+    QProgressBar,
     QPushButton,
-    QFrame,
     QSizePolicy,
+    QVBoxLayout,
+    QWidget,
 )
 
-from app.config import save_config
 from app.i18n import t
+from app.config import save_config
 from app.services.metadata_service import MetadataService
-from app.ui.icons import (
-    fluent_icon,
-    icon_images,
-    icon_organize,
-    icon_settings,
-    icon_tags,
-)
-from app.ui.segmented_toggle import SegmentedToggle
-from app.ui.stats_chart import StatsChartPanel
+from app.ui.design_tokens import apply_card_shadow
+from app.ui.icons import icon_folder
+from app.utils.selected_folder import get_selected_folder, set_selected_folder
 from app.utils.thumbnail_cache import ThumbnailCache
-from app.utils.workspace import resolve_screenshot_root
-from app.utils.workspace_stats import (
-    collect_folder_stats,
-    collect_root_totals,
-    collect_tag_stats,
-    format_bytes_parts,
-)
+from app.utils.workspace_stats import collect_selected_folder_totals
 
-STATS_FOLDER = "folder"
-STATS_TAG = "tag"
-# Wider than before for readable folder/tag bars; still short of full window edge
-_CHART_MAX_WIDTH = 960
+
+class UsageDonut(QWidget):
+    """Compact plan-usage chart; data can later come from an account backend."""
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self._used = 0
+        self._limit = 0
+        self.setFixedSize(176, 176)
+
+    def set_usage(self, used: int, limit: int) -> None:
+        self._limit = max(0, int(limit))
+        self._used = (
+            min(max(0, int(used)), self._limit)
+            if self._limit
+            else max(0, int(used))
+        )
+        self.update()
+
+    @property
+    def unlimited(self) -> bool:
+        return self._limit == 0
+
+    @property
+    def remaining(self) -> int:
+        return max(0, self._limit - self._used)
+
+    def paintEvent(self, _event) -> None:  # noqa: N802
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing, True)
+        ring = QRectF(18, 18, self.width() - 36, self.height() - 36)
+        width = 15
+        painter.setPen(QPen(QColor("#e2e8f0"), width, Qt.SolidLine, Qt.RoundCap))
+        painter.drawArc(ring, 0, 360 * 16)
+        # Blue is the remaining usable quota, matching the center label.
+        if self.unlimited or self.remaining > 0:
+            span = (
+                360 * 16
+                if self.unlimited
+                else int((self.remaining / self._limit) * 360 * 16)
+            )
+            painter.setPen(
+                QPen(QColor("#2563eb"), width, Qt.SolidLine, Qt.RoundCap)
+            )
+            painter.drawArc(ring, 90 * 16, -span)
+
+        painter.setPen(QColor("#111827"))
+        font = painter.font()
+        font.setPointSize(22)
+        font.setWeight(QFont.Weight.DemiBold)
+        painter.setFont(font)
+        painter.drawText(
+            QRectF(0, 48, self.width(), 48),
+            Qt.AlignCenter,
+            "∞" if self.unlimited else str(self.remaining),
+        )
+        painter.setPen(QColor("#64748b"))
+        font.setPointSize(9)
+        font.setWeight(QFont.Weight.Medium)
+        painter.setFont(font)
+        painter.drawText(
+            QRectF(0, 94, self.width(), 28),
+            Qt.AlignHCenter | Qt.AlignTop,
+            t(
+                "home.dashboard.images_available"
+                if self.unlimited
+                else "home.dashboard.images_left"
+            ),
+        )
+        painter.end()
 
 
 class HomePage(QWidget):
-    """Home dashboard: folder/tag stats charts and quick actions."""
+    """Wide dashboard with distinct folder, library, and plan hierarchy."""
 
-    open_images_requested = Signal()
-    open_action_requested = Signal()
-    open_tags_requested = Signal()
-    open_settings_requested = Signal()
-    browse_root_requested = Signal()
+    folder_changed = Signal(str)
 
     def __init__(
         self,
@@ -54,15 +111,17 @@ class HomePage(QWidget):
         thumbnail_cache: ThumbnailCache,
         app_root: Path,
         parent=None,
-    ):
+        **_unused,
+    ) -> None:
         super().__init__(parent)
         self._config = config
         self._metadata_service = metadata_service
         self._thumbnail_cache = thumbnail_cache
         self._app_root = app_root
-        self._stats_mode = config.get("home_stats_mode", STATS_FOLDER)
-        if self._stats_mode not in (STATS_FOLDER, STATS_TAG):
-            self._stats_mode = STATS_FOLDER
+        self._folder_total = 0
+        self._analysis_summary = {"total": 0, "analyzed": 0, "pending": 0}
+        self._analysis_running = False
+        self._plan_usage_override: tuple[str, int, int] | None = None
         self._init_ui()
 
     def _init_ui(self) -> None:
@@ -70,231 +129,259 @@ class HomePage(QWidget):
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)
 
+        from app.ui.page_header import make_page_header
         from app.ui.scroll_page import make_page_scroll
 
         scroll = make_page_scroll(self)
         outer.addWidget(scroll)
-
         content = QWidget(scroll)
         content.setObjectName("homeContentColumn")
         scroll.setWidget(content)
-        layout = QVBoxLayout(content)
-        layout.setContentsMargins(28, 20, 28, 28)
-        layout.setSpacing(12)
+        page_layout = QHBoxLayout(content)
+        page_layout.setContentsMargins(28, 20, 28, 28)
+        page_layout.setSpacing(0)
+        dashboard = QWidget(content)
+        dashboard.setObjectName("homeDashboardBody")
+        self._dashboard = dashboard
+        dashboard.setMaximumWidth(1120)
+        dashboard.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        layout = QVBoxLayout(dashboard)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(16)
+        layout.addWidget(make_page_header(dashboard, t("home.title"), t("home.subtitle")))
+        page_layout.addWidget(dashboard, 1)
+        page_layout.addStretch(1)
 
-        from app.ui.page_header import make_page_header
-
-        layout.addWidget(
-            make_page_header(content, t("home.title"), t("home.subtitle"))
+        self._folder_card = QFrame(content)
+        self._folder_card.setObjectName("homeSelectedFolderCard")
+        apply_card_shadow(self._folder_card, blue_tinted=True)
+        folder_layout = QHBoxLayout(self._folder_card)
+        folder_layout.setContentsMargins(18, 14, 18, 14)
+        folder_layout.setSpacing(16)
+        folder_copy = QVBoxLayout()
+        folder_copy.setSpacing(4)
+        folder_title = QLabel(t("home.dashboard.selected_folder"), self._folder_card)
+        folder_title.setObjectName("homeContextLabel")
+        self._folder_path = QLabel("—", self._folder_card)
+        self._folder_path.setObjectName("homeFolderPath")
+        self._folder_path.setWordWrap(True)
+        folder_copy.addWidget(folder_title)
+        folder_copy.addWidget(self._folder_path)
+        folder_layout.addLayout(folder_copy, 1)
+        self._select_folder_btn = QPushButton(
+            t("home.dashboard.select_folder"), self._folder_card
         )
+        self._select_folder_btn.setObjectName("homeSelectFolderButton")
+        self._select_folder_btn.setIcon(icon_folder(color="#2563eb"))
+        self._select_folder_btn.setIconSize(QSize(16, 16))
+        self._select_folder_btn.setCursor(Qt.PointingHandCursor)
+        self._select_folder_btn.clicked.connect(self._choose_folder)
+        folder_layout.addWidget(self._select_folder_btn, 0, Qt.AlignVCenter)
+        layout.addWidget(self._folder_card)
 
-        # Quick actions sit directly under the Home title
-        actions_title = QLabel(t("home.quick_actions"), content)
-        actions_title.setObjectName("sectionTitle")
-        layout.addWidget(actions_title)
-
-        actions = QHBoxLayout()
-        actions.setSpacing(10)
-        for label_key, icon_fn, signal in (
-            ("nav.images", icon_images, self.open_images_requested),
-            ("nav.organize", icon_organize, self.open_action_requested),
-            ("nav.tags", icon_tags, self.open_tags_requested),
-            ("nav.settings", icon_settings, self.open_settings_requested),
-        ):
-            btn = QPushButton(t(label_key), content)
-            btn.setObjectName("secondaryButton")
-            btn.setIcon(icon_fn())
-            btn.setCursor(Qt.PointingHandCursor)
-            btn.clicked.connect(signal.emit)
-            actions.addWidget(btn)
-        actions.addStretch()
-        layout.addLayout(actions)
-
-        cards = QHBoxLayout()
-        cards.setSpacing(12)
-        self._folder_card = self._create_stat_card(
-            t("home.root_folder"), "-", with_browse=True
-        )
-        self._count_card = self._create_stat_card(t("home.image_count"), "0")
-        cards.addWidget(self._folder_card)
-        cards.addWidget(self._count_card)
-        cards.addStretch()
-        layout.addLayout(cards)
-
-        self._empty_hint = self._create_empty_hint_card(content)
-        layout.addWidget(self._empty_hint)
-
-        # Stats card: Statistics → Display by → [Folder|Tag] → chart
-        chart_frame = QFrame(content)
-        chart_frame.setObjectName("infoPanel")
-        # Prefer page scroll over forcing the shell wider than Settings size
-        chart_frame.setMinimumWidth(320)
-        chart_frame.setMaximumWidth(_CHART_MAX_WIDTH)
-        chart_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        chart_layout = QVBoxLayout(chart_frame)
-        chart_layout.setContentsMargins(18, 16, 18, 16)
-        chart_layout.setSpacing(10)
-
-        stats_title = QLabel(t("home.stats"), chart_frame)
-        stats_title.setObjectName("sectionTitle")
-        chart_layout.addWidget(stats_title)
-
-        view_label = QLabel(t("home.stats_view"), chart_frame)
-        view_label.setObjectName("mutedLabel")
-        chart_layout.addWidget(view_label)
-
-        self._stats_toggle = SegmentedToggle(
-            [t("home.stats_folder"), t("home.stats_tag")],
-            chart_frame,
-        )
-        self._stats_toggle.set_current(1 if self._stats_mode == STATS_TAG else 0)
-        self._stats_toggle.changed.connect(self._on_stats_mode_changed)
-        toggle_row = QHBoxLayout()
-        toggle_row.addWidget(self._stats_toggle)
-        toggle_row.addStretch(1)
-        chart_layout.addLayout(toggle_row)
-
-        hint = QLabel(t("home.stats_hint"), chart_frame)
-        hint.setObjectName("mutedLabel")
-        hint.setWordWrap(True)
-        chart_layout.addWidget(hint)
-
-        divider = QFrame(chart_frame)
-        divider.setObjectName("sectionDivider")
-        divider.setFixedHeight(1)
-        divider.setFrameShape(QFrame.HLine)
-        chart_layout.addWidget(divider)
-
-        # Chart height grows with folder/tag count; page scroll handles overflow
-        self._stats_chart = StatsChartPanel(chart_frame)
-        chart_layout.addWidget(self._stats_chart, stretch=0)
-
-        chart_row = QHBoxLayout()
-        chart_row.setContentsMargins(0, 0, 0, 0)
-        chart_row.addWidget(chart_frame, stretch=0)
-        chart_row.addStretch(1)
-        layout.addLayout(chart_row, stretch=0)
-
+        lower = QHBoxLayout()
+        lower.setContentsMargins(0, 0, 0, 0)
+        lower.setSpacing(12)
+        self._library_panel = self._build_library_panel(content)
+        self._plan_panel = self._build_plan_panel(content)
+        lower.addWidget(self._library_panel, 3)
+        lower.addWidget(self._plan_panel, 2)
+        layout.addLayout(lower, 1)
         layout.addStretch(1)
 
-    def _create_empty_hint_card(self, parent: QWidget) -> QFrame:
-        """Compact first-run tip — shown only when the library has 0 images."""
-        card = QFrame(parent)
-        card.setObjectName("emptyHintCard")
-        card.setMaximumWidth(_CHART_MAX_WIDTH)
-        card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(18, 16, 18, 16)
-        card_layout.setSpacing(6)
+    def _build_library_panel(self, parent: QWidget) -> QFrame:
+        panel = QFrame(parent)
+        panel.setObjectName("homeLibraryPanel")
+        panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        apply_card_shadow(panel, blue_tinted=True)
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(20, 18, 20, 20)
+        layout.setSpacing(14)
+        title = QLabel(t("home.dashboard.library_status"), panel)
+        title.setObjectName("homePanelTitle")
+        layout.addWidget(title)
 
-        title = QLabel(t("home.empty_title"), card)
-        title.setObjectName("emptyHintTitle")
-        title.setWordWrap(True)
-        card_layout.addWidget(title)
-
-        body = QLabel(t("home.empty_body"), card)
-        body.setObjectName("emptyHintBody")
-        body.setWordWrap(True)
-        card_layout.addWidget(body)
-
-        save_hint = QLabel(t("home.empty_save_hint"), card)
-        save_hint.setObjectName("emptyHintMeta")
-        save_hint.setWordWrap(True)
-        card_layout.addWidget(save_hint)
-
-        card.hide()
-        return card
-
-    def _create_stat_card(
-        self, title: str, value: str, *, with_browse: bool = False
-    ) -> QFrame:
-        card = QFrame(self)
-        card.setObjectName("statCard")
-        # Compact card width (previous size); do not stretch across the page
-        card.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
-        card.setFixedWidth(220)
-        card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(14, 12, 14, 12)
-        card_layout.setSpacing(6)
-
-        title_label = QLabel(title, card)
-        title_label.setObjectName("mutedLabel")
-        card_layout.addWidget(title_label)
-
-        value_row = QHBoxLayout()
-        value_row.setContentsMargins(0, 0, 0, 0)
-        value_row.setSpacing(6)
-        value_row.setAlignment(Qt.AlignVCenter)
-
-        value_label = QLabel(value, card)
-        value_label.setObjectName("statValue")
-        value_label.setWordWrap(True)
-        value_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        value_row.addWidget(value_label, stretch=1, alignment=Qt.AlignVCenter)
-
-        if with_browse:
-            browse_btn = QPushButton(card)
-            browse_btn.setObjectName("statCardIconButton")
-            # Match Root Folder value text color (#ea580c)
-            browse_btn.setIcon(fluent_icon("\uE8B7", size=14, color="#ea580c"))
-            browse_btn.setIconSize(QSize(14, 14))
-            browse_btn.setFixedSize(28, 28)
-            browse_btn.setCursor(Qt.PointingHandCursor)
-            browse_btn.setToolTip(t("home.browse_root_tooltip"))
-            browse_btn.clicked.connect(self.browse_root_requested.emit)
-            value_row.addWidget(browse_btn, 0, Qt.AlignVCenter)
-
-        card_layout.addLayout(value_row)
-
-        card.value_label = value_label  # type: ignore[attr-defined]
-        return card
-
-    def _on_stats_mode_changed(self, index: int) -> None:
-        self._stats_mode = STATS_TAG if index == 1 else STATS_FOLDER
-        self._config["home_stats_mode"] = self._stats_mode
-        try:
-            save_config(self._config)
-        except OSError:
-            pass
-        self._refresh_stats()
-
-    def _root_label(self) -> str:
-        """Display name for Settings Root Folder (screenshot root)."""
-        root = resolve_screenshot_root(
-            self._config.get("screenshot_dir", "screenshots"),
-            self._app_root,
+        metrics = QHBoxLayout()
+        metrics.setSpacing(18)
+        self._total_value = self._add_metric(
+            metrics, t("home.dashboard.total_images")
         )
-        return root.name or str(root)
+        self._analyzed_value = self._add_metric(
+            metrics, t("home.dashboard.analyzed")
+        )
+        self._pending_value = self._add_metric(
+            metrics, t("home.dashboard.unanalyzed")
+        )
+        layout.addLayout(metrics)
 
-    def _refresh_stats(self) -> None:
-        screenshot_dir = self._config.get("screenshot_dir", "screenshots")
-        if self._stats_mode == STATS_TAG:
-            rows = collect_tag_stats(
-                screenshot_dir, self._app_root, self._metadata_service
-            )
-            self._stats_chart.set_rows(rows, label_prefix="#", leading="swatch")
-        else:
-            rows = collect_folder_stats(
-                screenshot_dir, self._app_root, self._metadata_service
-            )
-            self._stats_chart.set_rows(rows, label_prefix="", leading="folder")
+        progress_label = QLabel(t("home.dashboard.analysis_progress_label"), panel)
+        progress_label.setObjectName("homeContextLabel")
+        layout.addWidget(progress_label)
+        self._analysis_progress = QProgressBar(panel)
+        self._analysis_progress.setObjectName("homeAnalysisProgress")
+        self._analysis_progress.setRange(0, 100)
+        self._analysis_progress.setTextVisible(False)
+        self._analysis_progress.setFixedHeight(12)
+        layout.addWidget(self._analysis_progress)
+        self._analysis_state = QLabel("", panel)
+        self._analysis_state.setObjectName("mutedLabel")
+        layout.addWidget(self._analysis_state)
+        layout.addStretch(1)
+        return panel
+
+    def _add_metric(self, row: QHBoxLayout, label: str) -> QLabel:
+        box = QWidget(self)
+        box.setObjectName("homeMetric")
+        box_layout = QVBoxLayout(box)
+        box_layout.setContentsMargins(0, 0, 0, 0)
+        box_layout.setSpacing(3)
+        caption = QLabel(label, box)
+        caption.setObjectName("homeMetricLabel")
+        value = QLabel("0", box)
+        value.setObjectName("homeMetricValue")
+        box_layout.addWidget(caption)
+        box_layout.addWidget(value)
+        row.addWidget(box, 1)
+        return value
+
+    def _build_plan_panel(self, parent: QWidget) -> QFrame:
+        panel = QFrame(parent)
+        panel.setObjectName("homePlanPanel")
+        panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        apply_card_shadow(panel, blue_tinted=True)
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(20, 18, 20, 20)
+        layout.setSpacing(10)
+        title = QLabel(t("home.dashboard.plan_usage"), panel)
+        title.setObjectName("homePanelTitle")
+        layout.addWidget(title)
+        self._plan_name = QLabel(t("home.dashboard.plan_placeholder"), panel)
+        self._plan_name.setObjectName("homePlanName")
+        layout.addWidget(self._plan_name)
+        chart_row = QHBoxLayout()
+        chart_row.addStretch(1)
+        self._usage_donut = UsageDonut(panel)
+        chart_row.addWidget(self._usage_donut)
+        chart_row.addStretch(1)
+        layout.addLayout(chart_row)
+        self._usage_caption = QLabel("", panel)
+        self._usage_caption.setObjectName("homeUsageCaption")
+        self._usage_caption.setAlignment(Qt.AlignCenter)
+        self._usage_caption.setWordWrap(True)
+        layout.addWidget(self._usage_caption)
+        layout.addStretch(1)
+        return panel
+
+    def set_plan_usage(self, plan_name: str, used: int, limit: int) -> None:
+        """Backend-ready adapter for future account/usage data."""
+        self._plan_usage_override = (str(plan_name), max(0, int(used)), max(0, int(limit)))
+        self._refresh_plan_usage()
+
+    def _choose_folder(self) -> None:
+        current = get_selected_folder(self._config, self._app_root)
+        start = str(current if current and current.exists() else Path.home())
+        selected = QFileDialog.getExistingDirectory(
+            self,
+            t("home.dashboard.select_folder_title"),
+            start,
+            QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks,
+        )
+        if not selected:
+            return
+        path = set_selected_folder(self._config, selected)
+        save_config(self._config)
+        self.refresh()
+        self.folder_changed.emit(str(path))
+
+    def set_analysis_summary(self, summary: object) -> None:
+        data = summary if isinstance(summary, dict) else {}
+        self._analysis_summary = {
+            "total": max(0, int(data.get("total", 0) or 0)),
+            "analyzed": max(0, int(data.get("analyzed", 0) or 0)),
+            "pending": max(0, int(data.get("pending", 0) or 0)),
+        }
+        self._analysis_running = False
+        self._refresh_library_status()
+        self._refresh_plan_usage()
+
+    def set_analysis_progress(self, status: object | None) -> None:
+        state = str(getattr(status, "state", "idle"))
+        active = state in {
+            "preparing", "scanning", "initializing_worker", "running",
+            "pausing", "paused", "cancelling", "closing",
+        }
+        self._analysis_running = active
+        if not active:
+            self._refresh_library_status()
+            return
+        completed = max(0, int(getattr(status, "completed", 0) or 0))
+        required = max(0, int(getattr(status, "total_requires_ocr", 0) or 0))
+        analyzed = min(
+            self._analysis_summary["total"],
+            self._analysis_summary["analyzed"] + completed,
+        )
+        self._render_library_values(analyzed)
+        self._analysis_state.setText(
+            t("home.dashboard.analysis_progress", completed=completed, total=required)
+        )
 
     def refresh(self) -> None:
-        self._folder_card.value_label.setText(self._root_label())  # type: ignore[attr-defined]
+        folder = get_selected_folder(self._config, self._app_root)
+        count, _nbytes = collect_selected_folder_totals(folder)
+        self._folder_total = count
+        self._folder_path.setText(str(folder) if folder else "—")
+        if self._analysis_summary["total"] != count and not self._analysis_running:
+            self._analysis_summary = {"total": count, "analyzed": 0, "pending": count}
+        self._refresh_library_status()
+        self._refresh_plan_usage()
 
-        count, nbytes = collect_root_totals(
-            self._config.get("screenshot_dir", "screenshots"),
-            self._app_root,
-        )
-        size_num, size_unit = format_bytes_parts(nbytes)
-        # Numbers stay orange; unit words ("images", "MB") are black and slightly smaller
-        self._count_card.value_label.setTextFormat(Qt.RichText)  # type: ignore[attr-defined]
-        self._count_card.value_label.setText(  # type: ignore[attr-defined]
-            f'<span style="color:#ea580c">{count}</span>'
-            f'<span style="color:#111827;font-size:15px"> images  ·  </span>'
-            f'<span style="color:#ea580c">{size_num}</span>'
-            f'<span style="color:#111827;font-size:15px">{size_unit}</span>'
-        )
+    def _refresh_library_status(self) -> None:
+        self._render_library_values(self._analysis_summary["analyzed"])
+        if self._analysis_summary["pending"]:
+            self._analysis_state.setText(
+                t("home.dashboard.pending_count", count=self._analysis_summary["pending"])
+            )
+        else:
+            self._analysis_state.setText(t("home.dashboard.all_searchable"))
 
-        self._empty_hint.setVisible(count == 0)
-        self._refresh_stats()
+    def _render_library_values(self, analyzed: int) -> None:
+        total = self._folder_total
+        analyzed = min(max(0, analyzed), total)
+        pending = max(0, total - analyzed)
+        rate = round((analyzed / total) * 100) if total else 0
+        self._total_value.setText(str(total))
+        self._analyzed_value.setText(f"{analyzed} / {total}")
+        self._pending_value.setText(str(pending))
+        self._analysis_progress.setValue(rate)
+
+    def _refresh_plan_usage(self) -> None:
+        if self._plan_usage_override is not None:
+            plan, used, limit = self._plan_usage_override
+        else:
+            plan = t("home.dashboard.plan_placeholder")
+            limit = 0  # Prototype plan has no analysis-image cap.
+            used = max(
+                0,
+                int(
+                    self._config.get(
+                        "analysis_images_used", self._analysis_summary["analyzed"]
+                    )
+                    or 0
+                ),
+            )
+        used = min(used, limit) if limit else used
+        self._plan_name.setText(plan)
+        self._usage_donut.set_usage(used, limit)
+        if self._usage_donut.unlimited:
+            self._usage_caption.setText(
+                t("home.dashboard.usage_caption_unlimited", used=used)
+            )
+        else:
+            self._usage_caption.setText(
+                t(
+                    "home.dashboard.usage_caption",
+                    used=used,
+                    remaining=self._usage_donut.remaining,
+                    limit=limit,
+                )
+            )

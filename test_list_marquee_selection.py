@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
+from types import SimpleNamespace
 
-from PySide6.QtCore import QPointF, QSize, Qt
+from PySide6.QtCore import QPoint, QPointF, QRect, QSize, Qt
 from PySide6.QtGui import QImage, QMouseEvent
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -15,6 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.services.metadata_service import MetadataService
+from app.ui.caption_delegate import ITEM_KIND_HEADER, ITEM_KIND_IMAGE, ITEM_KIND_ROLE
 from app.ui.pages.images_page import ImagesPage
 from app.ui.pages.work_page import WorkPage
 from app.ui.widgets import ScreenshotListWidget
@@ -37,9 +39,33 @@ def _png(folder: Path, name: str) -> Path:
     return path
 
 
-def test_marquee_from_empty_selects_items():
-    from PySide6.QtCore import QRect
+def test_images_select_all_includes_the_final_image_and_skips_headers():
+    _ensure_app()
+    list_w = ScreenshotListWidget()
+    list_w.configure_explorer_selection()
 
+    for index in range(3):
+        item = QListWidgetItem(f"image-{index}")
+        item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+        item.setData(ITEM_KIND_ROLE, ITEM_KIND_IMAGE)
+        item.setData(Qt.UserRole, f"C:/images/{index}.png")
+        list_w.addItem(item)
+        if index == 0:
+            header = QListWidgetItem("Group")
+            header.setFlags(Qt.ItemIsEnabled)
+            header.setData(ITEM_KIND_ROLE, ITEM_KIND_HEADER)
+            list_w.addItem(header)
+
+    page = SimpleNamespace(_list_widget=list_w)
+    ImagesPage._select_all_images(page)
+
+    selected = ImagesPage._selected_image_items(page)
+    assert len(selected) == 3
+    assert selected[-1].data(Qt.UserRole) == "C:/images/2.png"
+    assert list_w.item(list_w.count() - 1).isSelected()
+
+
+def test_marquee_from_empty_selects_items():
     app = _ensure_app()
     list_w = ScreenshotListWidget()
     list_w.setViewMode(QListWidget.IconMode)
@@ -63,6 +89,38 @@ def test_marquee_from_empty_selects_items():
     assert not union.isEmpty()
     list_w._apply_marquee_selection(union.adjusted(-1, -1, 1, 1))
     assert len(list_w.selectedItems()) == list_w.count()
+    list_w.close()
+
+
+def test_marquee_keeps_scrolled_out_items_selected():
+    """Selection uses stable content coordinates while the viewport scrolls."""
+    app = _ensure_app()
+    list_w = ScreenshotListWidget()
+    list_w.setViewMode(QListWidget.ListMode)
+    list_w.configure_explorer_selection()
+    list_w.setDragEnabled(False)
+    list_w.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
+    list_w.resize(240, 120)
+    list_w.show()
+
+    for i in range(12):
+        item = QListWidgetItem(f"item-{i}")
+        item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+        item.setSizeHint(QSize(200, 36))
+        list_w.addItem(item)
+    app.processEvents()
+
+    origin = list_w._content_pos(QPoint(2, 2))
+    first_card = list_w._content_card_rect(list_w.item(0))
+    list_w.verticalScrollBar().setValue(180)
+    app.processEvents()
+    last_card = list_w._content_card_rect(list_w.item(8))
+    selection = QRect(origin, last_card.bottomRight()).normalized()
+    list_w._apply_marquee_selection(selection)
+
+    assert not list_w.visualItemRect(list_w.item(0)).intersects(list_w.viewport().rect())
+    assert list_w.item(0).isSelected()
+    assert list_w.item(8).isSelected()
     list_w.close()
 
 

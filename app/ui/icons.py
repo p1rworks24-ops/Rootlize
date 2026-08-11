@@ -24,6 +24,9 @@ _GLYPH_ADD = "\uE710"
 _GLYPH_ACTION = "\uE8FD"  # Switch / organize
 _GLYPH_WORK = "\uE8FD"  # alias for Organize
 _GLYPH_AI = "\uE99A"  # Robot / AI-like glyph (Fluent)
+_GLYPH_CONTACT = "\uE77B"  # Person / account
+_GLYPH_CHEVRON_DOWN = "\uE70D"
+_GLYPH_CHEVRON_UP = "\uE70E"
 
 
 def _fluent_font(pixel_size: int) -> QFont:
@@ -108,12 +111,30 @@ def icon_ai(*, muted: bool = True) -> QIcon:
     return fluent_icon(_GLYPH_AI, color=color)
 
 
+def icon_analyze() -> QIcon:
+    """Image-analysis action glyph."""
+    return fluent_icon(_GLYPH_AI, size=16, color="#2563eb")
+
+
 def icon_settings() -> QIcon:
     return fluent_icon(_GLYPH_SETTINGS, color=NAV_COLOR_SETTINGS)
 
 
 def icon_about() -> QIcon:
     return fluent_icon(_GLYPH_INFO, color=NAV_COLOR_ABOUT)
+
+
+def icon_test_user() -> QIcon:
+    """Prototype account avatar used by the local test-user footer."""
+    return fluent_icon(_GLYPH_CONTACT, size=24, color="#2563eb")
+
+
+def icon_collapse_capture() -> QIcon:
+    return fluent_icon(_GLYPH_CHEVRON_DOWN, size=14, color="#475569")
+
+
+def icon_expand_capture() -> QIcon:
+    return fluent_icon(_GLYPH_CHEVRON_UP, size=14, color="#475569")
 
 
 def icon_screenshot() -> QIcon:
@@ -164,18 +185,18 @@ def icon_new_folder() -> QIcon:
     return QIcon(pix)
 
 
-def icon_folder() -> QIcon:
-    return fluent_icon(_GLYPH_FOLDER, size=16, color="#6b7280")
+def icon_folder(*, color: str = "#6b7280") -> QIcon:
+    return fluent_icon(_GLYPH_FOLDER, size=16, color=color)
 
 
-def icon_region_capture() -> QIcon:
-    """Region / crop-style capture (white on green button)."""
-    return fluent_icon(_GLYPH_IMAGE, size=16, color="#ffffff")
+def icon_region_capture(*, color: str = "#ffffff") -> QIcon:
+    """Region / crop-style capture with context-appropriate foreground."""
+    return fluent_icon(_GLYPH_IMAGE, size=16, color=color)
 
 
-def icon_fullscreen_capture() -> QIcon:
-    """Full-screen capture (white on blue button)."""
-    return fluent_icon(_GLYPH_CAMERA, size=16, color="#ffffff")
+def icon_fullscreen_capture(*, color: str = "#ffffff") -> QIcon:
+    """Full-screen camera glyph with context-appropriate foreground."""
+    return fluent_icon(_GLYPH_CAMERA, size=16, color=color)
 
 
 def icon_capture_mode_cycle(*, size: int = 16, color: str = "#334155") -> QIcon:
@@ -249,6 +270,11 @@ def icon_add() -> QIcon:
 
 def icon_open() -> QIcon:
     return fluent_icon(_GLYPH_OPEN, size=16)
+
+
+def icon_capture_panel() -> QIcon:
+    """Pop-up window glyph for opening the floating Capture Panel."""
+    return fluent_icon(_GLYPH_OPEN, size=20, color="#1d4ed8")
 
 
 def icon_project() -> QIcon:

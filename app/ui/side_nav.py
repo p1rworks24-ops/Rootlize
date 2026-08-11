@@ -2,19 +2,29 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, Property, Signal, QSize
+from PySide6.QtCore import QPoint, Qt, QPropertyAnimation, QEasingCurve, Property, Signal, QSize
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QVBoxLayout,
     QLabel,
+    QMenu,
     QPushButton,
     QSizePolicy,
     QWidget,
+    QToolButton,
 )
 
 from app.branding import APP_NAME_SIDEBAR
 from app.ui.app_icon import app_mark_pixmap
+from app.ui.design_tokens import (
+    NAV_ITEM_GAP,
+    NAV_PADDING_X,
+    NAV_PADDING_Y,
+    navigation_icon,
+    navigation_icon_size,
+)
+from app.ui.icons import icon_test_user
 
 
 class SideNav(QFrame):
@@ -33,6 +43,7 @@ class SideNav(QFrame):
         self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         self._expanded = False
         self._animating = False
+        self._responsive_compact: bool | None = None
         self._nav_buttons: dict[int, QPushButton] = {}
         self._placeholder_buttons: list[QPushButton] = []
         self._label_keys: dict[int, str] = {}
@@ -41,8 +52,10 @@ class SideNav(QFrame):
         self.setFixedWidth(self.COLLAPSED_WIDTH)
 
         self._layout = QVBoxLayout(self)
-        self._layout.setContentsMargins(8, 14, 8, 14)
-        self._layout.setSpacing(4)
+        self._layout.setContentsMargins(
+            NAV_PADDING_X, NAV_PADDING_Y, NAV_PADDING_X, NAV_PADDING_Y
+        )
+        self._layout.setSpacing(NAV_ITEM_GAP)
 
         brand_wrap = QWidget(self)
         brand_wrap.setObjectName("sidebarBrandWrap")
@@ -92,8 +105,9 @@ class SideNav(QFrame):
     ) -> QPushButton:
         btn = QPushButton(self)
         btn.setObjectName("navButton")
-        btn.setIcon(icon)
-        btn.setIconSize(QSize(20, 20))
+        btn.setIcon(navigation_icon(icon, accent))
+        icon_size = navigation_icon_size()
+        btn.setIconSize(QSize(icon_size, icon_size))
         btn.setCursor(Qt.PointingHandCursor)
         btn.setCheckable(True)
         btn.setAutoExclusive(True)
@@ -126,8 +140,9 @@ class SideNav(QFrame):
         """
         btn = QPushButton(self)
         btn.setObjectName("navButtonPlaceholder")
-        btn.setIcon(icon)
-        btn.setIconSize(QSize(20, 20))
+        btn.setIcon(navigation_icon(icon, accent))
+        icon_size = navigation_icon_size()
+        btn.setIconSize(QSize(icon_size, icon_size))
         btn.setCursor(Qt.ArrowCursor)
         btn.setCheckable(False)
         btn.setEnabled(True)
@@ -154,12 +169,53 @@ class SideNav(QFrame):
     def add_stretch(self) -> None:
         self._layout.addStretch()
 
+    def add_test_user(self) -> QToolButton:
+        """Add the prototype account footer without moving navigation rows."""
+        button = QToolButton(self)
+        button.setObjectName("sidebarPrototypeUser")
+        button.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        button.setIcon(icon_test_user())
+        button.setIconSize(QSize(24, 24))
+        button.setText("Prototype")
+        button.setToolTip("Test user")
+        button.setAccessibleName("Prototype test user")
+        button.setCursor(Qt.PointingHandCursor)
+        button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        button.setFixedHeight(60)
+        button.clicked.connect(self._show_test_user_info)
+        self._layout.addWidget(button)
+        self._prototype_user_button = button
+        return button
+
+    def _show_test_user_info(self) -> None:
+        menu = QMenu(self)
+        menu.setObjectName("sidebarUserMenu")
+        prototype = menu.addAction("Prototype")
+        prototype.setEnabled(False)
+        email = menu.addAction("Capixe@example.com")
+        email.setEnabled(False)
+        self._user_menu = menu
+        button = self._prototype_user_button
+        menu.popup(button.mapToGlobal(QPoint(button.width(), 0)))
+
     def set_current_page(self, page_id: int) -> None:
         for pid, btn in self._nav_buttons.items():
             btn.setChecked(pid == page_id)
         # Placeholders never enter a selected/checked state
         for btn in self._placeholder_buttons:
             btn.setChecked(False)
+
+    def set_responsive_compact(self, compact: bool) -> None:
+        """Record window density while keeping the navigation hover-driven."""
+        compact = bool(compact)
+        if self._responsive_compact == compact:
+            return
+        self._responsive_compact = compact
+        self._anim.stop()
+        self._animating = False
+        self._expanded = False
+        self.set_nav_width(self.COLLAPSED_WIDTH)
+        self._apply_button_labels(force_expanded=False)
 
     def enterEvent(self, event) -> None:
         self._animate_to(True)

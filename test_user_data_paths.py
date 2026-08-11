@@ -95,6 +95,66 @@ def test_legacy_config_migrated_but_not_deleted(tmp_path: Path):
     assert get_config_path().is_file()
     assert legacy_cfg.is_file()  # never deleted
     assert Path(loaded["screenshot_dir"]).resolve() == custom.resolve()
+    assert Path(loaded["selected_folder"]).resolve() == custom.resolve()
+    assert loaded["window_width"] == 1600
+    assert loaded["window_height"] == 900
+
+
+def test_custom_window_size_is_not_replaced_by_default_migration(tmp_path: Path):
+    custom = tmp_path / "CustomSizeRoot"
+    custom.mkdir()
+    save_config(
+        {
+            **build_default_config(),
+            "screenshot_dir": str(custom),
+            "window_width": 1280,
+            "window_height": 720,
+        }
+    )
+    reset_migration_flag_for_tests()
+    loaded = load_config()
+    assert loaded["window_width"] == 1280
+    assert loaded["window_height"] == 720
+
+
+def test_old_version_window_size_resets_once_to_1600_by_900(tmp_path: Path):
+    custom = tmp_path / "VersionTwoRoot"
+    custom.mkdir()
+    config = build_default_config()
+    config.update(
+        {
+            "screenshot_dir": str(custom),
+            "window_width": 1720,
+            "window_height": 980,
+            "window_size_default_version": 2,
+        }
+    )
+    save_config(config)
+    reset_migration_flag_for_tests()
+
+    loaded = load_config()
+    assert loaded["window_width"] == 1600
+    assert loaded["window_height"] == 900
+    assert loaded["window_size_default_version"] == 7
+
+    config = loaded.copy()
+    config.update(
+        {
+            "window_width": 1000,
+            "window_height": 700,
+            "window_size_default_version": 4,
+        }
+    )
+    save_config(config)
+    loaded = load_config()
+    assert loaded["window_width"] == 1600
+    assert loaded["window_height"] == 900
+    assert loaded["window_size_default_version"] == 7
+
+
+def test_new_user_starts_without_selected_folder():
+    loaded = load_config()
+    assert loaded["selected_folder"] == ""
 
 
 def test_new_config_preferred_over_legacy(tmp_path: Path):
@@ -159,3 +219,15 @@ def test_save_config_creates_parent(tmp_path: Path):
     assert not target.exists()
     save_config(build_default_config())
     assert target.is_file()
+
+
+def test_load_config_accepts_utf8_bom() -> None:
+    target = get_config_path()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    payload = build_default_config()
+    payload["onboarding_completed"] = False
+    target.write_text(json.dumps(payload), encoding="utf-8-sig")
+
+    loaded = load_config()
+
+    assert loaded["onboarding_completed"] is False

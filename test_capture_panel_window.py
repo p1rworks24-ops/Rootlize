@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QPoint, Qt
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QFontMetrics, QGuiApplication
 from PySide6.QtWidgets import QApplication
 
 from app.ui.capture_panel_window import (
@@ -30,6 +30,12 @@ def test_capture_panel_is_square_always_on_top():
     assert bool(win.windowFlags() & Qt.WindowStaysOnTopHint)
     assert win.parent() is None
     assert win._capture_btn is not None
+    assert win._capture_btn.width() == 88
+    win.apply_mode("fullscreen")
+    assert "Full Screen" in win._capture_btn.text()
+    assert QFontMetrics(win._capture_btn.font()).horizontalAdvance(
+        "Full Screen"
+    ) <= win._capture_btn.width() - 12
     assert win._cycle_btn is not None
     assert win._settings_btn is not None
     assert win._close_btn.width() == win._close_btn.height()
@@ -104,7 +110,8 @@ def test_capture_panel_settings_page_expands():
     app.processEvents()
     assert SETTINGS_MIN_SIZE.width() <= win.width() <= SETTINGS_MAX_SIZE.width()
     assert SETTINGS_MIN_SIZE.height() <= win.height() <= SETTINGS_MAX_SIZE.height()
-    assert win._folder_combo is not None
+    assert not hasattr(win, "_folder_combo")
+    assert not hasattr(win, "_folder_field")
     assert win._filename_combo is not None
     assert win._back_btn.isVisible()
     assert not win._close_btn.isVisible()
@@ -115,6 +122,16 @@ def test_capture_panel_settings_page_expands():
     assert win.height() == PANEL_SIZE
     assert win._close_btn.isVisible()
     assert not win._back_btn.isVisible()
+
+
+def test_capture_panel_uses_shell_folder_only_as_filename_context():
+    _ensure_app()
+    win = CapturePanelWindow()
+
+    win.sync_folder_selector(["Capture", "Project A"], "Project A")
+    assert not hasattr(win, "_folder_combo")
+    assert win._filename_field.label.text() == "Filename"
+    assert win._filename_combo._folder == "Project A"
 
 
 def test_capture_panel_shot_label_matches_app_style():

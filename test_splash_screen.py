@@ -101,3 +101,23 @@ def test_splash_finished_after_ready_and_min_time():
     splash.close()
     host.close()
     app.processEvents()
+
+
+def test_splash_is_hidden_before_finished_handlers_run():
+    from PySide6.QtTest import QTest
+
+    app = _ensure_app()
+    host = _make_host()
+    host.show()
+    splash = SplashScreen(host)
+    visible_when_finished: list[bool] = []
+    splash.finished.connect(lambda: visible_when_finished.append(splash.isVisible()))
+
+    splash._min_elapsed = True
+    splash.notify_ready()
+    QTest.qWait(300)
+    app.processEvents()
+
+    assert visible_when_finished == [False]
+    splash.close()
+    host.close()

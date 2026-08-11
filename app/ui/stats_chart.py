@@ -105,7 +105,7 @@ class HorizontalBarChart(QWidget):
         y = 4.0
 
         label_font = QFont(painter.font())
-        label_font.setBold(True)
+        label_font.setWeight(QFont.Weight.DemiBold)
         label_font.setPointSize(max(label_font.pointSize(), 10))
         meta_font = QFont(painter.font())
         meta_font.setPointSize(max(meta_font.pointSize() - 1, 8))

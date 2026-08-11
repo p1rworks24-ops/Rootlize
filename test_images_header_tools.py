@@ -1,13 +1,14 @@
-"""Images Sort/Group/View tools stay fully visible (Organize-style chip)."""
+"""Images search and display controls preserve their visual priority."""
 
 from __future__ import annotations
 
 import tempfile
 from pathlib import Path
 
-from PySide6.QtWidgets import QApplication, QHBoxLayout
+from PySide6.QtWidgets import QApplication, QHBoxLayout, QLabel, QWidget
 
 from app.services.metadata_service import MetadataService
+from app.ui.design_tokens import WORKSPACE_PANEL_PADDING
 from app.ui.pages.images_page import HEADER_TOOLS_INLINE_MIN_WIDTH, ImagesPage
 from app.utils.thumbnail_cache import ThumbnailCache
 
@@ -55,7 +56,6 @@ def test_header_tools_always_on_dedicated_row():
     assert page._header_tools_inline is False
     assert not page._header_tools_row.isHidden()
     assert page._header_tools.isVisible()
-    # Chip must be taller than the compressed title-row height
     assert page._header_tools.height() >= 28
 
     _force_list_width(page, HEADER_TOOLS_INLINE_MIN_WIDTH - 100)
@@ -63,6 +63,50 @@ def test_header_tools_always_on_dedicated_row():
     assert page._header_tools_inline is False
     assert not page._header_tools_row.isHidden()
     assert page._header_tools.isVisible()
+
+
+def test_search_precedes_tools_and_refresh_is_removed():
+    app = _ensure_app()
+    page = _make_page()
+    page.show()
+    app.processEvents()
+
+    content_layout = page._command_surface.parentWidget().layout()
+    command_layout = page._command_surface.layout()
+    assert content_layout.indexOf(page._folder_selector) < content_layout.indexOf(
+        page._command_surface
+    )
+    assert command_layout.indexOf(page._command_primary_row) < command_layout.indexOf(
+        page._header_tools_row
+    )
+    assert not hasattr(page, "_refresh_btn")
+    assert page._fs_watcher.directories()
+
+
+def test_folder_locator_heading_matches_library_typography():
+    app = _ensure_app()
+    page = _make_page()
+    page.show()
+    app.processEvents()
+
+    library_title = page._gallery_header.findChild(QLabel, "sectionTitle")
+    assert library_title is not None
+    assert page._folder_selector_title.font().pointSize() == library_title.font().pointSize()
+    assert page._folder_selector_title.font().weight() == library_title.font().weight()
+
+
+def test_long_folder_path_is_elided_but_available_as_tooltip():
+    app = _ensure_app()
+    page = _make_page()
+    long_path = str(Path(tempfile.mkdtemp()) / ("very-long-folder-name-" * 8))
+    page._selected_folder_value.setFixedWidth(100)
+    page._selected_folder_value.setPath(long_path)
+    page.show()
+    app.processEvents()
+
+    assert page._selected_folder_value.toolTip() == long_path
+    assert page._selected_folder_value.text() != long_path
+    assert "…" in page._selected_folder_value.text()
 
 
 def test_header_tools_horizontal_fields_like_organize():
@@ -76,5 +120,40 @@ def test_header_tools_horizontal_fields_like_organize():
     assert isinstance(sort_field.layout(), QHBoxLayout)
 
 
+def test_display_controls_and_panel_headers_have_balanced_insets():
+    app = _ensure_app()
+    page = _make_page()
+    page.show()
+    app.processEvents()
+
+    tools_margins = page._header_tools.layout().contentsMargins()
+    assert tools_margins.left() == tools_margins.right() == 4
+
+    list_layout = page._list_panel.layout()
+    screenshots_header = page._gallery_header
+    preview_header = page._preview_card.layout().itemAt(0).widget()
+    screenshots_margins = screenshots_header.layout().contentsMargins()
+    preview_margins = preview_header.layout().contentsMargins()
+    assert screenshots_margins.left() == screenshots_margins.right() == 4
+    assert preview_margins.left() == preview_margins.right() == 0
+    preview_card_margins = page._preview_card.layout().contentsMargins()
+    assert preview_card_margins.left() == preview_card_margins.right() == (
+        WORKSPACE_PANEL_PADDING
+    )
+    assert screenshots_header.findChild(QWidget, "sectionHeaderTitleRow").height() == 28
+    assert preview_header.findChild(QWidget, "sectionHeaderTitleRow").height() == 28
+
+
 def test_header_tools_inline_threshold_constant():
     assert HEADER_TOOLS_INLINE_MIN_WIDTH >= 480
+
+
+def test_top_controls_are_not_coupled_to_screenshots_panel_width():
+    app = _ensure_app()
+    page = _make_page()
+    page.resize(1200, 760)
+    page.show()
+    app.processEvents()
+    page._sync_primary_control_widths()
+    assert page._header_tools_row.maximumWidth() > page._list_panel.width()
+    assert page._search_row.maximumWidth() > page._list_panel.width()

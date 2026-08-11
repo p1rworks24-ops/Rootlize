@@ -35,6 +35,7 @@ def _make_home(root: Path, *, with_image: bool = False) -> HomePage:
     if with_image:
         _write_png(shots / "shot.png")
     config = {
+        "selected_folder": str(shots),
         "screenshot_dir": str(root / "screenshots"),
         "current_folder": "Capture",
         "save_folder": "Capture",
@@ -73,20 +74,15 @@ def test_home_empty_hint_shown_when_zero_images():
     set_locale("en")
     with tempfile.TemporaryDirectory() as tmp:
         page = _make_home(Path(tmp), with_image=False)
-        assert not page._empty_hint.isHidden()
-        titles = [
-            lab.text()
-            for lab in page._empty_hint.findChildren(QLabel)
-            if lab.objectName() == "emptyHintTitle"
-        ]
-        assert titles == [t("home.empty_title")]
+        assert page._total_value.text() == "0"
+        assert page._pending_value.text() == "0"
 
 
 def test_home_empty_hint_hidden_when_images_exist():
     _ensure_app()
     with tempfile.TemporaryDirectory() as tmp:
         page = _make_home(Path(tmp), with_image=True)
-        assert page._empty_hint.isHidden()
+        assert page._total_value.text() == "1"
 
 
 def test_images_empty_hint_for_empty_folder():
@@ -150,5 +146,5 @@ def test_empty_hint_card_object_name():
     _ensure_app()
     with tempfile.TemporaryDirectory() as tmp:
         page = _make_home(Path(tmp))
-        assert isinstance(page._empty_hint, QFrame)
-        assert page._empty_hint.objectName() == "emptyHintCard"
+        assert isinstance(page._folder_card, QFrame)
+        assert page._folder_card.objectName() == "homeSelectedFolderCard"

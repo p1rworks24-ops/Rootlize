@@ -40,6 +40,7 @@ def populate_image_list_context_menu(
     on_rename: Callable[[], None],
     on_delete: Callable[[], None],
     on_explorer: Callable[[], None],
+    on_move: Callable[[], None] | None = None,
 ) -> None:
     """Fill menu with View + Open/Copy/Cut/Paste/Rename/Delete/Explorer."""
     view_menu = menu.addMenu(t("common.view"))
@@ -90,6 +91,11 @@ def populate_image_list_context_menu(
         menu.addAction(rename_action)
 
     if count >= 1:
+        if on_move is not None:
+            move_action = QAction(t("images.actions.move"), parent)
+            move_action.triggered.connect(on_move)
+            menu.addAction(move_action)
+
         delete_label = (
             t("common.delete")
             if count == 1

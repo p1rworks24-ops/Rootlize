@@ -42,7 +42,7 @@ def test_stats_chart_grows_with_row_count():
     assert h2 > h1
 
 
-def test_home_page_uses_page_scroll_not_chart_scroll():
+def test_home_dashboard_uses_page_scroll_and_distinct_hierarchy():
     app = _ensure_app()
     root = Path(tempfile.mkdtemp())
     screenshots = root / "screenshots"
@@ -58,7 +58,9 @@ def test_home_page_uses_page_scroll_not_chart_scroll():
     page.refresh()
     app.processEvents()
 
-    # Page scroll exists; chart panel has no nested scroll area
+    # Home keeps one page scroll with one folder context and two role panels.
     assert page.findChild(QScrollArea, "pageScroll") is not None
-    assert page._stats_chart.findChild(QScrollArea) is None
-    assert page._stats_chart._chart.height() >= 80
+    assert page._folder_card.objectName() == "homeSelectedFolderCard"
+    assert page._library_panel.objectName() == "homeLibraryPanel"
+    assert page._plan_panel.objectName() == "homePlanPanel"
+    assert page._total_value.text() == "1"

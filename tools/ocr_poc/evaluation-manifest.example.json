@@ -1,0 +1,12 @@
+{
+  "images": [
+    {
+      "filename": "sample.png",
+      "categories": ["Japanese UI", "Light theme"],
+      "expected_keywords": ["設定", "保存"],
+      "notes": "Replace with non-sensitive words visibly present in the image.",
+      "manual_status": null,
+      "failure_reasons": []
+    }
+  ]
+}

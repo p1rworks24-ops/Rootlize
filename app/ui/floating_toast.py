@@ -341,7 +341,6 @@ class FloatingToastHost(QObject):
         self,
         *,
         filename: str,
-        project: str,
         folder: str,
         duration_ms: int = 3000,
     ) -> None:
@@ -351,7 +350,6 @@ class FloatingToastHost(QObject):
                 title=t("toast.save_success_title"),
                 body_lines=[
                     filename,
-                    t("toast.project_line", name=project),
                     t("toast.folder_line", name=folder),
                 ],
                 duration_ms=duration_ms,

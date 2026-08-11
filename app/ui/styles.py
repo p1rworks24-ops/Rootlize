@@ -1,10 +1,13 @@
 """Light, colorful app theme (Windows 11 / Notion / Explorer inspired)."""
 
+import re
+
 APP_STYLE = """
 /* ===== Base ===== */
 QMainWindow, QWidget {
     background-color: #f5f6f8;
     color: #1f2937;
+    font-family: "Segoe UI";
     font-size: 13px;
 }
 
@@ -144,6 +147,39 @@ QPushButton#navButtonPlaceholder:pressed {
     font-weight: normal;
 }
 
+QToolButton#sidebarPrototypeUser {
+    background-color: transparent;
+    color: #475569;
+    border: none;
+    border-radius: 8px;
+    padding: 4px 0;
+    font-size: 8px;
+    font-weight: 600;
+}
+
+QToolButton#sidebarPrototypeUser:hover,
+QToolButton#sidebarPrototypeUser:pressed {
+    background-color: #eff6ff;
+    color: #1d4ed8;
+}
+
+QMenu#sidebarUserMenu {
+    background-color: #ffffff;
+    color: #334155;
+    border: 1px solid #d8e2ee;
+    border-radius: 8px;
+    padding: 6px;
+}
+
+QMenu#sidebarUserMenu::item {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+QMenu#sidebarUserMenu::item:disabled {
+    color: #334155;
+}
+
 QPushButton#saveFolderButton {
     background-color: #f3f4f6;
     color: #374151;
@@ -275,13 +311,6 @@ QWidget#homeContentColumn QLabel#pageSubtitle {
     color: #ea580c;
 }
 
-QWidget#imagesPageHeader QLabel#pageTitle {
-    color: #0e7490;
-}
-QWidget#imagesPageHeader QLabel#pageSubtitle {
-    color: #0891b2;
-}
-
 QWidget#organizePage QLabel#pageTitle {
     color: #1d4ed8;
 }
@@ -316,44 +345,177 @@ QFrame#statCard {
     max-width: 220px;
 }
 
-/* Capture CTAs — near-square ToolButtons; Region green / Full Screen blue */
+QFrame#homeStatusCard,
+QFrame#homeAttentionCard,
+QFrame#homeRecentCard {
+    background-color: #ffffff;
+    border: 1px solid #d8e2ee;
+    border-radius: 12px;
+}
+
+QFrame#homeStatusCard {
+    min-height: 94px;
+}
+
+QLabel#homeStatusLabel {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+QLabel#homeStatusValue {
+    color: #111827;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+QLabel#homeStatusDetail {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 400;
+}
+
+QLabel#homeAttentionTitle {
+    color: #111827;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+QToolButton#homeRecentImage {
+    background-color: #f8fafc;
+    color: #334155;
+    border: 1px solid #d8e2ee;
+    border-radius: 8px;
+    padding: 8px 6px 6px 6px;
+    font-size: 11px;
+}
+
+QToolButton#homeRecentImage:hover {
+    background-color: #eff6ff;
+    color: #1d4ed8;
+    border-color: #93c5fd;
+}
+
+QToolButton#homeRecentImage:focus {
+    border-color: #2563eb;
+}
+
+QFrame#homeSelectedFolderCard,
+QFrame#homeLibraryPanel,
+QFrame#homePlanPanel {
+    background-color: #ffffff;
+    border: 1px solid #d8e2ee;
+    border-radius: 12px;
+}
+
+QWidget#homeDashboardBody {
+    background-color: #f7faff;
+    border: none;
+}
+
+QFrame#homeSelectedFolderCard {
+    min-height: 70px;
+}
+
+QPushButton#homeSelectFolderButton {
+    background-color: #ffffff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+    border-radius: 6px;
+    min-height: 32px;
+    padding: 0 10px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+QPushButton#homeSelectFolderButton:hover {
+    background-color: #eff6ff;
+    border-color: #93c5fd;
+}
+
+QLabel#homeContextLabel,
+QLabel#homeMetricLabel {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+QLabel#homeFolderPath {
+    color: #1f2937;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+QLabel#homeFolderCount {
+    color: #2563eb;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+QLabel#homePanelTitle {
+    color: #111827;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+QLabel#homeMetricValue {
+    color: #111827;
+    font-size: 22px;
+    font-weight: 600;
+}
+
+QLabel#homePlanName {
+    color: #111827;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+QLabel#homeUsageCaption {
+    color: #475569;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+QProgressBar#homeAnalysisProgress {
+    background-color: #e2e8f0;
+    border: none;
+    border-radius: 6px;
+}
+
+QProgressBar#homeAnalysisProgress::chunk {
+    background-color: #2563eb;
+    border-radius: 6px;
+}
+
+/* Capture actions stay secondary to Find / Search. */
 QToolButton#primaryLargeButton,
 QToolButton#fullScreenCaptureButton,
 QToolButton#regionCaptureButton {
-    color: #ffffff;
     border-radius: 10px;
     padding: 6px 4px 4px 4px;
     font-size: 10px;
     font-weight: 700;
 }
 
-QToolButton#primaryLargeButton,
+QToolButton#regionCaptureButton,
 QToolButton#fullScreenCaptureButton {
-    background-color: #2563eb;
-    border: 1px solid #1d4ed8;
+    background-color: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #93c5fd;
 }
 
-QToolButton#primaryLargeButton:hover,
+QToolButton#regionCaptureButton:hover,
 QToolButton#fullScreenCaptureButton:hover {
-    background-color: #1d4ed8;
+    background-color: #dbeafe;
+    color: #1d4ed8;
+    border-color: #1d4ed8;
 }
 
-QToolButton#primaryLargeButton:pressed,
+QToolButton#regionCaptureButton:pressed,
 QToolButton#fullScreenCaptureButton:pressed {
-    background-color: #1e40af;
-}
-
-QToolButton#regionCaptureButton {
-    background-color: #059669;
-    border: 1px solid #047857;
-}
-
-QToolButton#regionCaptureButton:hover {
-    background-color: #047857;
-}
-
-QToolButton#regionCaptureButton:pressed {
-    background-color: #065f46;
+    background-color: #dbeafe;
+    color: #1e40af;
+    border-color: #1e40af;
 }
 
 QWidget#captureModeCycle {
@@ -538,11 +700,17 @@ QFrame#captureSettingsStrip {
     border-radius: 12px;
 }
 
+QWidget#captureSettingsFlatStrip,
+QWidget#captureFlatField {
+    background: transparent;
+    border: none;
+}
+
 /* Capture Panel opener — same accent family as the floating panel */
 QWidget#capturePanelField {
     background: transparent;
-    min-width: 108px;
-    max-width: 128px;
+    min-width: 150px;
+    max-width: 180px;
 }
 
 QPushButton#capturePanelPopOutButton {
@@ -568,6 +736,11 @@ QLabel#capturePanelFieldHint {
     font-size: 9px;
     font-weight: 500;
     padding-left: 1px;
+}
+
+QLabel#capturePanelUseHint {
+    color: #64748b;
+    font-size: 11px;
 }
 
 QWidget#capturePanelWindow {
@@ -666,7 +839,7 @@ QToolButton#capturePanelSettingsButton:disabled {
 
 /* Panel shot CTA — same two-line labels as the main Capture button */
 QToolButton#capturePanelShotButton {
-    border-radius: 0;
+    border-radius: 8px;
     font-size: 10px;
     font-weight: 700;
     padding: 4px 2px 4px 2px;
@@ -674,23 +847,39 @@ QToolButton#capturePanelShotButton {
 }
 
 QToolButton#capturePanelShotButton[mode="region"] {
-    background-color: #16a34a;
-    color: #ffffff;
-    border: 1px solid #15803d;
+    background-color: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #93c5fd;
 }
 
 QToolButton#capturePanelShotButton[mode="region"]:hover {
-    background-color: #15803d;
+    background-color: #dbeafe;
+    color: #1d4ed8;
+    border-color: #1d4ed8;
+}
+
+QToolButton#capturePanelShotButton[mode="region"]:pressed {
+    background-color: #dbeafe;
+    color: #1e40af;
+    border-color: #1e40af;
 }
 
 QToolButton#capturePanelShotButton[mode="fullscreen"] {
-    background-color: #2563eb;
-    color: #ffffff;
-    border: 1px solid #1d4ed8;
+    background-color: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #93c5fd;
 }
 
 QToolButton#capturePanelShotButton[mode="fullscreen"]:hover {
-    background-color: #1d4ed8;
+    background-color: #dbeafe;
+    color: #1d4ed8;
+    border-color: #1d4ed8;
+}
+
+QToolButton#capturePanelShotButton[mode="fullscreen"]:pressed {
+    background-color: #dbeafe;
+    color: #1e40af;
+    border-color: #1e40af;
 }
 
 QWidget#capturePanelWindowBody,
@@ -1456,12 +1645,250 @@ QLabel#filenameTemplatePreview {
 }
 
 /* ===== Preview ===== */
-QLabel#previewLabel {
+QScrollArea#previewImageView {
+    background-color: #f8fafc;
+    border: none;
+    border-radius: 6px;
+}
+
+QScrollArea#previewImageView > QWidget > QWidget {
+    background-color: #ffffff;
+}
+
+QLabel#previewImageLabel {
+    background-color: #ffffff;
+    color: #6b7280;
+}
+
+QFrame#previewCard {
     background-color: #ffffff;
     border: 1px solid #e5e7eb;
     border-radius: 10px;
-    color: #6b7280;
-    padding: 8px;
+}
+
+QFrame#previewCard QWidget#sectionHeader,
+QFrame#previewCard QWidget#sectionHeaderTitleRow,
+QFrame#previewCard QLabel {
+    background-color: transparent;
+}
+
+QLabel#previewInfoKey {
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 48px;
+}
+
+QLabel#previewInfoValue {
+    color: #334155;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+QFrame#previewCard QLineEdit,
+QFrame#previewCard QComboBox,
+QFrame#previewCard QPushButton {
+    min-height: 26px;
+    max-height: 28px;
+}
+
+QPushButton#tagPickerButton {
+    background-color: #ffffff;
+    color: #334155;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 3px 9px;
+    text-align: left;
+    font-size: 11px;
+}
+
+QFrame#previewCard QPushButton[tagPreviewControl="true"] {
+    min-height: 20px;
+    max-height: 20px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+}
+
+QPushButton#tagPickerButton:hover,
+QPushButton#tagPickerButton:focus {
+    border-color: #2563eb;
+}
+
+QFrame#tagPickerPopup {
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+}
+
+QListWidget#tagPickerList {
+    background-color: #ffffff;
+    border: none;
+    outline: none;
+    padding: 0;
+}
+
+QListWidget#tagPickerList::item {
+    min-height: 24px;
+    padding: 2px 8px;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+}
+
+QListWidget#tagPickerList::item:hover,
+QListWidget#tagPickerList::item:selected {
+    background-color: #eff6ff;
+    color: #1d4ed8;
+}
+
+QWidget#tagPickerRow {
+    background: transparent;
+}
+
+QPushButton#tagPickerRowButton {
+    min-height: 26px;
+    max-height: 26px;
+    padding: 0 8px;
+    text-align: left;
+    color: #1f2937;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+}
+
+QPushButton#tagPickerRowButton:hover,
+QPushButton#tagPickerRowButton[selected="true"] {
+    color: #1d4ed8;
+    background-color: #eff6ff;
+}
+
+QPushButton#tagPickerDeleteButton {
+    min-width: 24px;
+    max-width: 24px;
+    min-height: 24px;
+    max-height: 24px;
+    padding: 0;
+    color: #64748b;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    font-weight: 700;
+}
+
+QPushButton#tagPickerDeleteButton:hover {
+    color: #b91c1c;
+    background-color: #fee2e2;
+}
+
+QPushButton#tagPickerNewAction {
+    background: transparent;
+    color: #2563eb;
+    border: none;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 8px;
+}
+
+QPushButton#tagPickerNewAction:hover {
+    background-color: #eff6ff;
+}
+
+QLabel#currentTagsLabel {
+    color: #475569;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 2px 0 2px;
+}
+
+QScrollArea#currentTagsScroll {
+    background: transparent;
+    border: none;
+}
+
+QScrollArea#currentTagsScroll > QWidget > QWidget,
+QWidget#currentTagsHost {
+    background: transparent;
+}
+
+QScrollArea#previewDetailsScroll {
+    background: transparent;
+    border: none;
+}
+
+QScrollArea#previewPaneScroll {
+    background: transparent;
+    border: none;
+}
+
+QScrollArea#previewPaneScroll > QWidget > QWidget,
+QWidget#previewPaneScrollHost {
+    background: transparent;
+}
+
+QFrame#currentTagChip {
+    background-color: #eff6ff;
+    border: 1px solid #93c5fd;
+    border-radius: 7px;
+    min-height: 22px;
+    max-height: 24px;
+}
+
+QFrame#currentTagChip[selected="true"] {
+    background-color: #dbeafe;
+    border-color: #2563eb;
+}
+
+QLabel#currentTagChipLabel {
+    color: #1d4ed8;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 0;
+}
+
+QPushButton#currentTagRemoveButton {
+    background: transparent;
+    color: #64748b;
+    border: none;
+    border-radius: 4px;
+    min-width: 20px;
+    max-width: 20px;
+    min-height: 20px;
+    max-height: 20px;
+    padding: 0;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+QPushButton#currentTagRemoveButton:hover {
+    background-color: #fee2e2;
+    color: #b91c1c;
+}
+
+QWidget#rightPanel {
+    background: transparent;
+    border: none;
+}
+
+QScrollArea#previewDetailsScroll > QWidget > QWidget,
+QWidget#previewDetailsHost {
+    background: transparent;
+}
+
+QPushButton#tagChip[selected="true"] {
+    border-color: #2563eb;
+    background-color: #eff6ff;
+    color: #1d4ed8;
+}
+
+QDialog#newTagDialog {
+    background-color: #ffffff;
+}
+
+QDialog#newTagDialog QLabel#dialogTitle {
+    color: #111827;
+    font-size: 14px;
+    font-weight: 700;
 }
 
 QPushButton#statCardIconButton {
@@ -1499,6 +1926,41 @@ QWidget#infoPanel {
     background-color: #ffffff;
     border: 1px solid #e5e7eb;
     border-radius: 12px;
+}
+
+QFrame#folderSelectorBar {
+    background-color: #ffffff;
+    border: 1px solid #dbeafe;
+    border-radius: 10px;
+}
+
+QFrame#folderSelectorBar QLabel {
+    background: transparent;
+    color: #334155;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+QFrame#folderSelectorBar QLabel#folderSelectorIcon {
+    min-width: 16px;
+    max-width: 16px;
+}
+
+QFrame#folderSelectorBar QPushButton {
+    min-height: 26px;
+    max-height: 28px;
+    padding: 3px 10px;
+}
+
+QLabel#folderSelectorPath {
+    color: #2563eb;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+QWidget#folderSelectorWrap {
+    background: transparent;
+    border: none;
 }
 
 /* ===== Empty-state hints (Home / Images) ===== */
@@ -1782,17 +2244,31 @@ QWidget#screenshotsSearchRow {
     background: transparent;
 }
 
-/* Images Sort / Group By / View — same chip language as Organize Folder */
+/* Images Sort / Group By / View — quiet secondary controls */
 QFrame#headerTools,
 QWidget#headerTools {
-    background-color: #eff6ff;
-    border: 1px solid #bfdbfe;
-    border-radius: 8px;
+    background-color: transparent;
+    border: none;
+}
+
+QCheckBox#imagesShowTagsCheckBox {
+    background: transparent;
+    color: #475569;
+    border: none;
+    padding: 0;
+    font-size: 11px;
+    font-weight: 600;
+    spacing: 6px;
+}
+
+QCheckBox#imagesShowTagsCheckBox::indicator {
+    width: 17px;
+    height: 17px;
 }
 
 QWidget#headerTools QLabel#toolbarFieldLabel,
 QFrame#headerTools QLabel#toolbarFieldLabel {
-    color: #1d4ed8;
+    color: #64748b;
     font-size: 11px;
     font-weight: 700;
     padding: 0;
@@ -1801,13 +2277,13 @@ QFrame#headerTools QLabel#toolbarFieldLabel {
 QWidget#headerTools QComboBox,
 QFrame#headerTools QComboBox {
     background-color: #ffffff;
-    color: #1e3a8a;
-    border: 1px solid #93c5fd;
+    color: #1f2937;
+    border: 1px solid #d1d5db;
     min-height: 24px;
     max-height: 26px;
     padding: 2px 8px;
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 500;
     border-radius: 6px;
 }
 
@@ -1848,7 +2324,7 @@ QWidget#listToolbar QComboBox::drop-down {
 QWidget#headerTools QComboBox QAbstractItemView,
 QFrame#headerTools QComboBox QAbstractItemView {
     background-color: #ffffff;
-    border: 1px solid #bfdbfe;
+    border: 1px solid #d1d5db;
 }
 
 QWidget#headerTools QPushButton,
@@ -1887,6 +2363,13 @@ QLabel#mutedLabel {
     color: #6b7280;
     font-size: 12px;
     font-weight: 500;
+}
+
+QLabel#searchResultLabel {
+    color: #475569;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 0 4px 2px 4px;
 }
 
 QWidget#folderPanel QLabel#sectionTitle {
@@ -2029,15 +2512,14 @@ QSplitter#organizeSplitter::handle {
 }
 
 QFrame#organizeListPanel {
-    background-color: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
+    background: transparent;
+    border: none;
 }
 
 QFrame#organizeOpsPanel {
     background-color: #ffffff;
-    border: 1px solid #d1d5db;
-    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
 }
 
 QWidget#organizeOpsHub,
@@ -2069,19 +2551,19 @@ QLabel#organizeListTitle {
 }
 
 QFrame#organizeRootChip {
-    background-color: #fff7ed;
-    border: 1px solid #fdba74;
+    background-color: #eff6ff;
+    border: 1px solid #bfdbfe;
     border-radius: 8px;
 }
 
 QLabel#organizeRootLabel {
-    color: #c2410c;
+    color: #1d4ed8;
     font-size: 11px;
     font-weight: 700;
 }
 
 QLabel#organizeRootValue {
-    color: #ea580c;
+    color: #1e40af;
     font-size: 12px;
     font-weight: 700;
 }
@@ -2122,12 +2604,18 @@ QComboBox#organizeFolderCombo::drop-down {
 }
 
 QLabel#organizeOpsTitle {
-    color: #312e81;
+    color: #334155;
     font-weight: 700;
-    font-size: 15px;
+    font-size: 13px;
     letter-spacing: 0.2px;
     padding: 0;
     margin: 0;
+}
+
+QFrame#organizeOpsPanel > QLabel#organizeOpsTitle {
+    color: #1d4ed8;
+    font-size: 14px;
+    font-weight: 700;
 }
 
 QLabel#organizeOpsHint {
@@ -2142,9 +2630,8 @@ QFrame#operationMenuItem:focus {
 }
 
 QFrame#organizeSelectionBanner {
-    background-color: #eff6ff;
-    border: 1px solid #bfdbfe;
-    border-radius: 8px;
+    background: transparent;
+    border: none;
 }
 
 QLabel#organizeSelectedHeading {
@@ -2154,9 +2641,135 @@ QLabel#organizeSelectedHeading {
 }
 
 QLabel#organizeSelectedCount {
-    color: #1e40af;
-    font-size: 14px;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+QWidget#organizeDateFilterRow,
+QWidget#organizeSelectionRow,
+QWidget#organizeBatchTabs {
+    background: transparent;
+}
+
+QFrame#organizeBatchActionCard {
+    background-color: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 9px;
+}
+
+QFrame#organizeBatchActionCard[actionId="tags"] {
+    background-color: #f3f7ff;
+    border-color: #b9cdf5;
+}
+
+QFrame#organizeBatchActionCard[actionId="rename"] {
+    background-color: #fff9ef;
+    border-color: #ead3aa;
+}
+
+QFrame#organizeBatchActionCard[actionId="move"] {
+    background-color: #f1faf8;
+    border-color: #b8ddd5;
+}
+
+QLabel#organizeBatchActionDescription {
+    color: #64748b;
+    font-size: 10px;
+    padding: 0;
+    background: transparent;
+    border: none;
+}
+
+QFrame#organizeBatchActionSummary {
+    background: transparent;
+    border: none;
+}
+
+QComboBox#organizeBatchActionCombo {
+    background-color: #ffffff;
+    color: #1f2937;
+    border: 1px solid #cbd5e1;
+    border-radius: 7px;
+    padding: 3px 8px;
+    min-height: 27px;
+    max-height: 29px;
+    font-size: 11px;
+}
+
+QComboBox#organizeBatchActionCombo:hover,
+QComboBox#organizeBatchActionCombo:focus {
+    border-color: #2563eb;
+}
+
+QDateEdit#organizeDateEdit {
+    background-color: #ffffff;
+    color: #1f2937;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    min-height: 26px;
+    max-height: 28px;
+    padding: 2px 7px;
+    font-size: 11px;
+}
+
+QDateEdit#organizeDateEdit:focus {
+    border-color: #2563eb;
+}
+
+QLabel#organizeDateError {
+    color: #b91c1c;
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 11px;
+}
+
+QPushButton#organizeBatchTab {
+    background-color: #f8fafc;
+    color: #475569;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    min-height: 28px;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+QPushButton#organizeBatchTab:checked {
+    background-color: #eff6ff;
+    color: #1d4ed8;
+    border-color: #60a5fa;
+}
+
+QFrame#organizeNoSelectionHint {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 9px;
+}
+
+QWidget#organizeEmptyStateHolder {
+    background: transparent;
+    border: none;
+}
+
+QWidget#organizeBatchIdleFiller {
+    background: transparent;
+    border: none;
+}
+
+QLabel#organizeNoSelectionTitle {
+    color: #334155;
+    font-size: 12px;
     font-weight: 700;
+}
+
+QLabel#organizeBatchSelectedCount {
+    color: #475569;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 0;
 }
 
 QWidget#organizeOpPicker {
@@ -2308,7 +2921,7 @@ QFrame#organizeOpsSelectedStrip[opId="tags"] {
     border: 1px solid #c4b5fd;
 }
 QFrame#organizeOpsPanel[opId="tags"] QLabel#organizeOpsTitle {
-    color: #5b21b6;
+    color: #334155;
 }
 
 QFrame#organizeOpsDetailHeader[opId="rename"],
@@ -2317,7 +2930,7 @@ QFrame#organizeOpsSelectedStrip[opId="rename"] {
     border: 1px solid #fdba74;
 }
 QFrame#organizeOpsPanel[opId="rename"] QLabel#organizeOpsTitle {
-    color: #c2410c;
+    color: #334155;
 }
 
 QFrame#organizeOpsDetailHeader[opId="convert"],
@@ -2352,6 +2965,41 @@ QFrame#organizeOpDetailBody {
     border: none;
 }
 
+QFrame#organizeTagActionCard {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+QComboBox#organizeTagCombo {
+    background-color: #ffffff;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+    border-radius: 7px;
+    padding: 3px 8px;
+    min-height: 27px;
+}
+
+QComboBox#organizeTagCombo:hover,
+QComboBox#organizeTagCombo:focus {
+    border-color: #60a5fa;
+}
+
+QComboBox#organizeTagCombo::drop-down {
+    border: none;
+    width: 20px;
+}
+
+QComboBox#organizeTagCombo QAbstractItemView {
+    background-color: #ffffff;
+    color: #1f2937;
+    border: 1px solid #cbd5e1;
+    selection-background-color: #dbeafe;
+    selection-color: #1e3a8a;
+    outline: none;
+    max-height: 220px;
+}
+
 QPushButton#organizeOpPrimaryButton {
     min-width: 140px;
     padding: 6px 14px;
@@ -2362,19 +3010,19 @@ QPushButton#organizeOpPrimaryButton {
 }
 
 QPushButton#organizeOpPrimaryButton[opId="tags"] {
-    background-color: #7c3aed;
-    border-color: #6d28d9;
+    background-color: #2563eb;
+    border-color: #1d4ed8;
 }
 QPushButton#organizeOpPrimaryButton[opId="tags"]:hover {
-    background-color: #6d28d9;
+    background-color: #1d4ed8;
 }
 
 QPushButton#organizeOpPrimaryButton[opId="rename"] {
-    background-color: #ea580c;
-    border-color: #c2410c;
+    background-color: #2563eb;
+    border-color: #1d4ed8;
 }
 QPushButton#organizeOpPrimaryButton[opId="rename"]:hover {
-    background-color: #c2410c;
+    background-color: #1d4ed8;
 }
 
 QPushButton#organizeOpSecondaryButton {
@@ -2388,12 +3036,12 @@ QPushButton#organizeOpSecondaryButton {
 }
 
 QPushButton#organizeOpSecondaryButton[opId="tags"] {
-    border-color: #c4b5fd;
-    color: #5b21b6;
-    background-color: #faf5ff;
+    border-color: #cbd5e1;
+    color: #334155;
+    background-color: #ffffff;
 }
 QPushButton#organizeOpSecondaryButton[opId="tags"]:hover {
-    background-color: #f5f3ff;
+    background-color: #f8fafc;
 }
 
 QLabel#organizeBulkSectionLabel {
@@ -2417,6 +3065,111 @@ QWidget#tagsContentColumn QLabel#pageTitle {
 }
 QWidget#tagsContentColumn QLabel#pageSubtitle {
     color: #db2777;
+}
+"""
+
+from app.ui.design_tokens import token_style_sheet
+
+APP_STYLE += token_style_sheet()
+
+# Improve readability across every page without changing control, card, or
+# spacing dimensions. Keeping this as a final typography pass also covers the
+# shared token stylesheet appended above.
+APP_FONT_SIZE_INCREASE_PX = 2
+APP_STYLE = re.sub(
+    r"(font-size:\s*)(\d+)(px)",
+    lambda match: (
+        f"{match.group(1)}"
+        f"{int(match.group(2)) + APP_FONT_SIZE_INCREASE_PX + (1 if int(match.group(2)) <= 10 else 0)}"
+        f"{match.group(3)}"
+    ),
+    APP_STYLE,
+)
+
+# Typography hierarchy: default UI copy stays Regular; only structural titles
+# move up to Semibold. Existing geometry and colors remain untouched.
+APP_STYLE = re.sub(
+    r"\s*font-weight:\s*(?:normal|bold|[1-9]00);",
+    "",
+    APP_STYLE,
+)
+APP_STYLE += """
+QMainWindow, QWidget, QLabel, QPushButton, QToolButton, QLineEdit, QComboBox,
+QCheckBox, QRadioButton, QListWidget, QTreeWidget, QTableWidget {
+    font-family: "Segoe UI";
+    font-weight: 400;
+}
+
+QLabel#pageTitle {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+QLabel#sectionTitle,
+QLabel#aboutSectionHeading,
+QLabel#aboutBrandTitle,
+QLabel#aboutFeedbackTitle,
+QLabel#emptyHintTitle,
+QLabel#dialogTitle,
+QLabel#filenameRuleTitle,
+QLabel#floatingToastTitle,
+QLabel#operationMenuTitle,
+QLabel#organizeOpsTitle,
+QLabel#organizeNoSelectionTitle,
+QLabel#capturePanelTitle {
+    font-weight: 600;
+}
+
+QLabel#sectionTitle,
+QLabel#homePanelTitle,
+QLabel#captureBarTitle {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+QLabel#pageSubtitle,
+QLabel#mutedLabel,
+QLabel#emptyHintMeta,
+QLabel#galleryItemCount,
+QLabel#searchResultLabel,
+QLabel#organizeSelectedCount,
+QLabel#organizeBatchSelectedCount,
+QLabel#organizeOpsSelectedCount,
+QLabel#compactFieldHint,
+QLabel#capturePanelFieldHint,
+QLabel#aboutLegalText {
+    font-weight: 400;
+}
+
+/* Match the Folder locator heading exactly to Library section headings. */
+QFrame#folderSelectorBar QLabel#sectionTitle {
+    color: #111827;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+/* Capture mode emphasis must follow the global typography normalization. */
+QToolButton#regionCaptureButton,
+QToolButton#fullScreenCaptureButton,
+QToolButton#capturePanelShotButton {
+    font-weight: 700;
+}
+
+QPushButton#captureModeSegment {
+    font-weight: 400;
+}
+
+QPushButton#imagesPrimarySearchButton {
+    background-color: #2563eb;
+    font-weight: 400;
+}
+
+QPushButton#imagesPrimarySearchButton:hover {
+    background-color: #1d4ed8;
+}
+
+QPushButton#imagesPrimarySearchButton:pressed {
+    background-color: #1e40af;
 }
 """
 

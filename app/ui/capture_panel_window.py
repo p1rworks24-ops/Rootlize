@@ -40,21 +40,19 @@ from app.ui.capture_settings import (
     CaptureTagCombo,
     CompactField,
     FilenameRuleCombo,
-    UpwardComboBox,
 )
 from app.ui.icons import (
     fluent_icon,
     icon_fullscreen_capture,
     icon_region_capture,
-    icon_save_folder_star,
 )
 from app.utils.filename_template import DEFAULT_FILENAME_TEMPLATE
 from app.utils.workspace import DEFAULT_FOLDER
 
 PANEL_SIZE = 150
-# Compact settings shell; height grows when folder / filename text is long
-SETTINGS_MIN_SIZE = QSize(248, 252)
-SETTINGS_MAX_SIZE = QSize(280, 420)
+# Compact settings shell sized for folder, filename, and capture tags.
+SETTINGS_MIN_SIZE = QSize(248, 208)
+SETTINGS_MAX_SIZE = QSize(280, 320)
 # Backward-compatible alias for tests / callers
 SETTINGS_SIZE = SETTINGS_MIN_SIZE
 
@@ -75,7 +73,6 @@ class CapturePanelWindow(QWidget):
     closed = Signal()
     capture_clicked = Signal()
     mode_cycle_clicked = Signal()
-    folder_chosen = Signal(str)
     filename_template_changed = Signal(str)
     capture_tags_changed = Signal(list)
     settings_page_requested = Signal()
@@ -181,7 +178,9 @@ class CapturePanelWindow(QWidget):
         self._capture_btn = QToolButton(controls)
         self._capture_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self._capture_btn.setCursor(Qt.PointingHandCursor)
-        self._capture_btn.setFixedSize(70, 68)
+        # Match the main Capture CTA width so "Full Screen" remains complete
+        # at the normalized Segoe UI size and weight.
+        self._capture_btn.setFixedSize(88, 68)
         self._capture_btn.setIconSize(QSize(18, 18))
         self._capture_btn.setObjectName("capturePanelShotButton")
         self._capture_btn.clicked.connect(self.capture_clicked.emit)
@@ -234,28 +233,6 @@ class CapturePanelWindow(QWidget):
         layout.setContentsMargins(10, 8, 10, 10)
         layout.setSpacing(8)
 
-        self._folder_combo = UpwardComboBox(page)
-        self._folder_combo.setCursor(Qt.PointingHandCursor)
-        self._folder_combo.setToolTip(t("shell.save_destination_tooltip"))
-        self._folder_combo.setSizeAdjustPolicy(
-            QComboBox.AdjustToMinimumContentsLengthWithIcon
-        )
-        self._folder_combo.setMinimumContentsLength(1)
-        self._folder_combo.activated.connect(self._on_folder_activated)
-        self._folder_combo.currentTextChanged.connect(self._on_settings_content_changed)
-        folder_field = CompactField(
-            t("shell.save_destination"),
-            self._folder_combo,
-            page,
-            leading_icon=icon_save_folder_star(size=12),
-            wrap_hint=True,
-            expandable_value=True,
-        )
-        folder_field.setObjectName("capturePanelCompactField")
-        layout.addWidget(folder_field)
-        self._folder_field = folder_field
-        self._settings_fields.append(folder_field)
-
         self._filename_combo = FilenameRuleCombo(page)
         self._filename_combo.setMinimumWidth(60)
         self._filename_combo.setSizeAdjustPolicy(
@@ -267,7 +244,7 @@ class CapturePanelWindow(QWidget):
         )
         self._filename_combo.currentTextChanged.connect(self._on_settings_content_changed)
         self._filename_field = CompactField(
-            t("shell.save_filename_title"),
+            t("shell.capture_bar.filename"),
             self._filename_combo,
             page,
             wrap_hint=True,
@@ -290,7 +267,7 @@ class CapturePanelWindow(QWidget):
             self._tag_combo.tags_changed.connect(self.capture_tags_changed.emit)
             self._tag_combo.currentTextChanged.connect(self._on_settings_content_changed)
             tag_field = CompactField(
-                t("shell.capture_tags"),
+                t("shell.capture_bar.tags"),
                 self._tag_combo,
                 page,
                 wrap_hint=True,
@@ -322,9 +299,9 @@ class CapturePanelWindow(QWidget):
         """Sync capture button chrome with the shell's active mode."""
         info = capture_mode_info(normalize_capture_mode(mode))
         icon = (
-            icon_fullscreen_capture()
+            icon_fullscreen_capture(color="#2563eb")
             if info.mode_id == CAPTURE_FULLSCREEN
-            else icon_region_capture()
+            else icon_region_capture(color="#2563eb")
         )
         # Same two-line labels as the main Capture button
         label = t(info.label_key).replace(" Capture", "\nCapture")
@@ -344,22 +321,9 @@ class CapturePanelWindow(QWidget):
         self._capture_btn.update()
 
     def sync_folder_selector(self, names: list[str], current: str) -> None:
-        """Mirror the main window save-folder combo (last-used selection)."""
-        self._folder_combo.blockSignals(True)
-        self._folder_combo.clear()
-        if not names:
-            self._folder_combo.addItem(t("shell.save_destination_empty"), "")
-            self._folder_combo.setEnabled(False)
-        else:
-            self._folder_combo.setEnabled(True)
-            for name in names:
-                self._folder_combo.addItem(name, name)
-            index = self._folder_combo.findData(current)
-            self._folder_combo.setCurrentIndex(index if index >= 0 else 0)
-        self._folder_combo.blockSignals(False)
+        """Keep filename preview context in sync with the shell destination."""
         folder = current or DEFAULT_FOLDER
         self._filename_combo.set_folder(folder)
-        self._folder_field.set_hint(folder)
         self._on_settings_content_changed()
 
     def sync_filename_template(self, template: str) -> None:
@@ -372,17 +336,6 @@ class CapturePanelWindow(QWidget):
     def reload_tag_choices(self) -> None:
         if self._tag_combo is not None:
             self._tag_combo.reload_choices(self._tag_combo.tags())
-
-    def _on_folder_activated(self, index: int) -> None:
-        name = self._folder_combo.itemData(index)
-        if not name:
-            name = self._folder_combo.itemText(index)
-        if not name:
-            return
-        self._filename_combo.set_folder(str(name))
-        self._folder_field.set_hint(str(name))
-        self.folder_chosen.emit(str(name))
-        self._on_settings_content_changed()
 
     def place_bottom_right(self, size: int | None = None) -> None:
         side = size if size is not None else PANEL_SIZE

@@ -153,6 +153,7 @@ class CompactField(QWidget):
 
         label = QLabel(label_text, self)
         label.setObjectName("compactFieldLabel")
+        self.label = label
         layout.addWidget(label)
 
         value_row = QFrame(self)
@@ -382,6 +383,7 @@ class CaptureTagCombo(UpwardComboBox):
         self.setMinimumWidth(100)
         self.setToolTip(t("shell.capture_tags_tooltip"))
         self.activated.connect(self._on_activated)
+        self.currentIndexChanged.connect(self._refresh_empty_style)
 
     def reload_choices(self, selected: list[str] | None = None) -> None:
         current = ""
@@ -400,6 +402,17 @@ class CaptureTagCombo(UpwardComboBox):
         index = self.findData(current) if current else 0
         self.setCurrentIndex(index if index >= 0 else 0)
         self._updating = False
+        self._refresh_empty_style()
+
+    def _refresh_empty_style(self, _index: int = -1) -> None:
+        empty = self.currentData() == _NONE_TAG
+        if self.property("empty") == empty:
+            return
+        self.setProperty("empty", empty)
+        style = self.style()
+        if style is not None:
+            style.unpolish(self)
+            style.polish(self)
 
     def set_tags(self, tags: list[str]) -> None:
         self.reload_choices(tags)

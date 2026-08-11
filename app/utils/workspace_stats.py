@@ -86,6 +86,65 @@ def collect_root_totals(
     )
 
 
+def collect_selected_folder_totals(folder: Path | None) -> tuple[int, int]:
+    """Image count and PNG bytes directly inside one selected folder."""
+    if folder is None or not folder.is_dir():
+        return 0, 0
+    png_files = list(folder.glob("*.png"))
+    return len(png_files), sum(_png_size(path) for path in png_files)
+
+
+def collect_selected_folder_stats(folder: Path | None) -> list[StatBar]:
+    count, nbytes = collect_selected_folder_totals(folder)
+    if folder is None or not folder.is_dir():
+        return []
+    return [StatBar(label=folder.name or str(folder), count=count, bytes_total=nbytes)]
+
+
+def collect_selected_folder_tag_stats(
+    folder: Path | None,
+    metadata_service: MetadataService | None = None,
+) -> list[StatBar]:
+    """Per-tag counts for PNG files directly inside one selected folder."""
+    if folder is None or not folder.is_dir():
+        return []
+    svc = metadata_service or MetadataService()
+    metadata = svc.load_metadata(folder, force_reload=True)
+    images = metadata.get("images", {})
+    agg: dict[str, list[int]] = {}
+    untagged_count = 0
+    untagged_bytes = 0
+    for png in sorted(folder.glob("*.png")):
+        size = _png_size(png)
+        tags = (images.get(png.name) or {}).get("tags") or []
+        if not tags:
+            untagged_count += 1
+            untagged_bytes += size
+            continue
+        for tag in tags:
+            row = agg.setdefault(str(tag), [0, 0])
+            row[0] += 1
+            row[1] += size
+    rows = [
+        StatBar(label=tag, count=value[0], bytes_total=value[1])
+        for tag, value in agg.items()
+    ]
+    rows.sort(key=lambda row: (-row.count, row.label.casefold()))
+    if untagged_count:
+        from app.i18n import t
+
+        rows.append(
+            StatBar(
+                label=t("group_by.no_tag"),
+                count=untagged_count,
+                bytes_total=untagged_bytes,
+                accent=NO_TAG_ACCENT,
+                apply_prefix=False,
+            )
+        )
+    return rows
+
+
 def collect_tag_stats(
     screenshot_dir: str | Path,
     app_root: Path,

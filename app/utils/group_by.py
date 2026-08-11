@@ -15,6 +15,7 @@ from app.utils.sort_order import sort_png_files
 GROUP_BY_NONE = "none"
 GROUP_BY_DATE = "date"
 GROUP_BY_TAG = "tag"
+GROUP_BY_ANALYSIS = "analysis"
 
 DEFAULT_GROUP_BY = GROUP_BY_NONE
 
@@ -22,6 +23,7 @@ VALID_GROUP_BY = {
     GROUP_BY_NONE,
     GROUP_BY_DATE,
     GROUP_BY_TAG,
+    GROUP_BY_ANALYSIS,
 }
 
 # (value stored in project.json, i18n key)
@@ -29,10 +31,13 @@ GROUP_BY_OPTIONS = [
     (GROUP_BY_NONE, "group_by.none"),
     (GROUP_BY_DATE, "group_by.date"),
     (GROUP_BY_TAG, "group_by.tag"),
+    (GROUP_BY_ANALYSIS, "group_by.analysis"),
 ]
 
 # Internal key for images with no tags (label resolved via i18n when building UI)
 NO_TAG_GROUP_KEY = "__no_tag__"
+ANALYZED_GROUP_KEY = "__analyzed__"
+UNANALYZED_GROUP_KEY = "__unanalyzed__"
 
 
 def normalize_group_by(group_by: str | None) -> str:
@@ -42,11 +47,15 @@ def normalize_group_by(group_by: str | None) -> str:
     return DEFAULT_GROUP_BY
 
 
-def group_by_option_labels() -> list[tuple[str, str]]:
+def group_by_option_labels(*, include_analysis: bool = False) -> list[tuple[str, str]]:
     """Return (mode, localized label) pairs for UI combos."""
     from app.i18n import t
 
-    return [(mode, t(key)) for mode, key in GROUP_BY_OPTIONS]
+    return [
+        (mode, t(key))
+        for mode, key in GROUP_BY_OPTIONS
+        if include_analysis or mode != GROUP_BY_ANALYSIS
+    ]
 
 
 def format_date_group_label(file_path: Path) -> str:
@@ -60,6 +69,7 @@ def build_groups(
     group_by: str,
     metadata: dict,
     sort_mode: str,
+    unanalyzed_names: set[str] | None = None,
 ) -> list[tuple[str, list[Path]]]:
     """
     Build ordered (group_key, files) sections for the list.
@@ -108,6 +118,19 @@ def build_groups(
         ]
         if no_tag:
             result.append((NO_TAG_GROUP_KEY, sort_png_files(no_tag, sort_mode)))
+        return result
+
+    if mode == GROUP_BY_ANALYSIS:
+        pending = unanalyzed_names or set()
+        analyzed = [path for path in files if path.name not in pending]
+        unanalyzed = [path for path in files if path.name in pending]
+        result = []
+        if unanalyzed:
+            result.append(
+                (UNANALYZED_GROUP_KEY, sort_png_files(unanalyzed, sort_mode))
+            )
+        if analyzed:
+            result.append((ANALYZED_GROUP_KEY, sort_png_files(analyzed, sort_mode)))
         return result
 
     # Future modes fall back to flat list

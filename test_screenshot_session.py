@@ -2,6 +2,7 @@ from PySide6.QtWidgets import QApplication
 
 from app.services.capture_modes import CAPTURE_FULLSCREEN, CAPTURE_REGION
 from app.services.screenshot_session import ScreenshotSession
+from app.ui.design_tokens import CAPTURE_BUTTON_HEIGHT, CAPTURE_BUTTON_WIDTH
 from app.ui.main_window import (
     PAGE_IMAGES,
     PAGE_SETTINGS,
@@ -287,10 +288,10 @@ def test_screenshot_restores_previous_page():
         app.processEvents()
         window._start_screenshot_session()
         app.processEvents()
-        assert window._page_before_screenshot == PAGE_TAGS
+        assert window._page_before_screenshot == PAGE_IMAGES
         window._screenshot_session.complete()
         app.processEvents()
-        assert window._stack.currentIndex() == PAGE_TAGS
+        assert window._stack.currentIndex() == PAGE_IMAGES
 
         window.close()
         app.processEvents()
@@ -334,14 +335,14 @@ def test_send_win_shift_s_builds_six_key_events():
     assert callable(send_win_shift_s)
 
 
-def test_capture_mode_cycle_updates_single_button():
+def test_capture_mode_selector_updates_single_button():
     app = _ensure_app()
     app.setQuitOnLastWindowClosed(False)
     window = MainWindow(_minimal_config())
     assert window._capture_mode == CAPTURE_REGION
     assert window._capture_btn.objectName() == "regionCaptureButton"
     assert window._capture_btn.width() == window._capture_btn.minimumWidth() or True
-    assert window._cycle_mode_btn._label.text()
+    assert window._capture_mode_selector.region_button.isChecked()
 
     # Apply without waiting on fade animation
     window._capture_mode = CAPTURE_FULLSCREEN
@@ -349,15 +350,17 @@ def test_capture_mode_cycle_updates_single_button():
     window._refresh_capture_mode_ui(animate=False)
     app.processEvents()
     assert window._capture_btn.objectName() == "fullScreenCaptureButton"
-    assert window._capture_btn.width() == 78
-    assert window._capture_btn.height() == 64
+    assert window._capture_mode_selector.fullscreen_button.isChecked()
+    assert window._capture_btn.width() == CAPTURE_BUTTON_WIDTH
+    assert window._capture_btn.height() == CAPTURE_BUTTON_HEIGHT
 
     window._capture_mode = CAPTURE_REGION
     window._refresh_capture_mode_ui(animate=False)
     app.processEvents()
     assert window._capture_btn.objectName() == "regionCaptureButton"
-    assert window._capture_btn.width() == 78
-    assert window._capture_btn.height() == 64
+    assert window._capture_mode_selector.region_button.isChecked()
+    assert window._capture_btn.width() == CAPTURE_BUTTON_WIDTH
+    assert window._capture_btn.height() == CAPTURE_BUTTON_HEIGHT
 
     window.close()
     app.processEvents()

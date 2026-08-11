@@ -48,8 +48,6 @@ def test_nav_accents_and_icon_colors_differ():
     expected = {
         PAGE_HOME: "home",
         PAGE_IMAGES: "images",
-        PAGE_ORGANIZE: "organize",
-        PAGE_TAGS: "tags",
         PAGE_SETTINGS: "settings",
         PAGE_ABOUT: "about",
     }

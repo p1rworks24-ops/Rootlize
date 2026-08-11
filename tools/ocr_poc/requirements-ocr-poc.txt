@@ -1,0 +1,4 @@
+# PP-OCRv6 support starts in RapidOCR 3.9.0; 3.9.1 includes follow-up fixes.
+rapidocr==3.9.1
+# CPU-only runtime. Do not replace with onnxruntime-gpu for this PoC.
+onnxruntime==1.27.0

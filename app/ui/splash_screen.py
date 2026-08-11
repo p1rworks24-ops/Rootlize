@@ -83,7 +83,7 @@ class SplashScreen(QWidget):
         title.setAlignment(Qt.AlignCenter)
         title_font = QFont(title.font())
         title_font.setPointSize(28)
-        title_font.setBold(True)
+        title_font.setWeight(QFont.Weight.DemiBold)
         title.setFont(title_font)
         lay.addWidget(title)
 
@@ -237,8 +237,8 @@ class SplashScreen(QWidget):
         if host is not None:
             host.removeEventFilter(self)
         self._host = None
-        self.finished.emit()
         self.hide()
+        self.finished.emit()
         # Do not deleteLater here — parent teardown owns lifetime in app;
         # tests call close() explicitly.
 
