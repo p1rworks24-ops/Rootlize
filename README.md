@@ -8,7 +8,7 @@ Sign in, point Rootlize at an existing local folder, then find, organize, and wo
 
 ## Screenshot
 
-![Rootlize Images search](website/assets/screenshots/images-search.png)
+![Rootlize Images search](website/assets/screenshots/images.png)
 
 ## Preview status
 
