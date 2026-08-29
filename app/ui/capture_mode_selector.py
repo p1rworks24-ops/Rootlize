@@ -21,6 +21,7 @@ from app.services.capture_modes import (
 )
 from app.ui.design_tokens import (
     CAPTURE_FIELD_HEIGHT,
+    CAPTURE_FIELD_LABEL_GAP,
     CAPTURE_FIELD_TITLE_HEIGHT,
     CAPTURE_MODE_FULLSCREEN_WIDTH,
     CAPTURE_MODE_REGION_WIDTH,
@@ -41,7 +42,7 @@ class CaptureModeSelector(QWidget):
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)
+        layout.setSpacing(CAPTURE_FIELD_LABEL_GAP)
 
         label = QLabel(t("shell.capture.cycle_label"), self)
         label.setObjectName("captureModeSelectorLabel")

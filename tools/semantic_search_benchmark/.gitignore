@@ -1,0 +1,13 @@
+.venv/
+.venv-ocr128/
+cache/
+data/downloads/
+data/images/
+artifacts/
+results/*.json
+results/*.csv
+results/*.npz
+results/*.zip
+results/models/
+onnx/cache/
+!results/.gitkeep

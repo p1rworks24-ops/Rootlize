@@ -1,6 +1,9 @@
 """Product naming and release identity — single source for UI and logging.
 
 GitHub repository URLs live in app.repo_links (kept separate on purpose).
+
+Public display names (APP_NAME / DIST_NAME) must never be used to build
+user-data paths. Existing installs keep DATA_DIR_NAME = "Capixe".
 """
 
 from __future__ import annotations
@@ -17,10 +20,18 @@ from app.repo_links import (
 # ---------------------------------------------------------------------------
 # Canonical brand / release constants (edit here only)
 # ---------------------------------------------------------------------------
-APP_NAME = "Capixe"
+APP_NAME = "Rootlize"
+# Writable Windows folders for existing users. Never derive from APP_NAME.
+DATA_DIR_NAME = "Capixe"
+# Public onedir folder and EXE basename (dist/Rootlize/Rootlize.exe).
+DIST_NAME = APP_NAME
 APP_VERSION = "0.1.0-preview"
 RELEASE_CHANNEL = "Prototype Preview"
-TAGLINE = "Capture less. Find more."
+TAGLINE = "Your Local Workspace."
+SUPPORTING_MESSAGE = (
+    "Find, organize, and work with the images on your PC — "
+    "without moving them to the cloud."
+)
 
 
 def _display_version(version: str, channel: str) -> str:
@@ -37,7 +48,7 @@ def _display_version(version: str, channel: str) -> str:
 DISPLAY_VERSION = _display_version(APP_VERSION, RELEASE_CHANNEL)
 
 # Compact / shell variants derived from APP_NAME
-APP_NAME_SHORT = "CX"
+APP_NAME_SHORT = "RL"
 APP_NAME_SIDEBAR = APP_NAME
 APP_LOGGER_NAME = APP_NAME
 
@@ -49,5 +60,6 @@ APP_COPYRIGHT = f"Copyright © 2026 {APP_NAME}. All rights reserved."
 # Backward-compatible aliases (same values — do not diverge)
 # ---------------------------------------------------------------------------
 APP_TAGLINE = TAGLINE
+APP_SUPPORTING_MESSAGE = SUPPORTING_MESSAGE
 APP_VERSION_LABEL = DISPLAY_VERSION
 APP_PREVIEW_BADGE = DISPLAY_VERSION

@@ -1,10 +1,10 @@
-# Capixe — Bug Report issue form
+# Rootlize — Bug Report issue form
 # Labels: if "bug" does not exist yet, create it once under
 #   Repository → Issues → Labels → New label (name: bug, color e.g. #d73a4a).
 # GitHub still accepts this template if the label is missing; the label is
 # simply not applied until you create it.
 name: Bug Report
-description: Report a problem or unexpected behavior in Capixe.
+description: Report a problem or unexpected behavior in Rootlize.
 title: "[Bug]: "
 labels:
   - bug
@@ -12,9 +12,9 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping improve Capixe.
+        Thanks for helping improve Rootlize.
 
-        Capixe is currently a **Prototype Preview**. We read every report, but we may not be able to fix everything right away.
+        Rootlize is currently a **Prototype Preview**. We read every report, but we may not be able to fix everything right away.
 
         **Privacy**
         - Do not share passwords, API keys, personal names, emails, or private file paths.
@@ -35,7 +35,7 @@ body:
       label: Steps to reproduce
       description: List the steps someone else can follow to see the same problem.
       placeholder: |
-        1. Open Capixe
+        1. Open Rootlize
         2. …
         3. …
     validations:
@@ -45,7 +45,7 @@ body:
     id: expected
     attributes:
       label: Expected behavior
-      description: What did you expect Capixe to do?
+      description: What did you expect Rootlize to do?
       placeholder: Example — The capture panel should close after a successful save.
     validations:
       required: true
@@ -62,7 +62,7 @@ body:
   - type: input
     id: capixe-version
     attributes:
-      label: Capixe version
+      label: Rootlize version
       description: You can find this on the About page (for example, v0.1.0-preview).
       placeholder: v0.1.0-preview
     validations:
@@ -103,5 +103,5 @@ body:
       label: Prototype Preview
       description: Please confirm before submitting.
       options:
-        - label: I understand Capixe is a Prototype Preview and not every issue can be fixed right away.
+        - label: I understand Rootlize is a Prototype Preview and not every issue can be fixed right away.
           required: true

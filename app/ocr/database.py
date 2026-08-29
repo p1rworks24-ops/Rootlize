@@ -84,17 +84,79 @@ class OCRDatabase:
             raise
 
     def _migrate(self, old_version: int) -> None:
-        if old_version not in {1,2}:
+        if old_version not in {1,2,3,4,5,6}:
             raise OCRDatabaseSchemaError(f"No migration path from OCR schema {old_version}.")
         now = self.clock()
         with self.transaction():
             if old_version == 1:
                 self.connection.execute("ALTER TABLE images ADD COLUMN missing_since TEXT")
                 self.connection.execute("ALTER TABLE ocr_documents ADD COLUMN previous_status TEXT CHECK(previous_status IS NULL OR previous_status IN ('pending','running','ready','failed','stale'))")
-            self.connection.execute("ALTER TABLE ocr_documents ADD COLUMN claimed_at TEXT")
-            self.connection.execute("ALTER TABLE ocr_documents ADD COLUMN worker_id TEXT")
-            self.connection.execute("ALTER TABLE ocr_documents ADD COLUMN last_attempt_at TEXT")
-            self.connection.execute("ALTER TABLE ocr_documents ADD COLUMN next_retry_at TEXT")
+            if old_version < 3:
+                self.connection.execute("ALTER TABLE ocr_documents ADD COLUMN claimed_at TEXT")
+                self.connection.execute("ALTER TABLE ocr_documents ADD COLUMN worker_id TEXT")
+                self.connection.execute("ALTER TABLE ocr_documents ADD COLUMN last_attempt_at TEXT")
+                self.connection.execute("ALTER TABLE ocr_documents ADD COLUMN next_retry_at TEXT")
+            self.connection.execute("""CREATE TABLE IF NOT EXISTS semantic_embeddings (
+ image_id INTEGER PRIMARY KEY REFERENCES images(image_id) ON DELETE CASCADE,
+ embedding BLOB NOT NULL CHECK(length(embedding)=dimension*4), dimension INTEGER NOT NULL CHECK(dimension IN (512,768)),
+ embedding_format_version INTEGER NOT NULL CHECK(embedding_format_version>0), model_id TEXT NOT NULL,
+ bundle_version TEXT NOT NULL, model_revision TEXT NOT NULL, pipeline_version INTEGER NOT NULL CHECK(pipeline_version>0),
+ source_size_bytes INTEGER NOT NULL CHECK(source_size_bytes>=0), source_mtime_ns INTEGER NOT NULL CHECK(source_mtime_ns>=0),
+ source_quick_fingerprint TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)""")
+            self.connection.execute("""CREATE INDEX IF NOT EXISTS semantic_embeddings_model_idx
+ ON semantic_embeddings(model_id,bundle_version,model_revision,pipeline_version,embedding_format_version)""")
+            self.connection.execute("""CREATE TABLE IF NOT EXISTS semantic_analysis_failures (
+ image_id INTEGER PRIMARY KEY REFERENCES images(image_id) ON DELETE CASCADE, error_code TEXT NOT NULL,
+ retryable INTEGER NOT NULL CHECK(retryable IN (0,1)), attempt_count INTEGER NOT NULL CHECK(attempt_count>0),
+ last_attempt_at TEXT NOT NULL)""")
+            if old_version == 4:
+                self.connection.execute("DROP INDEX IF EXISTS semantic_embeddings_model_idx")
+                self.connection.execute("ALTER TABLE semantic_embeddings RENAME TO semantic_embeddings_v4")
+                self.connection.execute("""CREATE TABLE semantic_embeddings (
+ image_id INTEGER PRIMARY KEY REFERENCES images(image_id) ON DELETE CASCADE,
+ embedding BLOB NOT NULL CHECK(length(embedding)=dimension*4),
+ dimension INTEGER NOT NULL CHECK(dimension IN (512,768)),
+ embedding_format_version INTEGER NOT NULL CHECK(embedding_format_version>0), model_id TEXT NOT NULL,
+ bundle_version TEXT NOT NULL, model_revision TEXT NOT NULL, pipeline_version INTEGER NOT NULL CHECK(pipeline_version>0),
+ source_size_bytes INTEGER NOT NULL CHECK(source_size_bytes>=0), source_mtime_ns INTEGER NOT NULL CHECK(source_mtime_ns>=0),
+ source_quick_fingerprint TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)""")
+                self.connection.execute("""INSERT INTO semantic_embeddings
+ SELECT image_id,embedding,dimension,embedding_format_version,model_id,bundle_version,model_revision,
+ pipeline_version,source_size_bytes,source_mtime_ns,source_quick_fingerprint,created_at,updated_at
+ FROM semantic_embeddings_v4""")
+                self.connection.execute("DROP TABLE semantic_embeddings_v4")
+                self.connection.execute("""CREATE INDEX semantic_embeddings_model_idx
+ ON semantic_embeddings(model_id,bundle_version,model_revision,pipeline_version,embedding_format_version)""")
+            self.connection.execute("""CREATE TABLE IF NOT EXISTS semantic_indexes (
+ image_id INTEGER PRIMARY KEY REFERENCES images(image_id) ON DELETE CASCADE,
+ metadata_json TEXT NOT NULL,
+ text_embedding BLOB NOT NULL CHECK(length(text_embedding)=embedding_dimension*4),
+ embedding_dimension INTEGER NOT NULL CHECK(embedding_dimension IN (512,768)),
+ embedding_format_version INTEGER NOT NULL CHECK(embedding_format_version>0),
+ vision_model TEXT NOT NULL, prompt_version TEXT NOT NULL, index_schema_version TEXT NOT NULL,
+ embedding_model_id TEXT NOT NULL,
+ source_size_bytes INTEGER NOT NULL CHECK(source_size_bytes>=0),
+ source_mtime_ns INTEGER NOT NULL CHECK(source_mtime_ns>=0),
+ source_quick_fingerprint TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)""")
+            self.connection.execute("""CREATE INDEX IF NOT EXISTS semantic_indexes_identity_idx
+ ON semantic_indexes(vision_model,prompt_version,index_schema_version,embedding_model_id,embedding_dimension,embedding_format_version)""")
+            self.connection.execute("""CREATE TABLE IF NOT EXISTS semantic_index_failures (
+ image_id INTEGER PRIMARY KEY REFERENCES images(image_id) ON DELETE CASCADE, error_code TEXT NOT NULL,
+ retryable INTEGER NOT NULL CHECK(retryable IN (0,1)), attempt_count INTEGER NOT NULL CHECK(attempt_count>0),
+ last_attempt_at TEXT NOT NULL)""")
+            self.connection.execute("""CREATE TABLE IF NOT EXISTS image_facts (
+ image_id INTEGER PRIMARY KEY REFERENCES images(image_id) ON DELETE CASCADE,
+ facts_json TEXT NOT NULL, vision_model TEXT NOT NULL, prompt_version TEXT NOT NULL,
+ facts_schema_version TEXT NOT NULL, facts_version TEXT NOT NULL,
+ source_size_bytes INTEGER NOT NULL CHECK(source_size_bytes>=0),
+ source_mtime_ns INTEGER NOT NULL CHECK(source_mtime_ns>=0),
+ source_quick_fingerprint TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)""")
+            self.connection.execute("""CREATE INDEX IF NOT EXISTS image_facts_identity_idx
+ ON image_facts(vision_model,prompt_version,facts_schema_version,facts_version)""")
+            self.connection.execute("""CREATE TABLE IF NOT EXISTS image_facts_failures (
+ image_id INTEGER PRIMARY KEY REFERENCES images(image_id) ON DELETE CASCADE, error_code TEXT NOT NULL,
+ retryable INTEGER NOT NULL CHECK(retryable IN (0,1)), attempt_count INTEGER NOT NULL CHECK(attempt_count>0),
+ last_attempt_at TEXT NOT NULL)""")
             self.connection.execute("UPDATE schema_meta SET value=? WHERE key='schema_version'", (str(SCHEMA_VERSION),))
             self.connection.execute("UPDATE schema_meta SET value=? WHERE key='updated_at'", (now,))
 

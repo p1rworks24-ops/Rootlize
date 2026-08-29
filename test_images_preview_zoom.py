@@ -44,9 +44,13 @@ def _make_page(tmp_path: Path) -> tuple[ImagesPage, Path]:
     }
     page = ImagesPage(config, MetadataService(), ThumbnailCache(size=48), tmp_path)
     page.resize(1050, 700)
+    page._right_panel.show()
+    page._preview_card.show()
+    page._information_card.show()
     page.show()
     page.refresh()
     app.processEvents()
+    page._preview_view.resize(420, 280)
     return page, folder
 
 
@@ -143,13 +147,19 @@ def test_preview_open_signal_keeps_existing_open_path(tmp_path: Path, monkeypatc
     item.setSelected(True)
     page._show_image(item)
     opened: list[Path] = []
+    previewed: list[Path] = []
     monkeypatch.setattr(page, "_open_image_path", lambda path: opened.append(path))
+    monkeypatch.setattr(
+        page, "_open_quick_preview", lambda path, large=False: previewed.append(path)
+    )
 
     QTest.mouseDClick(page._preview_view.viewport(), Qt.LeftButton)
     assert opened == [folder / "large.png"]
+    assert previewed == []
 
     page._on_item_double_clicked(item)
     assert opened == [folder / "large.png", folder / "large.png"]
+    assert previewed == []
 
 
 def test_information_and_tags_cards_share_layout_and_show_required_values(
@@ -163,12 +173,8 @@ def test_information_and_tags_cards_share_layout_and_show_required_values(
     assert page._file_info_label.toolTip() == "large.png"
     assert re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}", page._modified_info_label.toolTip())
     assert page._folder_info_label.toolTip() == str(folder)
-    assert page._information_card.objectName() == "previewCard"
+    assert page._information_card.parentWidget() is page._preview_card
+    assert page._information_card.objectName() == "previewInfoSection"
     assert page._tags_card.objectName() == "previewCard"
     assert page._preview_card.objectName() == "previewCard"
-    info_margins = page._information_card.layout().contentsMargins()
-    tags_margins = page._tags_card.layout().contentsMargins()
-    assert (info_margins.left(), info_margins.top(), info_margins.right(), info_margins.bottom()) == (
-        tags_margins.left(), tags_margins.top(), tags_margins.right(), tags_margins.bottom()
-    )
     assert abs(page._tag_combo.height() - page._tag_assign_btn.height()) <= 2

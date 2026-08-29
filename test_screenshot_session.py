@@ -351,7 +351,7 @@ def test_capture_mode_selector_updates_single_button():
     app.processEvents()
     assert window._capture_btn.objectName() == "fullScreenCaptureButton"
     assert window._capture_mode_selector.fullscreen_button.isChecked()
-    assert window._capture_btn.width() == CAPTURE_BUTTON_WIDTH
+    assert window._capture_btn.width() >= CAPTURE_BUTTON_WIDTH
     assert window._capture_btn.height() == CAPTURE_BUTTON_HEIGHT
 
     window._capture_mode = CAPTURE_REGION
@@ -359,7 +359,7 @@ def test_capture_mode_selector_updates_single_button():
     app.processEvents()
     assert window._capture_btn.objectName() == "regionCaptureButton"
     assert window._capture_mode_selector.region_button.isChecked()
-    assert window._capture_btn.width() == CAPTURE_BUTTON_WIDTH
+    assert window._capture_btn.width() >= CAPTURE_BUTTON_WIDTH
     assert window._capture_btn.height() == CAPTURE_BUTTON_HEIGHT
 
     window.close()

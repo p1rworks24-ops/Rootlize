@@ -57,6 +57,22 @@ def test_toast_error_payload_uses_red_kind():
     host.shutdown()
 
 
+def test_toast_show_result_uses_custom_copy():
+    app = _ensure_app()
+    host = FloatingToastHost()
+    host.show_result(title="Workflow Complete", body="Tagged 1 image.", ok=True)
+    app.processEvents()
+    assert host._toast.isVisible()
+    assert host._toast._card.property("kind") == ToastKind.SUCCESS.value
+    assert host._toast._title_label.text() == "Workflow Complete"
+    lines = [
+        host._toast._lines_layout.itemAt(i).widget().text()
+        for i in range(host._toast._lines_layout.count())
+    ]
+    assert "Tagged 1 image." in lines
+    host.shutdown()
+
+
 def test_toast_hover_pauses_auto_timer():
     app = _ensure_app()
     host = FloatingToastHost()
@@ -151,8 +167,9 @@ def test_image_saver_sets_last_error_on_permission_failure():
         assert saver.last_error == "Access denied."
 
 
-def test_main_window_shows_toast_after_save():
+def test_main_window_shows_toast_after_save(monkeypatch):
     app = _ensure_app()
+    monkeypatch.setattr("app.ui.main_window.CAPTURE_ENABLED", True)
     from app.ui.main_window import MainWindow
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -200,5 +217,57 @@ def test_main_window_shows_toast_after_save():
             root / "screenshots" / "Configured Folder" / "saved.png"
         )
         assert shown["folder"] == "Configured Folder"
+        window.close()
+        app.processEvents()
+
+
+def test_capture_disabled_skips_clipboard_and_screenshot_toast(monkeypatch):
+    app = _ensure_app()
+    from unittest.mock import MagicMock
+
+    from app.ui.main_window import CAPTURE_ENABLED, MainWindow
+
+    assert CAPTURE_ENABLED is False
+    suppressor = MagicMock()
+    monkeypatch.setattr("app.ui.main_window.snipping_toast_suppressor", suppressor)
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        (root / "screenshots" / "Capture").mkdir(parents=True)
+        config = {
+            "screenshot_dir": str(root / "screenshots"),
+            "current_folder": "Capture",
+            "save_folder": "Capture",
+            "window_width": 1050,
+            "window_height": 600,
+            "filename_template": "{date}_{time}",
+            "capture_mode": "region",
+            "capture_minimize": False,
+            "show_save_notification": True,
+            "notification_duration_sec": 3,
+            "shortcuts": {
+                "region_capture": "Ctrl+Shift+R",
+                "fullscreen_capture": "Ctrl+Shift+F",
+            },
+        }
+        window = MainWindow(config)
+        window._app_root = root
+        suppressor.enter.assert_not_called()
+        assert window._clipboard_watcher is None
+        shown: dict = {}
+
+        def _fake_success(**kwargs):
+            shown.update(kwargs)
+
+        window._toast_host.show_success = _fake_success  # type: ignore[method-assign]
+        img = QImage(8, 8, QImage.Format_RGB32)
+        img.fill(0xABCDEF)
+        detected = DetectedImage(
+            image=img, width=8, height=8, detected_at=datetime.now()
+        )
+        window._on_image_detected(detected)
+        app.processEvents()
+        assert shown == {}
+        window._show_save_success_toast(root / "screenshots" / "Capture" / "saved.png")
+        assert shown == {}
         window.close()
         app.processEvents()

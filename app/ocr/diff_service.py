@@ -16,26 +16,43 @@ logger = setup_logger()
 DEFAULT_BATCH_SIZE = 100
 
 
+def _settings_compatible(document: OCRDocumentRecord, settings: OCRIndexSettings) -> bool:
+    """Unknown (None) settings must not invalidate an existing OCR result."""
+    if document.pipeline_version != settings.pipeline_version:
+        return False
+    if (
+        settings.model_sha256
+        and document.model_sha256
+        and document.model_sha256 != settings.model_sha256
+    ):
+        return False
+    if (
+        settings.settings_fingerprint
+        and document.settings_fingerprint
+        and document.settings_fingerprint != settings.settings_fingerprint
+    ):
+        return False
+    return True
+
+
 def decide_reindex(document: OCRDocumentRecord | None, settings: OCRIndexSettings, *, fingerprint_changed: bool = False, manual: bool = False) -> ReindexDecision:
     """Decide whether an existing image needs OCR without loading an engine."""
     if document is None:
         return ReindexDecision(True, "OCR state does not exist", "pending")
     if manual:
         return ReindexDecision(True, "Manual reindex requested", "pending")
-    if document.status == "stale":
-        return ReindexDecision(True, "OCR state is stale", "stale")
-    if document.pipeline_version != settings.pipeline_version:
-        return ReindexDecision(True, "OCR pipeline version changed", "stale")
-    if document.model_sha256 != settings.model_sha256:
-        return ReindexDecision(True, "OCR model changed", "stale")
-    if document.settings_fingerprint != settings.settings_fingerprint:
-        return ReindexDecision(True, "OCR settings changed", "stale")
+    if not _settings_compatible(document, settings):
+        return ReindexDecision(True, "OCR pipeline, model, or settings changed", "stale")
     if document.status == "failed":
         if fingerprint_changed or document.retry_count < settings.retry_limit:
             return ReindexDecision(True, "Failed OCR is eligible for retry", "pending")
         return ReindexDecision(False, "OCR retry limit reached", "failed")
     if document.status in {"pending", "running"}:
         return ReindexDecision(True, f"OCR state is {document.status}", document.status)
+    if document.status == "stale" and not fingerprint_changed:
+        return ReindexDecision(False, "OCR result is reusable", "ready")
+    if document.status == "stale":
+        return ReindexDecision(True, "OCR state is stale", "stale")
     return ReindexDecision(False, "OCR result is reusable", document.status)
 
 
@@ -147,10 +164,23 @@ class OCRDiffService:
         elif item.classification == "unchanged" and scanned:
             metadata_changed = self.repository.get_image(item.image_id).mtime_ns != scanned.mtime_ns
             document = self._document(item.image_id)
-            if metadata_changed or item.next_status == "stale":
-                self.repository.update_scanned_metadata(item.image_id,size_bytes=scanned.size_bytes,mtime_ns=scanned.mtime_ns,width=scanned.width,height=scanned.height,quick_fingerprint=item.fingerprint or self._quick(scanned),stale=item.next_status == "stale")
+            if metadata_changed:
+                self.repository.update_scanned_metadata(
+                    item.image_id,
+                    size_bytes=scanned.size_bytes,
+                    mtime_ns=scanned.mtime_ns,
+                    width=scanned.width,
+                    height=scanned.height,
+                    quick_fingerprint=item.fingerprint or self._quick(scanned),
+                    stale=False,
+                )
             if document is None:
                 self.repository.save_ocr_document(item.image_id,status="pending",pipeline_version=self.settings.pipeline_version,model_sha256=self.settings.model_sha256,settings_fingerprint=self.settings.settings_fingerprint)
+            elif item.next_status == "ready":
+                self.repository.restore_searchable_ocr(item.image_id, ready=True)
+            elif item.next_status == "stale":
+                self.repository.mark_ocr_stale_keep_search(item.image_id)
+                self.repository.restore_searchable_ocr(item.image_id, ready=False)
         elif item.classification == "missing":
             self.repository.mark_file_state(item.image_id,"missing")
         elif item.classification == "restored" and scanned:

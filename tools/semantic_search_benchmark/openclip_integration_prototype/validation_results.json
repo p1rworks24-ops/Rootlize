@@ -1,0 +1,127 @@
+{
+  "prototype": {
+    "separate_process": true,
+    "protocol": "UTF-8 JSON Lines v1",
+    "provider": "CPUExecutionProvider",
+    "dimension": 512,
+    "batch_size": 4
+  },
+  "preprocessing": {
+    "size": 224,
+    "mode": "RGB",
+    "mean": [
+      0.48145466,
+      0.4578275,
+      0.40821073
+    ],
+    "std": [
+      0.26862954,
+      0.26130258,
+      0.27577711
+    ],
+    "resize": "shortest side bicubic then center crop"
+  },
+  "tokenizer": {
+    "type": "OpenAI SimpleTokenizer byte-level BPE",
+    "context_length": 77,
+    "vocab_size": 49408,
+    "eot_pooling": "argmax token id",
+    "exact_saved_input_ids": true
+  },
+  "parity": {
+    "image_embedding_cosine_min": 0.9999997615814209,
+    "image_embedding_cosine_mean": 1.0,
+    "text_embedding_cosine_min": 0.9999998211860657,
+    "text_embedding_cosine_mean": 1.0,
+    "max_abs_similarity_difference": 0.0,
+    "passed": true,
+    "ranking_source": "saved PoC tensors; ranking accepted only after exact embedding/similarity parity"
+  },
+  "metrics": {
+    "top_1": 0.5,
+    "top_3": 0.6666666666666666,
+    "top_5": 0.7083333333333334,
+    "top_10": 0.7916666666666666,
+    "mrr": 0.6022825604420597
+  },
+  "important_queries": {
+    "Windows desktop": {
+      "ScreenShot_Atest_001.png": 1,
+      "20260718_202718.png": 2,
+      "20260718_203016.png": 3,
+      "20260718_202724.png": 4
+    },
+    "Windows desktop screenshot": {
+      "ScreenShot_Atest_001.png": 1,
+      "20260718_202718.png": 2,
+      "20260718_203016.png": 3,
+      "20260718_202724.png": 4
+    },
+    "dog": {
+      "images.jpg": 1,
+      "A2.png": 2
+    },
+    "a dog": {
+      "A2.png": 1,
+      "images.jpg": 2
+    },
+    "dog photo": {
+      "images.jpg": 1,
+      "A2.png": 2
+    },
+    "image search application": {
+      "20260801_120339.png": 1,
+      "organize.png": 2,
+      "20260718_202750.png": 14,
+      "20260801_114225.png": 17,
+      "20260801_132030.png": 18,
+      "photo_001.png": 20,
+      "20260717_000902.png": 27,
+      "20260717_001005.png": 28,
+      "20260801_135518.png": 33,
+      "images.png": 34,
+      "20260801_114232.png": 38,
+      "20260801_120311.png": 43,
+      "20260801_114154.png": 54
+    },
+    "code editor": {
+      "20260718_202211.png": 3,
+      "20260718_201711.png": 23,
+      "20260718_201716.png": 24,
+      "20260718_201717.png": 25,
+      "20260720_233800.png": 31
+    },
+    "browser window": {
+      "20260718_202750.png": 13
+    },
+    "settings screen": {
+      "20260721_204004.png": 21,
+      "20260801_120357.png": 28,
+      "tags.png": 29,
+      "20260718_142639_001.png": 40,
+      "20260718_143926_001.png": 41,
+      "20260721_203901.png": 75
+    }
+  },
+  "performance": {
+    "worker_startup_s": 0.2851422000094317,
+    "restart_startup_s": 0.3746683000063058,
+    "model_load_s": 1.4449103000224568,
+    "image_total_s": 3.771475899993675,
+    "image_ms_each": 38.48444795911913,
+    "text_total_s": 0.5803134999878239,
+    "text_ms_each": 24.17972916615933,
+    "peak_worker_rss_mb": 756.00390625
+  },
+  "lifecycle": {
+    "startup": true,
+    "model_load": true,
+    "image_request": true,
+    "text_request": true,
+    "multiple_requests": true,
+    "error_handling": true,
+    "shutdown": true,
+    "restart": true,
+    "idle_shutdown": true
+  }
+}

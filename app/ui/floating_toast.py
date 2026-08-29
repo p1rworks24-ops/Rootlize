@@ -366,6 +366,24 @@ class FloatingToastHost(QObject):
             )
         )
 
+    def show_result(
+        self,
+        *,
+        title: str,
+        body: str = "",
+        ok: bool = True,
+        duration_ms: int = 3000,
+    ) -> None:
+        lines = [line.strip() for line in str(body).splitlines() if line.strip()]
+        self._show(
+            ToastPayload(
+                kind=ToastKind.SUCCESS if ok else ToastKind.ERROR,
+                title=title,
+                body_lines=lines,
+                duration_ms=duration_ms,
+            )
+        )
+
     def _show(self, payload: ToastPayload) -> None:
         self._toast._stop_timers()
         self._toast._fade.stop()

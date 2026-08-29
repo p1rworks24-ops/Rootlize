@@ -43,7 +43,7 @@ def add_image(repository, name="ScreenShot_01.png", folder=r"D:\Shots", **overri
 
 def test_database_initializes_schema_fts_wal_and_versions(database):
     objects = {row[0] for row in database.connection.execute("SELECT name FROM sqlite_master")}
-    assert {"schema_meta", "images", "ocr_documents", "search_documents", "search_fts"} <= objects
+    assert {"schema_meta", "images", "ocr_documents", "search_documents", "search_fts", "semantic_indexes", "semantic_index_failures", "image_facts", "image_facts_failures"} <= objects
     assert {"search_documents_ai", "search_documents_au", "search_documents_ad"} <= objects
     assert database.connection.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
     assert database.connection.execute("PRAGMA foreign_keys").fetchone()[0] == 1
@@ -98,6 +98,48 @@ def test_schema_v2_adds_claim_and_retry_columns(tmp_path):
         assert migrated.schema_version()==SCHEMA_VERSION
         columns={row[1] for row in migrated.connection.execute("PRAGMA table_info(ocr_documents)")}
         assert {"claimed_at","worker_id","last_attempt_at","next_retry_at"}<=columns
+
+
+def test_schema_v6_adds_image_facts_without_dropping_indexes(tmp_path):
+    path = tmp_path / "v6.sqlite3"
+    connection = sqlite3.connect(path)
+    connection.executescript(SCHEMA_SQL)
+    connection.execute("DROP TABLE IF EXISTS image_facts_failures")
+    connection.execute("DROP INDEX IF EXISTS image_facts_identity_idx")
+    connection.execute("DROP TABLE IF EXISTS image_facts")
+    connection.executemany(
+        "INSERT INTO schema_meta(key,value) VALUES(?,?)",
+        [
+            ("schema_version", "6"),
+            ("normalization_version", "1"),
+            ("search_schema_version", "1"),
+            ("created_at", NOW),
+            ("updated_at", NOW),
+        ],
+    )
+    connection.execute(
+        "INSERT INTO images(path,path_norm,folder_path,folder_path_norm,filename,filename_norm,"
+        "size_bytes,mtime_ns,file_state,discovered_at,last_seen_at) "
+        "VALUES('D:\\a.png','d:\\a.png','D:\\','d:\\','a.png','a.png',1,1,'present',?,?)",
+        (NOW, NOW),
+    )
+    blob = b"\x00" * (512 * 4)
+    connection.execute(
+        """INSERT INTO semantic_indexes(
+ image_id,metadata_json,text_embedding,embedding_dimension,embedding_format_version,
+ vision_model,prompt_version,index_schema_version,embedding_model_id,
+ source_size_bytes,source_mtime_ns,source_quick_fingerprint,created_at,updated_at
+) VALUES(1,'{}',?,512,1,'vision','prompt','schema','embed',1,1,'fp',?,?)""",
+        (blob, NOW, NOW),
+    )
+    connection.commit()
+    connection.close()
+    with OCRDatabase(path, clock=lambda: NOW) as migrated:
+        names = {row[0] for row in migrated.connection.execute("SELECT name FROM sqlite_master")}
+        assert migrated.schema_version() == SCHEMA_VERSION == 7
+        assert {"image_facts", "image_facts_failures", "semantic_indexes"} <= names
+        assert migrated.connection.execute("SELECT COUNT(*) FROM semantic_indexes").fetchone()[0] == 1
+        assert migrated.connection.execute("SELECT COUNT(*) FROM image_facts").fetchone()[0] == 0
 
 
 def test_missing_fts_is_reported_as_dedicated_error(tmp_path):

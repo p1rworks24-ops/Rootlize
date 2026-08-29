@@ -5,7 +5,7 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QImage
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QLabel, QPushButton
@@ -225,9 +225,9 @@ def test_tags_button_lives_between_view_and_show_tags_and_opens_inline_popup():
     assert page._actions_tags_btn.isEnabled()
     assert not hasattr(page, "_actions_move_btn")
     tools = page._header_tools.layout()
-    assert tools.indexOf(page._view_combo.parentWidget()) < tools.indexOf(
-        page._actions_tags_btn
-    ) < tools.indexOf(page._show_tags_checkbox)
+    assert tools.indexOf(page._view_menu_btn) == -1
+    assert tools.indexOf(page._actions_tags_btn) < tools.indexOf(page._layout_field)
+    assert page._show_tags_checkbox.parentWidget() is page._tags_display_row
     assert not page._actions_tags_btn.icon().isNull()
     assert not hasattr(page, "_actions_row")
 
@@ -241,29 +241,40 @@ def test_tags_button_lives_between_view_and_show_tags_and_opens_inline_popup():
         paths[1].parent, paths[1].name
     )
 
+    page.resize(1200, 800)
+    app.processEvents()
     list_top_before = page._list_panel.mapToGlobal(
         page._list_panel.rect().topLeft()
     ).y()
     page._show_tags_popup()
-    QTest.qWait(260)
+    app.processEvents()
     assert page._tags_card.isVisible()
-    assert page._tags_card.parentWidget() is page._content
-    popup_bottom = page._tags_card.mapToGlobal(
-        page._tags_card.rect().bottomLeft()
-    ).y()
-    popup_top = page._tags_card.mapToGlobal(
-        page._tags_card.rect().topLeft()
-    ).y()
-    command_top = page._command_surface.mapToGlobal(
-        page._command_surface.rect().topLeft()
-    ).y()
+    assert page._show_tags_checkbox.isVisible()
+    assert page._tags_display_row.isVisible()
+    assert page._tags_card.isWindow()
+    assert bool(page._tags_card.windowFlags() & Qt.Tool)
+    assert page._tags_close_btn.isVisible()
+    assert page._tags_close_btn.isEnabled()
     list_top = page._list_panel.mapToGlobal(page._list_panel.rect().topLeft()).y()
-    assert popup_top < command_top
-    assert popup_bottom < list_top
     assert list_top == list_top_before
+    popup = page._tags_card.frameGeometry()
+    content_global = page._content.rect()
+    content_global.moveTopLeft(page._content.mapToGlobal(QPoint(0, 0)))
+    assert content_global.intersects(popup)
+    origin = page._tags_card.pos()
+    page._tags_user_placed = True
+    page._tags_card.move(max(8, origin.x() - 48), max(8, origin.y() - 28))
+    page._sync_tags_popup_geometry()
+    assert page._tags_card.isVisible()
+    assert page._tags_user_placed is True
 
     page._tags_close_btn.click()
-    QTest.qWait(220)
+    app.processEvents()
+    assert page._tags_card.isHidden()
+    page._show_tags_popup()
+    app.processEvents()
+    page._on_escape()
+    app.processEvents()
     assert page._tags_card.isHidden()
 
 

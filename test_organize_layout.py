@@ -83,7 +83,7 @@ def test_organize_header_selected_folder_then_selected():
         page, sel_box.rect().topLeft()
     ).y()
     assert page._folder_combo.parentWidget().isHidden()
-    assert page._choose_folder_btn.text() == "Choose Folder"
+    assert page._choose_folder_btn.text() == "Choose folder"
     assert page._choose_folder_btn.icon().isNull() is False
     assert root_chip.objectName() == "folderSelectorBar"
     assert t("work.root_folder_label") == "Folder:"

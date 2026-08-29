@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import (
-    QDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -15,10 +14,11 @@ from PySide6.QtWidgets import (
 
 from app.i18n import t
 from app.ui.icons import icon_analyze, icon_folder, icon_search
+from app.ui.page_motion import AnimatedDialog
 
 
-class WelcomeDialog(QDialog):
-    """Small modal that explains Folder -> Analyze -> Search."""
+class WelcomeDialog(AnimatedDialog):
+    """Small modal that explains Folder -> automatic AI search prep -> Search."""
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)

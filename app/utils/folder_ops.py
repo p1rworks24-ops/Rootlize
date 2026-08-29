@@ -19,6 +19,20 @@ def is_valid_folder_name(name: str) -> bool:
     return not any(ch in _INVALID_FOLDER_CHARS for ch in text)
 
 
+def create_folder(parent: Path, name: str) -> Path:
+    """Create ``parent / name``. Does not overwrite or merge an existing path."""
+    parent = Path(parent)
+    name = (name or "").strip()
+    if not is_valid_folder_name(name):
+        raise ValueError("invalid folder name")
+    dest = parent / name
+    if dest.exists():
+        raise FileExistsError(str(dest))
+    dest.mkdir(parents=False, exist_ok=False)
+    logger.info("Created folder %s", dest)
+    return dest
+
+
 def make_unique_folder_copy_name(parent: Path, base_name: str) -> str:
     """
     Windows Explorer-like copy names:

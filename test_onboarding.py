@@ -42,7 +42,7 @@ def test_welcome_dialog_explains_three_steps_and_primary_action() -> None:
     _app()
     dialog = WelcomeDialog()
 
-    assert dialog.windowTitle() == "Welcome to Capixe"
+    assert dialog.windowTitle() == "Welcome to Rootlize"
     step_numbers = {
         label.text()
         for label in dialog.findChildren(QLabel, "welcomeStepNumber")

@@ -23,6 +23,7 @@ from app.branding import (
     APP_LICENSE,
     APP_NAME,
     DISPLAY_VERSION,
+    SUPPORTING_MESSAGE,
     TAGLINE,
     resolve_feedback_url,
 )
@@ -190,8 +191,9 @@ class AboutPage(QWidget):
     changing the outer layout grid.
     """
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, *, embedded: bool = False):
         super().__init__(parent)
+        self._embedded = embedded
         self._section_host: QVBoxLayout | None = None
         self._init_ui()
 
@@ -200,67 +202,100 @@ class AboutPage(QWidget):
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)
 
-        scroll = make_page_scroll(self)
-        outer.addWidget(scroll)
+        if self._embedded:
+            content = self
+            layout = outer
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setSpacing(12)
+        else:
+            scroll = make_page_scroll(self)
+            outer.addWidget(scroll)
+            content = QWidget(scroll)
+            content.setObjectName("aboutContentColumn")
+            scroll.setWidget(content)
+            layout = QVBoxLayout(content)
+            layout.setContentsMargins(28, 20, 28, 24)
+            layout.setSpacing(16)
+            from app.ui.page_header import make_page_header
 
-        content = QWidget(scroll)
-        content.setObjectName("aboutContentColumn")
-        scroll.setWidget(content)
+            layout.addWidget(
+                make_page_header(content, t("about.title"), t("about.subtitle"))
+            )
 
-        layout = QVBoxLayout(content)
-        layout.setContentsMargins(24, 20, 24, 20)
-        layout.setSpacing(16)
         self._section_host = layout
 
         self._append_brand_card(content)
         self._append_github_card(content)
         self._append_feedback_card(content)
 
-        layout.addStretch(1)
+        if not self._embedded:
+            layout.addStretch(1)
         self._append_legal_footer(content)
+
+        if not self._embedded:
+            from app.ui.text_select import enable_label_text_selection
+
+            enable_label_text_selection(self)
 
     def _make_card(self, parent: QWidget) -> tuple[QFrame, QVBoxLayout]:
         card = QFrame(parent)
         card.setObjectName("aboutCard")
         apply_card_shadow(card)
         card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(24, 20, 24, 20)
-        card_layout.setSpacing(12)
+        card_layout.setContentsMargins(20, 18, 20, 18)
+        card_layout.setSpacing(10)
         return card, card_layout
 
     def _append_brand_card(self, parent: QWidget) -> None:
         card, card_layout = self._make_card(parent)
         card.setObjectName("aboutBrandCard")
-        card_layout.setContentsMargins(28, 28, 28, 28)
-        card_layout.setSpacing(14)
+        card_layout.setContentsMargins(20, 20, 20, 20)
+        card_layout.setSpacing(0)
+
+        hero = QHBoxLayout()
+        hero.setContentsMargins(0, 0, 0, 0)
+        hero.setSpacing(18)
 
         mark = QLabel(card)
         mark.setObjectName("aboutBrandMark")
         mark.setAlignment(Qt.AlignCenter)
-        mark.setFixedSize(120, 120)
-        mark.setPixmap(app_mark_pixmap(112))
-        card_layout.addWidget(mark, 0, Qt.AlignHCenter)
+        mark_size = 56 if self._embedded else 72
+        mark.setFixedSize(mark_size, mark_size)
+        mark.setPixmap(app_mark_pixmap(48 if self._embedded else 64))
+        hero.addWidget(mark, 0, Qt.AlignTop)
+
+        text_col = QVBoxLayout()
+        text_col.setContentsMargins(0, 2, 0, 2)
+        text_col.setSpacing(6)
 
         title = QLabel(APP_NAME, card)
         title.setObjectName("aboutBrandTitle")
-        title.setAlignment(Qt.AlignCenter)
-        card_layout.addWidget(title)
+        title.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        text_col.addWidget(title)
 
         tagline = QLabel(TAGLINE, card)
         tagline.setObjectName("aboutTagline")
-        tagline.setAlignment(Qt.AlignCenter)
+        tagline.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         tagline.setWordWrap(True)
-        card_layout.addWidget(tagline)
+        text_col.addWidget(tagline)
+
+        supporting = QLabel(SUPPORTING_MESSAGE, card)
+        supporting.setObjectName("aboutSupporting")
+        supporting.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        supporting.setWordWrap(True)
+        text_col.addWidget(supporting)
 
         version = QLabel(DISPLAY_VERSION, card)
         version.setObjectName("aboutVersionBadge")
         version.setAlignment(Qt.AlignCenter)
         badge_row = QHBoxLayout()
         badge_row.setContentsMargins(0, 4, 0, 0)
+        badge_row.addWidget(version, 0, Qt.AlignLeft)
         badge_row.addStretch(1)
-        badge_row.addWidget(version, 0, Qt.AlignCenter)
-        badge_row.addStretch(1)
-        card_layout.addLayout(badge_row)
+        text_col.addLayout(badge_row)
+
+        hero.addLayout(text_col, stretch=1)
+        card_layout.addLayout(hero)
 
         assert self._section_host is not None
         self._section_host.addWidget(card)
@@ -280,7 +315,7 @@ class AboutPage(QWidget):
         btn = QPushButton(t("about.link_github"), card)
         btn.setObjectName("aboutLinkButton")
         btn.setCursor(Qt.PointingHandCursor)
-        btn.setMinimumHeight(40)
+        btn.setMinimumHeight(36)
         btn.clicked.connect(self._on_github_clicked)
         card_layout.addWidget(btn)
 

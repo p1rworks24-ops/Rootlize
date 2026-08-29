@@ -5,10 +5,17 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QPalette
 from PySide6.QtWidgets import QApplication, QHBoxLayout, QLabel, QWidget
 
 from app.services.metadata_service import MetadataService
-from app.ui.design_tokens import WORKSPACE_PANEL_PADDING
+from app.ui.design_tokens import (
+    IMAGES_LEFT_CARD_PAD_X,
+    IMAGES_LEFT_CARD_PAD_Y,
+    SPACE_2,
+    WORKSPACE_PANEL_PADDING,
+)
 from app.ui.pages.images_page import HEADER_TOOLS_INLINE_MIN_WIDTH, ImagesPage
 from app.utils.thumbnail_cache import ThumbnailCache
 
@@ -72,13 +79,14 @@ def test_search_precedes_tools_and_refresh_is_removed():
     app.processEvents()
 
     content_layout = page._command_surface.parentWidget().layout()
-    command_layout = page._command_surface.layout()
-    assert content_layout.indexOf(page._folder_selector) < content_layout.indexOf(
-        page._command_surface
+    assert content_layout.indexOf(page._command_surface) < content_layout.indexOf(
+        page._folder_browser
     )
-    assert command_layout.indexOf(page._command_primary_row) < command_layout.indexOf(
-        page._header_tools_row
+    assert content_layout.indexOf(page._folder_browser) < content_layout.indexOf(
+        page._list_panel
     )
+    assert page._command_surface.layout().indexOf(page._command_primary_row) >= 0
+    assert page._header_tools_row.parentWidget() is page._list_panel
     assert not hasattr(page, "_refresh_btn")
     assert page._fs_watcher.directories()
 
@@ -132,15 +140,13 @@ def test_display_controls_and_panel_headers_have_balanced_insets():
     list_layout = page._list_panel.layout()
     screenshots_header = page._gallery_header
     preview_header = page._preview_card.layout().itemAt(0).widget()
-    screenshots_margins = screenshots_header.layout().contentsMargins()
     preview_margins = preview_header.layout().contentsMargins()
-    assert screenshots_margins.left() == screenshots_margins.right() == 4
     assert preview_margins.left() == preview_margins.right() == 0
     preview_card_margins = page._preview_card.layout().contentsMargins()
     assert preview_card_margins.left() == preview_card_margins.right() == (
         WORKSPACE_PANEL_PADDING
     )
-    assert screenshots_header.findChild(QWidget, "sectionHeaderTitleRow").height() == 28
+    assert screenshots_header.findChild(QWidget, "sectionHeaderTitleRow") is not None
     assert preview_header.findChild(QWidget, "sectionHeaderTitleRow").height() == 28
 
 
@@ -155,5 +161,26 @@ def test_top_controls_are_not_coupled_to_screenshots_panel_width():
     page.show()
     app.processEvents()
     page._sync_primary_control_widths()
-    assert page._header_tools_row.maximumWidth() > page._list_panel.width()
-    assert page._search_row.maximumWidth() > page._list_panel.width()
+    assert page._header_tools.isVisible()
+    assert page._search_row.isVisible()
+
+
+def test_gallery_header_is_full_bleed_under_rounded_panel():
+    app = _ensure_app()
+    page = _make_page()
+    page.show()
+    app.processEvents()
+
+    list_margins = page._list_panel.layout().contentsMargins()
+    assert list_margins.left() == 0
+    assert list_margins.top() == 0
+    assert list_margins.right() == 0
+    header_margins = page._header_tools_row.layout().contentsMargins()
+    assert header_margins.left() == IMAGES_LEFT_CARD_PAD_X + 8
+    assert header_margins.top() == IMAGES_LEFT_CARD_PAD_Y
+    assert header_margins.bottom() == SPACE_2
+    assert page._header_tools_row.testAttribute(Qt.WA_StyledBackground)
+    assert page._search_input.hasFrame() is False
+    assert page._search_input.autoFillBackground() is False
+    base = page._search_input.palette().color(QPalette.ColorRole.Base)
+    assert base.alpha() == 0

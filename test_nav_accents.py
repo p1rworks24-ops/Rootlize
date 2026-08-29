@@ -1,4 +1,4 @@
-"""Nav items use associative accent colors (not all blue)."""
+"""Nav icons share charcoal ink; selected state is the surface, not a rainbow."""
 
 from __future__ import annotations
 
@@ -14,14 +14,12 @@ from app.ui.icons import (
     NAV_COLOR_ORGANIZE,
     NAV_COLOR_SETTINGS,
     NAV_COLOR_TAGS,
+    NAV_INK,
 )
 from app.ui.main_window import (
-    PAGE_ABOUT,
-    PAGE_HOME,
+    PAGE_AUTOMATION,
     PAGE_IMAGES,
-    PAGE_ORGANIZE,
     PAGE_SETTINGS,
-    PAGE_TAGS,
     MainWindow,
 )
 
@@ -46,24 +44,22 @@ def test_nav_accents_and_icon_colors_differ():
     }
     window = MainWindow(config)
     expected = {
-        PAGE_HOME: "home",
         PAGE_IMAGES: "images",
+        PAGE_AUTOMATION: "automation",
         PAGE_SETTINGS: "settings",
-        PAGE_ABOUT: "about",
     }
     for page_id, accent in expected.items():
         btn = window._side_nav._nav_buttons[page_id]
         assert btn.property("navAccent") == accent
 
-    colors = {
+    assert {
         NAV_COLOR_HOME,
         NAV_COLOR_IMAGES,
         NAV_COLOR_ORGANIZE,
         NAV_COLOR_TAGS,
         NAV_COLOR_SETTINGS,
         NAV_COLOR_ABOUT,
-    }
-    assert len(colors) == 6
+    } == {NAV_INK}
     assert "#2563eb" not in {
         NAV_COLOR_HOME,
         NAV_COLOR_IMAGES,
@@ -71,3 +67,10 @@ def test_nav_accents_and_icon_colors_differ():
         NAV_COLOR_SETTINGS,
         NAV_COLOR_ABOUT,
     }
+
+    images_btn = window._side_nav._nav_buttons[PAGE_IMAGES]
+    assert images_btn.isChecked()
+    window._side_nav.set_expanded(False, animate=False)
+    assert images_btn.property("collapsed") == "true"
+    assert images_btn.isChecked()
+    window.close()

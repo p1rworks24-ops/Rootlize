@@ -1,0 +1,1074 @@
+{
+  "query_set_version": "meaning-eval-queries-v2",
+  "gt_version": "meaning-eval-gt-v2",
+  "acceptable_policy": {
+    "name": "lenient_ignore",
+    "precision": "FP = retrieved minus must_include minus acceptable. Unlabeled retrieved images count as FP.",
+    "recall": "FN = must_include minus retrieved. acceptable never counts as FN.",
+    "retriever": "Recall@K and MRR use must_include only."
+  },
+  "gt_corrections": [
+    {
+      "query": "login screen",
+      "reason": "Former relevant files are not login screens. 20260721_210812.png is an Indie Hackers privileges modal. 20260729_234504.png is a project-submission media form. No primary login UI was found in this library, so must_include is empty and the former labels are must_exclude."
+    },
+    {
+      "query": "folder selection screen",
+      "reason": "Former labels mixed ChatGPT screenshots with folder UI. ChatGPT shots stay must_exclude. must_include is Save-folder control crops plus later Capixe screens where folder picking is a primary control. Broader Capixe screens with a folder control remain acceptable."
+    },
+    {
+      "query": "code editor",
+      "reason": "20260718_201711.png, 20260718_201716.png, and 20260718_201717.png are ChatGPT in Chrome, not a code editor."
+    },
+    {
+      "query": "video game screenshot",
+      "reason": "20260718_210026.png is Cursor, not a game."
+    },
+    {
+      "query": "software installation screen",
+      "reason": "20260721_203931.png is Capixe Home and 20260721_203957.png is Organize. No installer exists in this library."
+    },
+    {
+      "query": "application error message",
+      "reason": "20260718_175748.png and 20260718_180103.png are Cursor completion notifications, not error dialogs."
+    },
+    {
+      "query": "settings screen",
+      "reason": "Former labels were Reddit rules, Images Sort/View toolbars, or tag management rather than a settings screen."
+    },
+    {
+      "query": "Windows desktop",
+      "reason": "Labels now require a Windows desktop environment (wallpaper, taskbar, icons), not any Windows app window. Maximized apps with no desktop surface are not must_include."
+    },
+    {
+      "query": "dog",
+      "reason": "Gallery screens 20260815_221055.png and 20260815_231828.png show identifiable dog thumbnails (images.jpg / A2.png). Nested thumbnails count when a human can reasonably identify the dog. This is a spec-alignment correction, not a result-matching change."
+    }
+  ],
+  "remaining_gt_notes": [
+    {
+      "query": "Windows desktop",
+      "reason": "Notification-center crops 20260718_175748.png and 20260718_180103.png show Windows UI but little desktop surface, so they stay acceptable."
+    },
+    {
+      "query": "empty folder in screenshot manager",
+      "reason": "20260812_222344.png is an empty search result, not an empty folder. 20260816_232506_001.png is search-unavailable. Those are labeled on empty state instead."
+    }
+  ],
+  "queries": [
+    {
+      "query": "dog",
+      "split": "dev",
+      "kind": "object",
+      "must_include": [
+        "20260813_225929.png",
+        "20260815_221055.png",
+        "20260815_231828.png",
+        "A2.png",
+        "images.jpg"
+      ],
+      "must_exclude": [
+        "27750021_m.jpg",
+        "test1.jpg"
+      ],
+      "acceptable": [],
+      "notes": "Gallery screens with identifiable dog thumbnails are relevant. Subjecthood is not required."
+    },
+    {
+      "query": "a dog",
+      "split": "dev",
+      "kind": "object",
+      "must_include": [
+        "20260813_225929.png",
+        "A2.png",
+        "images.jpg"
+      ],
+      "must_exclude": [
+        "27750021_m.jpg",
+        "test1.jpg"
+      ],
+      "acceptable": []
+    },
+    {
+      "query": "dog photo",
+      "split": "dev",
+      "kind": "object",
+      "must_include": [
+        "20260813_225929.png",
+        "A2.png",
+        "images.jpg"
+      ],
+      "must_exclude": [
+        "27750021_m.jpg",
+        "test1.jpg"
+      ],
+      "acceptable": []
+    },
+    {
+      "query": "Windows desktop",
+      "split": "dev",
+      "kind": "place",
+      "must_include": [
+        "20260716_194437.png",
+        "20260716_194523_001.png",
+        "20260718_160651_001.png",
+        "20260718_160712_001.png",
+        "20260718_163013.png",
+        "20260718_201711.png",
+        "20260718_201716.png",
+        "20260718_201717.png",
+        "20260718_202211.png",
+        "20260718_202718.png",
+        "20260718_202724.png",
+        "20260718_202728.png",
+        "20260718_202750.png",
+        "20260718_203016.png",
+        "20260718_204024.png",
+        "20260718_205213.png",
+        "20260718_205234.png",
+        "20260718_210026.png",
+        "20260718_212500.png",
+        "20260718_212504.png",
+        "20260718_212516.png",
+        "20260720_233733.png",
+        "20260720_233800.png",
+        "20260720_234601.png",
+        "20260815_225500.png",
+        "20260815_232253.png",
+        "ScreenShot_Atest_001.png",
+        "ScreenShot_Atest_002.png",
+        "ScreenShot_Atest_009.png",
+        "ScreenShot_Atest_010.png",
+        "ScreenShot_Atest_011.png",
+        "Screenshot_001.png",
+        "Screenshot_005.png",
+        "testshot_001.png",
+        "testshot_002.png"
+      ],
+      "must_exclude": [
+        "20260716_233500.png",
+        "20260716_233900.png",
+        "20260716_234403.png",
+        "20260718_203006.png",
+        "20260721_203901.png",
+        "20260721_210812.png",
+        "27750021_m.jpg",
+        "A2.png",
+        "images.jpg",
+        "test1.jpg",
+        "test3.jpg"
+      ],
+      "acceptable": [
+        "20260718_175748.png",
+        "20260718_180103.png"
+      ],
+      "notes": "Windows desktop environment (wallpaper, taskbar, icons), not any Windows app window. Maximized apps with no desktop surface are excluded. Nested identifiable desktop thumbnails count."
+    },
+    {
+      "query": "Windows desktop screenshot",
+      "split": "dev",
+      "kind": "ui",
+      "must_include": [
+        "20260716_194437.png",
+        "20260716_194523_001.png",
+        "20260718_160651_001.png",
+        "20260718_160712_001.png",
+        "20260718_163013.png",
+        "20260718_201711.png",
+        "20260718_201716.png",
+        "20260718_201717.png",
+        "20260718_202211.png",
+        "20260718_202718.png",
+        "20260718_202724.png",
+        "20260718_202728.png",
+        "20260718_202750.png",
+        "20260718_203016.png",
+        "20260718_204024.png",
+        "20260718_205213.png",
+        "20260718_205234.png",
+        "20260718_210026.png",
+        "20260718_212500.png",
+        "20260718_212504.png",
+        "20260718_212516.png",
+        "20260720_233733.png",
+        "20260720_233800.png",
+        "20260720_234601.png",
+        "20260815_225500.png",
+        "20260815_232253.png",
+        "ScreenShot_Atest_001.png",
+        "ScreenShot_Atest_002.png",
+        "ScreenShot_Atest_009.png",
+        "ScreenShot_Atest_010.png",
+        "ScreenShot_Atest_011.png",
+        "Screenshot_001.png",
+        "Screenshot_005.png",
+        "testshot_001.png",
+        "testshot_002.png"
+      ],
+      "must_exclude": [
+        "20260716_233500.png",
+        "20260716_233900.png",
+        "20260716_234403.png",
+        "20260718_203006.png",
+        "20260721_203901.png",
+        "20260721_210812.png",
+        "27750021_m.jpg",
+        "A2.png",
+        "images.jpg",
+        "test1.jpg",
+        "test3.jpg"
+      ],
+      "acceptable": [
+        "20260718_175748.png",
+        "20260718_180103.png"
+      ],
+      "notes": "Same labels as Windows desktop. In this corpus nearly every file is a screenshot, so screenshot is not an extra filter."
+    },
+    {
+      "query": "code editor",
+      "split": "dev",
+      "kind": "ui",
+      "must_include": [
+        "20260718_160712_001.png",
+        "20260718_202211.png",
+        "20260718_204024.png",
+        "20260718_210026.png",
+        "20260720_233800.png",
+        "ScreenShot_Atest_011.png"
+      ],
+      "must_exclude": [
+        "20260718_201711.png",
+        "20260718_201716.png",
+        "20260718_201717.png"
+      ],
+      "acceptable": [
+        "20260720_233933.png",
+        "ScreenShot_Atest_004.png",
+        "ScreenShot_Atest_005.png",
+        "ScreenShot_Atest_006.png"
+      ],
+      "notes": "Former ChatGPT Chrome shots were mislabeled and are must_exclude."
+    },
+    {
+      "query": "image search application",
+      "split": "dev",
+      "kind": "ui",
+      "must_include": [
+        "20260717_000902.png",
+        "20260717_001005.png",
+        "20260718_142639_001.png",
+        "20260718_143926_001.png",
+        "20260718_202728.png",
+        "20260718_202750.png",
+        "20260721_203944.png",
+        "20260721_203957.png",
+        "20260801_114154.png",
+        "20260801_114225.png",
+        "20260801_120311.png",
+        "20260801_120339.png",
+        "20260801_135518.png",
+        "20260808_200249_001.png",
+        "20260811_174201.png",
+        "20260812_194821.png",
+        "20260812_222344.png",
+        "20260813_225929.png",
+        "20260815_221055.png",
+        "20260815_225418.png",
+        "20260815_225500.png",
+        "20260815_231828.png",
+        "20260815_232253.png",
+        "20260815_235357.png",
+        "20260816_144058_001.png",
+        "20260816_180634_001.png",
+        "20260816_204701_001.png",
+        "20260816_232506_001.png",
+        "20260817_140337_001.png",
+        "ScreenShot_Atest_002.png",
+        "ScreenShot_Atest_007.png",
+        "ScreenShot_Atest_008.png",
+        "_002.png",
+        "_003.png",
+        "bcaa36cf-f68d-435b-bcdf-26dd1ea7dffa.png",
+        "capixe_auto_probe_20260816.png",
+        "capixe_auto_probe_20260816_c.png",
+        "images.png",
+        "organize.png",
+        "photo_001.png",
+        "testshot_002.png"
+      ],
+      "must_exclude": [
+        "20260718_163013.png",
+        "20260718_201711.png",
+        "20260718_201716.png",
+        "20260718_201717.png",
+        "20260720_234601.png",
+        "27750021_m.jpg",
+        "A2.png",
+        "Screenshot_001.png",
+        "Screenshot_005.png",
+        "_001.png",
+        "images.jpg",
+        "test1.jpg"
+      ],
+      "acceptable": [
+        "20260720_220408.png",
+        "20260721_203931.png",
+        "20260721_204338.png",
+        "20260801_114057.png",
+        "20260801_114232.png",
+        "20260801_120155.png",
+        "20260801_132030.png",
+        "20260811_112305.png",
+        "20260811_113411.png",
+        "20260811_113536.png",
+        "20260811_125253.png",
+        "20260811_174317.png",
+        "20260812_215728.png",
+        "home.png",
+        "tags.png",
+        "title.png"
+      ]
+    },
+    {
+      "query": "browser window",
+      "split": "dev",
+      "kind": "ui",
+      "must_include": [
+        "20260716_194437.png",
+        "20260716_194523_001.png",
+        "20260718_163013.png",
+        "20260718_201711.png",
+        "20260718_201716.png",
+        "20260718_201717.png",
+        "20260718_202750.png",
+        "20260718_203006.png",
+        "20260718_205213.png",
+        "20260718_205234.png",
+        "20260718_212500.png",
+        "20260718_212504.png",
+        "20260718_212516.png",
+        "20260720_233733.png",
+        "ScreenShot_Atest_002.png",
+        "testshot_001.png"
+      ],
+      "must_exclude": [
+        "20260718_160712_001.png",
+        "20260718_202718.png",
+        "20260718_202724.png",
+        "20260718_203016.png",
+        "20260718_210026.png",
+        "20260720_233800.png",
+        "ScreenShot_Atest_001.png",
+        "ScreenShot_Atest_011.png"
+      ],
+      "acceptable": [],
+      "notes": "Tabs or address bar make a browser. Taskbar Chrome icon only, or IDE Browser tab only, is excluded."
+    },
+    {
+      "query": "settings screen",
+      "split": "dev",
+      "kind": "ui",
+      "must_include": [
+        "20260801_114247.png",
+        "20260801_120423.png",
+        "_001.png",
+        "about.png"
+      ],
+      "must_exclude": [
+        "20260718_142639_001.png",
+        "20260718_143926_001.png",
+        "20260721_203901.png",
+        "20260721_204004.png",
+        "20260801_120357.png",
+        "tags.png"
+      ],
+      "acceptable": [
+        "20260718_181939.png"
+      ],
+      "notes": "Former labels were Reddit rules, Images toolbars, or tag management."
+    },
+    {
+      "query": "command prompt",
+      "split": "dev",
+      "kind": "ui",
+      "must_include": [
+        "20260716_194437.png",
+        "20260716_194523_001.png",
+        "20260718_160651_001.png",
+        "20260718_204024.png",
+        "ScreenShot_Atest_002.png",
+        "ScreenShot_Atest_009.png",
+        "ScreenShot_Atest_010.png"
+      ],
+      "must_exclude": [
+        "20260718_201711.png",
+        "20260718_201716.png",
+        "20260718_201717.png"
+      ],
+      "acceptable": [],
+      "notes": "PowerShell counts as command prompt."
+    },
+    {
+      "query": "file explorer window",
+      "split": "dev",
+      "kind": "ui",
+      "must_include": [
+        "20260720_234601.png",
+        "Screenshot_001.png",
+        "Screenshot_005.png"
+      ],
+      "must_exclude": [
+        "20260718_142639_001.png",
+        "20260718_143926_001.png",
+        "images.png",
+        "organize.png"
+      ],
+      "acceptable": [],
+      "notes": "Capixe folder trees are not File Explorer."
+    },
+    {
+      "query": "video game screenshot",
+      "split": "dev",
+      "kind": "ui",
+      "must_include": [
+        "20260718_205213.png",
+        "20260718_205234.png",
+        "20260718_212500.png",
+        "20260718_212504.png",
+        "20260718_212516.png",
+        "20260720_233800.png"
+      ],
+      "must_exclude": [
+        "20260718_210026.png"
+      ],
+      "acceptable": [],
+      "notes": "YouTube VALORANT remains relevant because the game is identifiable. 20260718_210026.png is Cursor, not a game."
+    },
+    {
+      "query": "mountain desktop wallpaper",
+      "split": "dev",
+      "kind": "place",
+      "must_include": [
+        "20260718_202718.png",
+        "20260718_202724.png",
+        "20260718_202728.png",
+        "20260718_203016.png",
+        "20260815_225500.png",
+        "20260815_232253.png",
+        "ScreenShot_Atest_001.png"
+      ],
+      "must_exclude": [
+        "27750021_m.jpg",
+        "A2.png",
+        "images.jpg",
+        "test1.jpg"
+      ],
+      "acceptable": [
+        "bcaa36cf-f68d-435b-bcdf-26dd1ea7dffa.png"
+      ],
+      "notes": "Windows covering the wallpaper still counts when the mountain wallpaper is identifiable. Nested desktop cards count."
+    },
+    {
+      "query": "application error message",
+      "split": "dev",
+      "kind": "state",
+      "must_include": [
+        "20260812_215858.png",
+        "20260814_224657.png",
+        "20260816_231404_001.png",
+        "20260816_232506_001.png"
+      ],
+      "must_exclude": [
+        "20260718_175748.png",
+        "20260718_180103.png"
+      ],
+      "acceptable": [
+        "20260718_204024.png",
+        "20260813_225929.png"
+      ],
+      "notes": "Cursor Done notifications are not errors."
+    },
+    {
+      "query": "orange brown dog",
+      "split": "dev",
+      "kind": "color",
+      "must_include": [
+        "20260813_225929.png",
+        "A2.png"
+      ],
+      "must_exclude": [
+        "27750021_m.jpg",
+        "images.jpg",
+        "test1.jpg"
+      ],
+      "acceptable": [],
+      "notes": "A2.png is a reddish-brown Shiba. images.jpg is a different white/tan standing dog. Nested A2 thumbnail in 20260813_225929.png is identifiable."
+    },
+    {
+      "query": "sitting",
+      "split": "dev",
+      "kind": "activity",
+      "must_include": [
+        "20260813_225929.png",
+        "A2.png"
+      ],
+      "must_exclude": [
+        "test1.jpg"
+      ],
+      "acceptable": [
+        "27750021_m.jpg"
+      ],
+      "notes": "A2.png shows a puppy sitting. The calico cat is lying in a loaf and is acceptable, not required."
+    },
+    {
+      "query": "anime",
+      "split": "dev",
+      "kind": "style",
+      "must_include": [
+        "test3.jpg"
+      ],
+      "must_exclude": [
+        "27750021_m.jpg",
+        "A2.png",
+        "images.jpg",
+        "test1.jpg"
+      ],
+      "acceptable": []
+    },
+    {
+      "query": "Google Chrome",
+      "split": "dev",
+      "kind": "ui",
+      "must_include": [
+        "20260716_194437.png",
+        "20260716_194523_001.png",
+        "20260718_163013.png",
+        "20260718_201711.png",
+        "20260718_201716.png",
+        "20260718_201717.png",
+        "20260718_202750.png",
+        "20260718_203006.png",
+        "20260718_205213.png",
+        "20260718_205234.png",
+        "20260718_212500.png",
+        "20260718_212504.png",
+        "20260718_212516.png",
+        "20260720_233733.png",
+        "ScreenShot_Atest_002.png",
+        "testshot_001.png"
+      ],
+      "must_exclude": [
+        "20260718_160712_001.png",
+        "20260718_202718.png",
+        "20260718_202724.png",
+        "20260718_203016.png",
+        "20260718_210026.png",
+        "20260720_233800.png",
+        "ScreenShot_Atest_001.png",
+        "ScreenShot_Atest_011.png",
+        "testshot_002.png"
+      ],
+      "acceptable": [],
+      "notes": "Chrome window (tabs, address bar, or Chrome branding) is enough. Taskbar or desktop shortcut icon only is excluded."
+    },
+    {
+      "query": "ChatGPT in a browser",
+      "split": "dev",
+      "kind": "ui",
+      "must_include": [
+        "20260718_163013.png",
+        "20260718_201711.png",
+        "20260718_201716.png",
+        "20260718_201717.png",
+        "20260718_202750.png",
+        "20260718_203006.png",
+        "20260720_233733.png",
+        "ScreenShot_Atest_002.png",
+        "testshot_001.png"
+      ],
+      "must_exclude": [
+        "20260718_160712_001.png",
+        "20260718_210026.png",
+        "20260720_233800.png",
+        "20260720_233933.png",
+        "ScreenShot_Atest_011.png"
+      ],
+      "acceptable": [],
+      "notes": "Needs ChatGPT and a browser together. Cursor chat is not a browser."
+    },
+    {
+      "query": "desktop with application windows",
+      "split": "holdout",
+      "kind": "ui",
+      "must_include": [
+        "20260716_194437.png",
+        "20260716_194523_001.png",
+        "20260718_160651_001.png",
+        "20260718_160712_001.png",
+        "20260718_163013.png",
+        "20260718_201711.png",
+        "20260718_201716.png",
+        "20260718_201717.png",
+        "20260718_202211.png",
+        "20260718_202728.png",
+        "20260718_202750.png",
+        "20260718_204024.png",
+        "20260718_205213.png",
+        "20260718_205234.png",
+        "20260718_210026.png",
+        "20260718_212500.png",
+        "20260718_212504.png",
+        "20260718_212516.png",
+        "20260720_233733.png",
+        "20260720_233800.png",
+        "20260720_234601.png",
+        "ScreenShot_Atest_002.png",
+        "ScreenShot_Atest_009.png",
+        "ScreenShot_Atest_010.png",
+        "ScreenShot_Atest_011.png",
+        "Screenshot_001.png",
+        "Screenshot_005.png",
+        "testshot_001.png",
+        "testshot_002.png"
+      ],
+      "must_exclude": [
+        "20260718_202718.png",
+        "20260718_203006.png",
+        "20260718_203016.png",
+        "ScreenShot_Atest_001.png"
+      ],
+      "acceptable": [
+        "20260718_202724.png",
+        "20260815_225500.png",
+        "20260815_232253.png"
+      ],
+      "notes": "Needs desktop surface plus application windows. Empty desktop is excluded. Maximized Chrome with no desktop surface is excluded."
+    },
+    {
+      "query": "terminal window",
+      "split": "holdout",
+      "kind": "ui",
+      "must_include": [
+        "20260716_194437.png",
+        "20260716_194523_001.png",
+        "20260718_160651_001.png",
+        "20260718_204024.png",
+        "ScreenShot_Atest_002.png",
+        "ScreenShot_Atest_009.png",
+        "ScreenShot_Atest_010.png"
+      ],
+      "must_exclude": [],
+      "acceptable": []
+    },
+    {
+      "query": "screenshot manager application",
+      "split": "holdout",
+      "kind": "ui",
+      "must_include": [
+        "20260717_000902.png",
+        "20260717_001005.png",
+        "20260718_142639_001.png",
+        "20260718_143926_001.png",
+        "20260718_202728.png",
+        "20260718_202750.png",
+        "20260720_220157.png",
+        "20260720_220408.png",
+        "20260721_203931.png",
+        "20260721_203944.png",
+        "20260721_203957.png",
+        "20260721_204004.png",
+        "20260721_204338.png",
+        "20260801_114057.png",
+        "20260801_114154.png",
+        "20260801_114225.png",
+        "20260801_114232.png",
+        "20260801_114247.png",
+        "20260801_120155.png",
+        "20260801_120311.png",
+        "20260801_120339.png",
+        "20260801_120357.png",
+        "20260801_120423.png",
+        "20260801_132030.png",
+        "20260801_135518.png",
+        "20260808_200249_001.png",
+        "20260811_125253.png",
+        "20260811_174201.png",
+        "20260811_174317.png",
+        "20260812_222344.png",
+        "20260813_225929.png",
+        "20260815_221055.png",
+        "20260815_225418.png",
+        "20260815_225500.png",
+        "20260815_231828.png",
+        "20260815_232253.png",
+        "20260815_235357.png",
+        "20260816_144058_001.png",
+        "20260816_180634_001.png",
+        "20260816_204701_001.png",
+        "20260816_232506_001.png",
+        "20260817_140337_001.png",
+        "ScreenShot_Atest_002.png",
+        "ScreenShot_Atest_007.png",
+        "ScreenShot_Atest_008.png",
+        "_002.png",
+        "_003.png",
+        "about.png",
+        "bcaa36cf-f68d-435b-bcdf-26dd1ea7dffa.png",
+        "capixe_auto_probe_20260816.png",
+        "capixe_auto_probe_20260816_c.png",
+        "home.png",
+        "images.png",
+        "organize.png",
+        "photo_001.png",
+        "tags.png",
+        "testshot_002.png",
+        "title.png"
+      ],
+      "must_exclude": [
+        "20260718_163013.png",
+        "20260718_201711.png",
+        "20260718_201716.png",
+        "20260718_201717.png",
+        "20260718_203006.png",
+        "20260720_233733.png",
+        "20260720_234601.png",
+        "27750021_m.jpg",
+        "A2.png",
+        "Screenshot_001.png",
+        "Screenshot_005.png",
+        "_001.png",
+        "images.jpg",
+        "test1.jpg",
+        "test3.jpg",
+        "testshot_001.png"
+      ],
+      "acceptable": [
+        "20260718_150636_001.png",
+        "20260811_112305.png",
+        "20260811_113411.png",
+        "20260811_113536.png",
+        "20260812_194821.png",
+        "20260812_215728.png",
+        "20260816_225503_001.png",
+        "20260816_231404_001.png"
+      ]
+    },
+    {
+      "query": "image gallery",
+      "split": "holdout",
+      "kind": "ui",
+      "must_include": [
+        "20260717_000902.png",
+        "20260717_001005.png",
+        "20260718_143926_001.png",
+        "20260718_202728.png",
+        "20260718_202750.png",
+        "20260721_203944.png",
+        "20260721_203957.png",
+        "20260801_114154.png",
+        "20260801_114225.png",
+        "20260801_120311.png",
+        "20260801_120339.png",
+        "20260801_135518.png",
+        "20260808_200249_001.png",
+        "20260811_174201.png",
+        "20260813_225929.png",
+        "20260815_221055.png",
+        "20260815_225418.png",
+        "20260815_225500.png",
+        "20260815_231828.png",
+        "20260815_232253.png",
+        "20260816_144058_001.png",
+        "20260817_140337_001.png",
+        "ScreenShot_Atest_007.png",
+        "ScreenShot_Atest_008.png",
+        "_002.png",
+        "_003.png",
+        "bcaa36cf-f68d-435b-bcdf-26dd1ea7dffa.png",
+        "capixe_auto_probe_20260816.png",
+        "capixe_auto_probe_20260816_c.png",
+        "images.png",
+        "organize.png",
+        "photo_001.png",
+        "testshot_002.png"
+      ],
+      "must_exclude": [
+        "20260801_114232.png",
+        "20260801_132030.png"
+      ],
+      "acceptable": [
+        "20260812_222344.png",
+        "20260815_235357.png",
+        "20260816_204701_001.png",
+        "ScreenShot_Atest_002.png"
+      ],
+      "notes": "Tags and Home are not galleries. Empty galleries are acceptable, not required."
+    },
+    {
+      "query": "tag management screen",
+      "split": "holdout",
+      "kind": "ui",
+      "must_include": [
+        "20260721_204004.png",
+        "20260801_114232.png",
+        "20260801_120357.png",
+        "tags.png"
+      ],
+      "must_exclude": [
+        "20260721_203901.png"
+      ],
+      "acceptable": [
+        "photo_001.png"
+      ],
+      "notes": "20260721_203901.png is Reddit rules. Images preview Tags fields are acceptable."
+    },
+    {
+      "query": "login screen",
+      "split": "holdout",
+      "kind": "ui",
+      "must_include": [],
+      "must_exclude": [
+        "20260721_210812.png",
+        "20260729_234504.png"
+      ],
+      "acceptable": [],
+      "notes": "No login UI in this library. Former labels were not login screens."
+    },
+    {
+      "query": "dark themed application",
+      "split": "holdout",
+      "kind": "style",
+      "must_include": [
+        "20260716_194437.png",
+        "20260716_194523_001.png",
+        "20260718_160651_001.png",
+        "20260718_160712_001.png",
+        "20260718_202211.png",
+        "20260718_204024.png",
+        "20260718_205213.png",
+        "20260718_205234.png",
+        "20260718_210026.png",
+        "20260718_212500.png",
+        "20260718_212504.png",
+        "20260718_212516.png",
+        "20260720_233800.png",
+        "20260720_233933.png",
+        "20260720_234601.png",
+        "20260721_210812.png",
+        "ScreenShot_Atest_002.png",
+        "ScreenShot_Atest_009.png",
+        "ScreenShot_Atest_010.png",
+        "ScreenShot_Atest_011.png",
+        "_001.png"
+      ],
+      "must_exclude": [
+        "20260718_201711.png",
+        "20260718_201716.png",
+        "20260718_201717.png"
+      ],
+      "acceptable": [],
+      "notes": "Bright ChatGPT Chrome shots are not dark themed."
+    },
+    {
+      "query": "screen capture settings",
+      "split": "holdout",
+      "kind": "ui",
+      "must_include": [
+        "20260718_202728.png",
+        "20260721_203931.png",
+        "20260721_204338.png",
+        "20260801_114057.png",
+        "20260801_114154.png",
+        "20260801_114225.png",
+        "20260801_132030.png",
+        "20260801_135518.png",
+        "20260808_200249_001.png",
+        "20260811_112305.png",
+        "20260811_113411.png",
+        "20260811_113536.png",
+        "_001.png",
+        "_002.png",
+        "_003.png",
+        "home.png",
+        "images.png",
+        "photo_001.png"
+      ],
+      "must_exclude": [
+        "20260718_142639_001.png",
+        "20260718_143926_001.png",
+        "20260721_203901.png"
+      ],
+      "acceptable": [
+        "20260721_204004.png",
+        "20260801_114232.png",
+        "20260801_120357.png",
+        "tags.png"
+      ],
+      "notes": "Former labels were Reddit or Images Sort/View controls, not capture settings."
+    },
+    {
+      "query": "folder selection screen",
+      "split": "holdout",
+      "kind": "ui",
+      "must_include": [
+        "20260811_112305.png",
+        "20260811_113411.png",
+        "20260811_113536.png",
+        "20260811_125253.png",
+        "20260811_174317.png",
+        "20260815_235357.png",
+        "20260816_180634_001.png",
+        "20260816_204701_001.png",
+        "20260817_140337_001.png"
+      ],
+      "must_exclude": [
+        "20260718_163013.png",
+        "20260720_233733.png"
+      ],
+      "acceptable": [
+        "20260721_203944.png",
+        "20260721_204338.png",
+        "_002.png",
+        "home.png"
+      ],
+      "notes": "Folder picking as a primary control is must_include. Broader Capixe screens with a folder control remain acceptable. ChatGPT screenshots stay excluded."
+    },
+    {
+      "query": "software installation screen",
+      "split": "holdout",
+      "kind": "ui",
+      "must_include": [],
+      "must_exclude": [
+        "20260721_203931.png",
+        "20260721_203957.png"
+      ],
+      "acceptable": [],
+      "notes": "No installer in this library. Former labels were Capixe Home and Organize."
+    },
+    {
+      "query": "cat",
+      "split": "holdout",
+      "kind": "object",
+      "must_include": [
+        "27750021_m.jpg",
+        "test1.jpg"
+      ],
+      "must_exclude": [
+        "20260816_232506_001.png",
+        "A2.png",
+        "images.jpg"
+      ],
+      "acceptable": [],
+      "notes": "20260816_232506_001.png has the query text cat in the search box but no cat in the image."
+    },
+    {
+      "query": "people",
+      "split": "holdout",
+      "kind": "person",
+      "must_include": [
+        "test3.jpg"
+      ],
+      "must_exclude": [
+        "27750021_m.jpg",
+        "A2.png",
+        "images.jpg",
+        "test1.jpg"
+      ],
+      "acceptable": [
+        "20260718_205213.png",
+        "20260718_205234.png",
+        "20260718_212500.png",
+        "20260718_212504.png",
+        "20260718_212516.png"
+      ],
+      "notes": "No photographic person as the primary subject. VALORANT characters are acceptable, not required."
+    },
+    {
+      "query": "empty state",
+      "split": "holdout",
+      "kind": "abstract",
+      "must_include": [
+        "20260729_234504.png",
+        "20260812_222344.png",
+        "20260815_235357.png",
+        "20260816_204701_001.png",
+        "20260816_232506_001.png"
+      ],
+      "must_exclude": [],
+      "acceptable": [
+        "20260720_233733.png",
+        "20260811_125253.png",
+        "20260814_224657.png"
+      ]
+    },
+    {
+      "query": "Google Chrome in Windows desktop",
+      "split": "holdout",
+      "kind": "ui",
+      "must_include": [
+        "20260716_194437.png",
+        "20260716_194523_001.png",
+        "20260718_163013.png",
+        "20260718_201711.png",
+        "20260718_201716.png",
+        "20260718_201717.png",
+        "20260718_202750.png",
+        "20260718_205213.png",
+        "20260718_205234.png",
+        "20260718_212500.png",
+        "20260718_212504.png",
+        "20260718_212516.png",
+        "20260720_233733.png",
+        "ScreenShot_Atest_002.png",
+        "testshot_001.png"
+      ],
+      "must_exclude": [
+        "20260718_160712_001.png",
+        "20260718_202718.png",
+        "20260718_202724.png",
+        "20260718_203006.png",
+        "20260718_203016.png",
+        "20260718_210026.png",
+        "20260720_233800.png",
+        "ScreenShot_Atest_001.png",
+        "ScreenShot_Atest_011.png",
+        "testshot_002.png"
+      ],
+      "acceptable": [],
+      "notes": "Needs Chrome window, Windows desktop environment, and their relationship. Maximized Chrome with no desktop surface is excluded. Chrome taskbar icon only is excluded."
+    },
+    {
+      "query": "sitting orange brown dog",
+      "split": "holdout",
+      "kind": "object",
+      "must_include": [
+        "20260813_225929.png",
+        "A2.png"
+      ],
+      "must_exclude": [
+        "27750021_m.jpg",
+        "images.jpg",
+        "test1.jpg"
+      ],
+      "acceptable": [],
+      "notes": "Needs dog + orange/brown + sitting. Nested A2 thumbnail is identifiable. images.jpg is standing and not orange-brown."
+    },
+    {
+      "query": "empty folder in screenshot manager",
+      "split": "holdout",
+      "kind": "abstract",
+      "must_include": [
+        "20260815_235357.png",
+        "20260816_204701_001.png"
+      ],
+      "must_exclude": [
+        "20260729_234504.png",
+        "20260811_125253.png",
+        "20260812_222344.png",
+        "20260816_232506_001.png"
+      ],
+      "acceptable": [],
+      "notes": "Needs an empty folder inside a screenshot manager. Empty search results, search-unavailable, and a non-manager submission form do not count."
+    }
+  ]
+}

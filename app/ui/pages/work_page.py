@@ -45,12 +45,11 @@ from PySide6.QtWidgets import (
     QTextEdit,
     QFileDialog,
     QDateEdit,
-    QCheckBox,
 )
 
 from app.config import save_config
 from app.i18n import t
-from app.paths import get_resource_root
+from app.ui.checkbox import CapixeCheckBox
 from app.services.metadata_service import MetadataService
 from app.ui.caption_delegate import (
     GROUP_HEADER_HEIGHT,
@@ -60,6 +59,7 @@ from app.ui.caption_delegate import (
     ITEM_KIND_IMAGE,
     ITEM_KIND_ROLE,
     ROLE_CAPTION_DATE,
+    ROLE_CAPTION_FAVORITE,
     ROLE_CAPTION_NAME,
     ROLE_CAPTION_TAGS,
     ROLE_CAPTION_TAGS_MUTED,
@@ -194,6 +194,7 @@ from app.utils.sort_order import (
     sort_png_files,
 )
 from app.utils.tag_format import format_tag, format_tags, normalize_tag
+from app.utils.image_favorite import image_is_favorite, visible_tags
 from app.utils.thumbnail_cache import ThumbnailCache
 from app.utils.view_mode import (
     DEFAULT_THUMBNAIL_MODE,
@@ -564,21 +565,8 @@ class WorkPage(QWidget):
         self._view_combo.currentIndexChanged.connect(self._on_view_changed)
         tools.addWidget(self._view_combo)
 
-        self._show_tags_checkbox = QCheckBox(t("images.show_tags"), toolbar)
+        self._show_tags_checkbox = CapixeCheckBox(t("images.show_tags"), toolbar)
         self._show_tags_checkbox.setObjectName("imagesShowTagsCheckBox")
-        checked_icon = (
-            get_resource_root() / "resources" / "icons" / "checkbox_checked.svg"
-        ).as_posix()
-        self._show_tags_checkbox.setStyleSheet(
-            "QCheckBox::indicator:unchecked {"
-            "width: 15px; height: 15px; background: #ffffff; "
-            "border: 1.5px solid #94a3b8; border-radius: 3px;"
-            "}"
-            "QCheckBox::indicator:checked {"
-            f'width: 17px; height: 17px; border: none; image: url("{checked_icon}");'
-            "}"
-        )
-        self._show_tags_checkbox.setCursor(Qt.PointingHandCursor)
         self._show_tags_checkbox.setToolTip(t("images.show_tags_tooltip"))
         self._show_tags_checkbox.setChecked(
             bool(self._config.get("show_tags_in_organize_list", True))
@@ -1518,8 +1506,8 @@ class WorkPage(QWidget):
         mode = normalize_thumbnail_mode(self._thumbnail_mode)
         icon_size, grid_w, grid_h = THUMBNAIL_MODE_SIZES[mode]
         show_tags = bool(self._config.get("show_tags_in_organize_list", True))
-        if not show_tags:
-            grid_h -= TAG_CAPTION_ROW_HEIGHT
+        if show_tags:
+            grid_h += TAG_CAPTION_ROW_HEIGHT
         self._caption_delegate.set_list_mode(False)
         self._caption_delegate.set_show_tags(show_tags)
         self._caption_delegate.set_geometry(icon_size, grid_w, grid_h)
@@ -1674,15 +1662,17 @@ class WorkPage(QWidget):
         item.setData(Qt.UserRole, str(file_path.resolve()))
         item.setData(ITEM_KIND_ROLE, ITEM_KIND_IMAGE)
         item.setData(ROLE_CAPTION_NAME, soft_wrap_filename(file_path.name))
+        visible = visible_tags(tags)
         item.setData(
             ROLE_CAPTION_TAGS,
-            format_tags(tags, empty=t("images.tag.none")),
+            format_tags(visible, empty=t("images.tag.none")),
         )
-        item.setData(ROLE_CAPTION_TAGS_MUTED, not bool(tags))
+        item.setData(ROLE_CAPTION_TAGS_MUTED, not bool(visible))
         item.setData(ROLE_CAPTION_DATE, self._caption_date_text(file_path))
+        item.setData(ROLE_CAPTION_FAVORITE, image_is_favorite(metadata, file_path.name))
         item.setToolTip(
             f"{file_path.name}\n"
-            f"{format_tags(tags, empty=t('images.tag.none'))}"
+            f"{format_tags(visible, empty=t('images.tag.none'))}"
         )
         return item
 

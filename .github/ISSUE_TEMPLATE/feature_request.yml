@@ -1,10 +1,10 @@
-# Capixe — Feature Request issue form
+# Rootlize — Feature Request issue form
 # Labels: if "enhancement" does not exist yet, create it once under
 #   Repository → Issues → Labels → New label (name: enhancement, color e.g. #a2eeef).
 # GitHub still accepts this template if the label is missing; the label is
 # simply not applied until you create it.
 name: Feature Request
-description: Suggest a new feature or improvement for Capixe.
+description: Suggest a new feature or improvement for Rootlize.
 title: "[Feature]: "
 labels:
   - enhancement
@@ -12,9 +12,9 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for sharing an idea for Capixe.
+        Thanks for sharing an idea for Rootlize.
 
-        Capixe is currently a **Prototype Preview**. We appreciate every suggestion, but we may not be able to build every request.
+        Rootlize is currently a **Prototype Preview**. We appreciate every suggestion, but we may not be able to build every request.
 
         **Privacy**
         - Do not share passwords, API keys, personal names, emails, or private file paths.
@@ -42,7 +42,7 @@ body:
     id: desired
     attributes:
       label: Desired behavior
-      description: How should Capixe work if this feature existed?
+      description: How should Rootlize work if this feature existed?
       placeholder: Example — I can pin folders, and they stay at the top of the list.
     validations:
       required: true

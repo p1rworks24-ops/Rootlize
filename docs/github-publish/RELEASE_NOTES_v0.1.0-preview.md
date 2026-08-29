@@ -1,24 +1,28 @@
-# Capixe v0.1.0-preview
+# Rootlize v0.1.0-preview
 
-Capixe is a local-first Windows screenshot capture and retrieval app. This refreshed Prototype Preview centers the product on a simple **Folder -> Analyze -> Search** flow.
+This is the published Preview snapshot. It is not the current source-tree spec (`.ai/SPEC.md`).
+
+Rootlize is a local-first Windows workspace for images already on your PC. This Prototype Preview is built around **Find → Narrow → Act → Automate**.
 
 ## Highlights
 
-- Select an Images folder and browse its PNG screenshots.
-- Analyze images locally with bundled OCR models.
-- Search by filename or text visible inside screenshots.
-- Use grid/list views, grouping, image preview, and zoom.
+- Sign in to start, then point Rootlize at an existing local folder.
+- Basic Search by filename, tags, or text visible inside images.
+- Meaning Search by what an image shows. The model is bundled; no extra setup.
+- Ask AI to find and organize in your own words (needs the internet after you agree).
+- Organize in place and save a repeated flow as Automation.
 - Capture a region or full screen with configurable save settings.
-- Follow a lightweight first-run guide on the first packaged-app launch.
+- Follow a first-run guide on the first packaged-app launch.
+
+Your image library stays on this PC. Rootlize does not move it to a Rootlize cloud. Basic Search, OCR, and bundled Meaning Search run locally. Account features and Ask AI need sign-in and the internet.
 
 ## Install
 
-Download `Capixe-v0.1.0-preview-win64.zip`, extract it completely, and run `Capixe.exe` inside the `Capixe` folder. Keep the `_internal` folder beside the executable. Python is not required.
+Download `Rootlize-v0.1.0-preview-win64.zip`, extract it completely, and run `Rootlize.exe` inside the `Rootlize` folder. Keep the `_internal` folder beside the executable. Python is not required.
 
 ## Notes
 
 - Windows 10/11 (64-bit) only.
 - Portable, unsigned preview build; Windows may show a SmartScreen warning.
 - No installer or automatic updater.
-- Image analysis currently supports PNG files and runs locally.
-- Settings are stored under `%APPDATA%\Capixe`; the analysis index is stored under `%LOCALAPPDATA%\Capixe`.
+- Settings stay under `%APPDATA%\Capixe`; the local index stays under `%LOCALAPPDATA%\Capixe`.

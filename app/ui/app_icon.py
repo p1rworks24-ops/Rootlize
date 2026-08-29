@@ -1,4 +1,7 @@
-"""Official Capixe application icon loading (window / taskbar / UI marks)."""
+"""Official Rootlize application icon loading (window / taskbar / UI marks).
+
+On-disk names stay capixe.ico / capixe_app_icon_*.png for internal compatibility.
+"""
 
 from __future__ import annotations
 

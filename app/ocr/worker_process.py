@@ -59,21 +59,22 @@ def process_request(engine:Any, request:OCRWorkerRequest, *, max_pixels:int=100_
     started=time.perf_counter(); path=Path(request.path)
     base=dict(request_id=request.request_id,path=request.path,pipeline_version=1)
     if "://" in request.path: return OCRWorkerResult(**base,success=False,error_type="invalid_request",error_message_safe="Only local filesystem paths are supported.",retryable=False)
-    if path.suffix.casefold()!=".png": return OCRWorkerResult(**base,success=False,error_type="file_not_png",error_message_safe="Only PNG files are supported.",retryable=False)
     try: before=snapshot(path)
     except FileNotFoundError: return OCRWorkerResult(**base,success=False,error_type="file_missing",error_message_safe="The image is no longer available.",retryable=True)
     except OSError: return OCRWorkerResult(**base,success=False,error_type="image_decode_failed",error_message_safe="The image could not be read.",retryable=True)
     if (before.size_bytes,before.mtime_ns,before.quick_fingerprint)!=(request.expected_size_bytes,request.expected_mtime_ns,request.expected_quick_fingerprint):
         return OCRWorkerResult(**base,success=False,file_before=before,file_changed_before_processing=True,error_type="file_changed_before_processing",error_message_safe="The image changed before OCR started.",retryable=True)
     try:
-        from app.ocr.scanner import _png_dimensions
-        width,height=_png_dimensions(path)
+        # Decode by file contents, not the suffix. Managed files can be normal
+        # JPEGs or can have been renamed independently of their encoded format.
+        from app.ocr.scanner import _image_dimensions
+        width,height=_image_dimensions(path)
         if width*height>max_pixels: return OCRWorkerResult(**base,success=False,file_before=before,error_type="image_too_large",error_message_safe="The image exceeds the safe pixel limit.",retryable=False)
         full_text,blocks,confidence=engine.process(path,request.options)
         if len(full_text)>MAX_OCR_TEXT_CHARS or len(blocks)>MAX_OCR_BLOCKS:
             return OCRWorkerResult(**base,success=False,file_before=before,error_type="ocr_failed",error_message_safe="OCR result exceeds the safe IPC size limit.",retryable=False)
-    except ValueError:
-        return OCRWorkerResult(**base,success=False,file_before=before,error_type="image_decode_failed",error_message_safe="The PNG image is invalid.",retryable=False)
+    except (OSError, ValueError, SyntaxError):
+        return OCRWorkerResult(**base,success=False,file_before=before,error_type="image_decode_failed",error_message_safe="The image is invalid or unsupported.",retryable=False)
     except Exception:
         return OCRWorkerResult(**base,success=False,file_before=before,error_type="ocr_failed",error_message_safe="OCR processing failed.",retryable=True)
     try: after=snapshot(path); changed=before!=after

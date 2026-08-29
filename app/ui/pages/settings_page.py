@@ -24,7 +24,6 @@ from app.services.shortcut_spec import (
     load_shortcuts_from_config,
     validate_shortcut,
 )
-from app.ui.filename_rule_panel import FilenameRulePanel
 from app.ui.design_tokens import apply_card_shadow
 from app.ui.scroll_page import make_page_scroll
 from app.ui.segmented_toggle import SegmentedToggle
@@ -36,6 +35,12 @@ from app.utils.workspace import resolve_save_folder
 logger = setup_logger()
 
 
+def _capture_settings_enabled() -> bool:
+    from app.ui.main_window import CAPTURE_ENABLED
+
+    return bool(CAPTURE_ENABLED)
+
+
 class SettingsPage(QWidget):
     """In-app settings page — changes autosave on select / edit commit."""
 
@@ -44,6 +49,12 @@ class SettingsPage(QWidget):
     window_size_changed = Signal()
     # Emitted when capture shortcuts change (shell re-registers hotkeys)
     shortcuts_changed = Signal()
+    reanalyze_requested = Signal()
+    replay_tour_requested = Signal()
+    replay_ai_tour_requested = Signal()
+    replay_automation_tour_requested = Signal()
+    ask_ai_explanation_requested = Signal()
+    feedback_requested = Signal()
 
     def __init__(self, config: dict, app_root: Path, parent=None, *, ocr_controller=None):
         super().__init__(parent)
@@ -71,7 +82,7 @@ class SettingsPage(QWidget):
         scroll.setWidget(content)
         layout = QVBoxLayout(content)
         layout.setContentsMargins(28, 20, 28, 24)
-        layout.setSpacing(12)
+        layout.setSpacing(16)
 
         from app.ui.page_header import make_page_header
 
@@ -84,70 +95,47 @@ class SettingsPage(QWidget):
         autosave_hint.setWordWrap(True)
         layout.addWidget(autosave_hint)
 
-        name_section = QFrame(content)
-        name_section.setObjectName("infoPanel")
-        name_layout = QVBoxLayout(name_section)
-        # Match other settings cards: even inset around the rule list
-        name_layout.setContentsMargins(16, 14, 16, 14)
-        self._filename_panel = FilenameRulePanel(name_section)
-        self._filename_panel.set_template(
-            self._config.get("filename_template") or DEFAULT_FILENAME_TEMPLATE
-        )
-        self._filename_panel.set_folder(resolve_save_folder(self._config))
-        self._filename_panel.template_changed.connect(self._on_filename_changed)
-        name_layout.addWidget(self._filename_panel)
-        layout.addWidget(name_section)
+        capture_on = _capture_settings_enabled()
+        if capture_on:
+            from app.ui.filename_rule_panel import FilenameRulePanel
 
-        # Capture behavior (separate from UI window size)
-        capture_section = QFrame(content)
-        capture_section.setObjectName("infoPanel")
-        capture_layout = QVBoxLayout(capture_section)
-        capture_layout.setContentsMargins(16, 14, 16, 14)
-        capture_layout.setSpacing(8)
+            name_section, name_layout = self._make_card(content)
+            self._filename_panel = FilenameRulePanel(name_section)
+            self._filename_panel.set_template(
+                self._config.get("filename_template") or DEFAULT_FILENAME_TEMPLATE
+            )
+            self._filename_panel.set_folder(resolve_save_folder(self._config))
+            self._filename_panel.template_changed.connect(self._on_filename_changed)
+            name_layout.addWidget(self._filename_panel)
+            layout.addWidget(name_section)
 
-        capture_title = QLabel(t("settings.capture_minimize"), content)
-        capture_title.setObjectName("sectionTitle")
-        capture_layout.addWidget(capture_title)
+            capture_section, capture_layout = self._make_card(
+                content,
+                t("settings.capture_minimize"),
+                t("settings.capture_minimize_hint"),
+            )
+            self._minimize_toggle = SegmentedToggle(
+                [
+                    t("settings.capture_minimize_on"),
+                    t("settings.capture_minimize_off"),
+                ],
+                content,
+            )
+            self._minimize_toggle.set_current(
+                0 if self._config.get("capture_minimize", True) else 1
+            )
+            self._minimize_toggle.changed.connect(self._on_minimize_changed)
+            minimize_row = QHBoxLayout()
+            minimize_row.addWidget(self._minimize_toggle)
+            minimize_row.addStretch(1)
+            capture_layout.addLayout(minimize_row)
+            layout.addWidget(capture_section)
 
-        minimize_hint = QLabel(t("settings.capture_minimize_hint"), content)
-        minimize_hint.setObjectName("mutedLabel")
-        minimize_hint.setWordWrap(True)
-        capture_layout.addWidget(minimize_hint)
-
-        self._minimize_toggle = SegmentedToggle(
-            [
-                t("settings.capture_minimize_on"),
-                t("settings.capture_minimize_off"),
-            ],
+        notify_section, notify_layout = self._make_card(
             content,
+            t("settings.notifications"),
+            t("settings.notifications.hint"),
         )
-        # 0 = On (left), 1 = Off (right) — default On
-        self._minimize_toggle.set_current(
-            0 if self._config.get("capture_minimize", True) else 1
-        )
-        self._minimize_toggle.changed.connect(self._on_minimize_changed)
-        minimize_row = QHBoxLayout()
-        minimize_row.addWidget(self._minimize_toggle)
-        minimize_row.addStretch(1)
-        capture_layout.addLayout(minimize_row)
-        layout.addWidget(capture_section)
-
-        # Notifications — app-owned floating toast
-        notify_section = QFrame(content)
-        notify_section.setObjectName("infoPanel")
-        notify_layout = QVBoxLayout(notify_section)
-        notify_layout.setContentsMargins(16, 14, 16, 14)
-        notify_layout.setSpacing(8)
-
-        notify_title = QLabel(t("settings.notifications"), content)
-        notify_title.setObjectName("sectionTitle")
-        notify_layout.addWidget(notify_title)
-
-        notify_hint = QLabel(t("settings.notifications.hint"), content)
-        notify_hint.setObjectName("mutedLabel")
-        notify_hint.setWordWrap(True)
-        notify_layout.addWidget(notify_hint)
-
         self._notify_toggle = SegmentedToggle(
             [
                 t("settings.notifications.on"),
@@ -155,7 +143,6 @@ class SettingsPage(QWidget):
             ],
             content,
         )
-        # 0 = On (left), 1 = Off (right) — default On
         self._notify_toggle.set_current(
             0 if self._config.get("show_save_notification", True) else 1
         )
@@ -166,7 +153,10 @@ class SettingsPage(QWidget):
         notify_layout.addLayout(notify_row)
 
         duration_row = QHBoxLayout()
-        duration_row.addWidget(QLabel(t("settings.notifications.duration"), content))
+        duration_row.setSpacing(10)
+        duration_label = QLabel(t("settings.notifications.duration"), content)
+        duration_label.setObjectName("settingsFieldLabel")
+        duration_row.addWidget(duration_label)
         self._notify_duration = QComboBox(content)
         self._notify_duration.setObjectName("settingsDurationCombo")
         self._notify_duration.setCursor(Qt.PointingHandCursor)
@@ -186,87 +176,130 @@ class SettingsPage(QWidget):
         notify_layout.addLayout(duration_row)
         layout.addWidget(notify_section)
 
-        # Keyboard Shortcuts (app-wide capture hotkeys)
-        shortcuts_section = QFrame(content)
-        shortcuts_section.setObjectName("infoPanel")
-        shortcuts_layout = QVBoxLayout(shortcuts_section)
-        shortcuts_layout.setContentsMargins(16, 14, 16, 14)
-        shortcuts_layout.setSpacing(10)
-
-        shortcuts_title = QLabel(t("settings.shortcuts"), content)
-        shortcuts_title.setObjectName("sectionTitle")
-        shortcuts_layout.addWidget(shortcuts_title)
-
-        shortcuts_hint = QLabel(t("settings.shortcuts.hint"), content)
-        shortcuts_hint.setObjectName("mutedLabel")
-        shortcuts_hint.setWordWrap(True)
-        shortcuts_layout.addWidget(shortcuts_hint)
-
-        bindings = load_shortcuts_from_config(self._config)
-        for index, action_id in enumerate(SHORTCUT_ACTIONS):
-            row = QFrame(shortcuts_section)
-            row.setObjectName("shortcutRow")
-            row_layout = QVBoxLayout(row)
-            # Last row: no extra bottom pad under the divider look
-            row_layout.setContentsMargins(0, 8, 0, 10 if index < len(SHORTCUT_ACTIONS) - 1 else 4)
-            row_layout.setSpacing(8)
-
-            action_label = QLabel(t(ACTION_LABEL_KEYS[action_id]), row)
-            action_label.setObjectName("shortcutActionLabel")
-            row_layout.addWidget(action_label)
-
-            value_row = QHBoxLayout()
-            value_row.setSpacing(10)
-            value_label = QLabel(format_shortcut_display(bindings[action_id]), row)
-            value_label.setObjectName("shortcutValueLabel")
-            value_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
-            self._shortcut_value_labels[action_id] = value_label
-            value_row.addWidget(value_label, 0, Qt.AlignVCenter)
-
-            change_btn = QPushButton(t("settings.shortcuts.change"), row)
-            change_btn.setObjectName("secondaryButton")
-            change_btn.setCursor(Qt.PointingHandCursor)
-            change_btn.clicked.connect(
-                lambda _checked=False, aid=action_id: self._on_change_shortcut(aid)
+        if capture_on:
+            shortcuts_section, shortcuts_layout = self._make_card(
+                content,
+                t("settings.shortcuts"),
+                t("settings.shortcuts.hint"),
             )
-            value_row.addWidget(change_btn, 0, Qt.AlignVCenter)
-            value_row.addStretch(1)
-            row_layout.addLayout(value_row)
-            shortcuts_layout.addWidget(row)
+            bindings = load_shortcuts_from_config(self._config)
+            for index, action_id in enumerate(SHORTCUT_ACTIONS):
+                row = QFrame(shortcuts_section)
+                row.setObjectName("shortcutRow")
+                row_layout = QVBoxLayout(row)
+                row_layout.setContentsMargins(
+                    0, 8, 0, 10 if index < len(SHORTCUT_ACTIONS) - 1 else 4
+                )
+                row_layout.setSpacing(8)
 
-        layout.addWidget(shortcuts_section)
+                action_label = QLabel(t(ACTION_LABEL_KEYS[action_id]), row)
+                action_label.setObjectName("shortcutActionLabel")
+                row_layout.addWidget(action_label)
 
-        ui_section = QFrame(content)
-        ui_section.setObjectName("infoPanel")
-        ui_layout = QVBoxLayout(ui_section)
-        ui_layout.setContentsMargins(16, 14, 16, 14)
-        ui_layout.setSpacing(8)
+                value_row = QHBoxLayout()
+                value_row.setSpacing(10)
+                value_label = QLabel(format_shortcut_display(bindings[action_id]), row)
+                value_label.setObjectName("shortcutValueLabel")
+                value_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+                self._shortcut_value_labels[action_id] = value_label
+                value_row.addWidget(value_label, 0, Qt.AlignVCenter)
 
-        ui_title = QLabel(t("settings.ui"), content)
-        ui_title.setObjectName("sectionTitle")
-        ui_layout.addWidget(ui_title)
+                change_btn = QPushButton(t("settings.shortcuts.change"), row)
+                change_btn.setObjectName("secondaryButton")
+                change_btn.setCursor(Qt.PointingHandCursor)
+                change_btn.clicked.connect(
+                    lambda _checked=False, aid=action_id: self._on_change_shortcut(aid)
+                )
+                value_row.addWidget(change_btn, 0, Qt.AlignVCenter)
+                value_row.addStretch(1)
+                row_layout.addLayout(value_row)
+                shortcuts_layout.addWidget(row)
 
+            layout.addWidget(shortcuts_section)
+
+        ui_section, ui_layout = self._make_card(
+            content,
+            t("settings.ui"),
+            t("settings.window_hint"),
+        )
         width_row = QHBoxLayout()
-        width_row.addWidget(QLabel(t("settings.window_width"), content))
+        width_row.setSpacing(10)
+        width_label = QLabel(t("settings.window_width"), content)
+        width_label.setObjectName("settingsFieldLabel")
+        width_row.addWidget(width_label)
         self._width_edit = QLineEdit(content)
+        self._width_edit.setObjectName("settingsSizeEdit")
+        self._width_edit.setMaximumWidth(140)
         self._width_edit.setText(str(self._config.get("window_width", 1600)))
         self._width_edit.editingFinished.connect(self._autosave_window_size)
         width_row.addWidget(self._width_edit)
         ui_layout.addLayout(width_row)
 
         height_row = QHBoxLayout()
-        height_row.addWidget(QLabel(t("settings.window_height"), content))
+        height_row.setSpacing(10)
+        height_label = QLabel(t("settings.window_height"), content)
+        height_label.setObjectName("settingsFieldLabel")
+        height_row.addWidget(height_label)
         self._height_edit = QLineEdit(content)
+        self._height_edit.setObjectName("settingsSizeEdit")
+        self._height_edit.setMaximumWidth(140)
         self._height_edit.setText(str(self._config.get("window_height", 900)))
         self._height_edit.editingFinished.connect(self._autosave_window_size)
         height_row.addWidget(self._height_edit)
         ui_layout.addLayout(height_row)
-
-        future_hint = QLabel(t("settings.future_hint"), content)
-        future_hint.setObjectName("mutedLabel")
-        future_hint.setWordWrap(True)
-        ui_layout.addWidget(future_hint)
         layout.addWidget(ui_section)
+
+        maintenance, maintenance_layout = self._make_card(
+            content,
+            t("settings.maintenance"),
+            t("settings.maintenance.hint"),
+        )
+        self._reanalyze_btn = QPushButton(t("settings.maintenance.reanalyze"), content)
+        self._reanalyze_btn.setObjectName("secondaryButton")
+        self._reanalyze_btn.setCursor(Qt.PointingHandCursor)
+        self._reanalyze_btn.clicked.connect(self.reanalyze_requested.emit)
+        maintenance_layout.addWidget(self._reanalyze_btn, 0)
+        layout.addWidget(maintenance)
+
+        help_section, help_layout = self._make_card(
+            content,
+            t("settings.help"),
+            t("settings.help.hint"),
+        )
+        self._replay_tour_btn = QPushButton(t("settings.help.replay_tour"), content)
+        self._replay_tour_btn.setObjectName("secondaryButton")
+        self._replay_tour_btn.setCursor(Qt.PointingHandCursor)
+        self._replay_tour_btn.clicked.connect(self.replay_tour_requested.emit)
+        help_layout.addWidget(self._replay_tour_btn, 0)
+        self._ask_ai_explanation_btn = QPushButton(
+            t("settings.help.ask_ai_explanation"), content
+        )
+        self._ask_ai_explanation_btn.setObjectName("secondaryButton")
+        self._ask_ai_explanation_btn.setCursor(Qt.PointingHandCursor)
+        self._ask_ai_explanation_btn.clicked.connect(
+            self.ask_ai_explanation_requested.emit
+        )
+        help_layout.addWidget(self._ask_ai_explanation_btn, 0)
+        self._replay_ai_btn = QPushButton(t("settings.help.replay_ai"), content)
+        self._replay_ai_btn.setObjectName("secondaryButton")
+        self._replay_ai_btn.setCursor(Qt.PointingHandCursor)
+        self._replay_ai_btn.clicked.connect(self.replay_ai_tour_requested.emit)
+        help_layout.addWidget(self._replay_ai_btn, 0)
+        self._replay_automation_btn = QPushButton(
+            t("settings.help.replay_automation"), content
+        )
+        self._replay_automation_btn.setObjectName("secondaryButton")
+        self._replay_automation_btn.setCursor(Qt.PointingHandCursor)
+        self._replay_automation_btn.clicked.connect(
+            self.replay_automation_tour_requested.emit
+        )
+        help_layout.addWidget(self._replay_automation_btn, 0)
+        self._feedback_btn = QPushButton(t("settings.help.feedback"), content)
+        self._feedback_btn.setObjectName("secondaryButton")
+        self._feedback_btn.setCursor(Qt.PointingHandCursor)
+        self._feedback_btn.clicked.connect(self.feedback_requested.emit)
+        help_layout.addWidget(self._feedback_btn, 0)
+        layout.addWidget(help_section)
 
         self._status_label = QLabel("", content)
         self._status_label.setObjectName("mutedLabel")
@@ -283,14 +316,37 @@ class SettingsPage(QWidget):
 
         enable_label_text_selection(self)
 
+    def _make_card(
+        self,
+        parent: QWidget,
+        title: str = "",
+        hint: str = "",
+    ) -> tuple[QFrame, QVBoxLayout]:
+        card = QFrame(parent)
+        card.setObjectName("infoPanel")
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(20, 18, 20, 18)
+        card_layout.setSpacing(10)
+        if title:
+            title_label = QLabel(title, parent)
+            title_label.setObjectName("sectionTitle")
+            card_layout.addWidget(title_label)
+        if hint:
+            hint_label = QLabel(hint, parent)
+            hint_label.setObjectName("mutedLabel")
+            hint_label.setWordWrap(True)
+            card_layout.addWidget(hint_label)
+        return card, card_layout
+
     def refresh(self) -> None:
         self._loading = True
         try:
             self._width_edit.setText(str(self._config.get("window_width", 1600)))
             self._height_edit.setText(str(self._config.get("window_height", 900)))
-            self._minimize_toggle.set_current(
-                0 if self._config.get("capture_minimize", True) else 1
-            )
+            if hasattr(self, "_minimize_toggle"):
+                self._minimize_toggle.set_current(
+                    0 if self._config.get("capture_minimize", True) else 1
+                )
             self._notify_toggle.set_current(
                 0 if self._config.get("show_save_notification", True) else 1
             )
@@ -300,11 +356,13 @@ class SettingsPage(QWidget):
             self._notify_duration.setCurrentIndex(
                 dur_index if dur_index >= 0 else (default_dur if default_dur >= 0 else 0)
             )
-            self._filename_panel.set_folder(resolve_save_folder(self._config))
-            self._filename_panel.set_template(
-                self._config.get("filename_template") or DEFAULT_FILENAME_TEMPLATE
-            )
-            self._refresh_shortcut_labels()
+            if hasattr(self, "_filename_panel"):
+                self._filename_panel.set_folder(resolve_save_folder(self._config))
+                self._filename_panel.set_template(
+                    self._config.get("filename_template") or DEFAULT_FILENAME_TEMPLATE
+                )
+            if self._shortcut_value_labels:
+                self._refresh_shortcut_labels()
         finally:
             self._loading = False
 

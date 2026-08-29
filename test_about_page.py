@@ -15,6 +15,7 @@ from app.branding import (
     APP_NAME,
     APP_URL_REPORT_BUG,
     DISPLAY_VERSION,
+    SUPPORTING_MESSAGE,
     TAGLINE,
     github_issues_url,
     resolve_feedback_url,
@@ -67,6 +68,12 @@ def test_about_page_content():
         if lbl.objectName() == "aboutTagline"
     ]
     assert taglines == [TAGLINE]
+    supporting = [
+        lbl.text()
+        for lbl in page.findChildren(QLabel)
+        if lbl.objectName() == "aboutSupporting"
+    ]
+    assert supporting == [SUPPORTING_MESSAGE]
 
     versions = [
         lbl.text()
@@ -123,16 +130,17 @@ def test_about_nav_and_stack():
     app.processEvents()
 
     assert PAGE_ABOUT in window._side_nav._nav_buttons
-    assert window._side_nav._nav_buttons[PAGE_ABOUT].property("navLabel") == t(
-        "nav.about"
+    assert PAGE_SETTINGS in window._side_nav._nav_buttons
+    settings = window._settings_page
+    assert not any(
+        lbl.objectName() == "aboutBrandTitle" for lbl in settings.findChildren(QLabel)
     )
-    assert window._side_nav._nav_buttons[PAGE_ABOUT].property("navAccent") == "about"
 
     window._show_page(PAGE_ABOUT)
     app.processEvents()
     assert window._stack.currentIndex() == PAGE_ABOUT
     assert window._side_nav._nav_buttons[PAGE_ABOUT].isChecked()
-    assert not window._side_nav._nav_buttons[PAGE_SETTINGS].isChecked()
+    assert window._side_nav._nav_buttons[PAGE_SETTINGS].isChecked() is False
 
 
 def test_feedback_urls_centralized():

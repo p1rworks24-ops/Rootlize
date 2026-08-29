@@ -20,9 +20,11 @@ from app.config import (
 from app.paths import (
     clear_path_overrides,
     folder_has_screenshot_data,
+    get_app_data_dir,
     get_config_path,
     get_default_screenshot_root,
     get_legacy_config_path,
+    get_local_app_data_dir,
     set_path_overrides,
 )
 
@@ -231,3 +233,20 @@ def test_load_config_accepts_utf8_bom() -> None:
     loaded = load_config()
 
     assert loaded["onboarding_completed"] is False
+
+
+def test_writable_roots_use_data_dir_name_not_app_name(monkeypatch, tmp_path: Path):
+    from app.branding import APP_NAME, DATA_DIR_NAME
+
+    clear_path_overrides()
+    monkeypatch.setenv("APPDATA", str(tmp_path / "Roaming"))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "Local"))
+    monkeypatch.setattr("app.paths._resolve_pictures_dir", lambda: tmp_path / "Pictures")
+    assert DATA_DIR_NAME == "Capixe"
+    assert APP_NAME != DATA_DIR_NAME
+    assert get_app_data_dir() == (tmp_path / "Roaming" / DATA_DIR_NAME).resolve()
+    assert get_local_app_data_dir() == (tmp_path / "Local" / DATA_DIR_NAME).resolve()
+    assert get_default_screenshot_root() == (tmp_path / "Pictures" / DATA_DIR_NAME).resolve()
+    assert APP_NAME not in str(get_app_data_dir())
+    assert APP_NAME not in str(get_local_app_data_dir())
+    assert APP_NAME not in str(get_default_screenshot_root())

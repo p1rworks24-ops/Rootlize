@@ -25,11 +25,17 @@ ocr-index.sqlite3-wal
 ocr-index.sqlite3-shm
 .env
 .env.*
+resources/auth-source.local.json
 
 # Packaging / release artifacts (attach ZIP via GitHub Releases, not git)
 build/
 dist/
 release/
+artifacts/
+@AutomationLog.txt
+semantic-ranking-diagnostic.json
+supabase/.temp/
+tmpfqo4k_n7/
 
 # IDE / OS
 .idea/
@@ -48,3 +54,21 @@ tools/ocr_poc/models/
 tools/ocr_poc/output/
 tools/ocr_poc/evaluation-images/
 tools/ocr_poc/evaluation-manifest.local.json
+# Semantic search benchmark downloads, model weights, and generated artifacts
+tools/semantic_search_benchmark/.venv/
+tools/semantic_search_benchmark/cache/
+tools/semantic_search_benchmark/data/downloads/
+tools/semantic_search_benchmark/data/images/
+tools/semantic_search_benchmark/artifacts/
+tools/semantic_search_benchmark/results/*.json
+tools/semantic_search_benchmark/results/*.csv
+tools/semantic_search_benchmark/results/models/
+# Optional production Semantic bundles are local data, never source artifacts.
+semantic-models/
+*.onnx
+*.npz
+tools/semantic_search_benchmark/openclip_onnx_poc/*.zip
+tools/semantic_search_benchmark/openclip_onnx_poc/bundle/*.gz
+.codex-semantic-real/
+# Independent Qwen3-VL-Reranker eval PoC: isolated venv only
+tools/meaning_eval/.venv-qwen/

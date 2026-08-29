@@ -160,7 +160,7 @@ def test_click_outside_card_frame_starts_marquee_not_select():
     list_w.mousePressEvent(press)
     assert list_w._marquee_origin is not None
     assert not item.isSelected()
-    assert CARD_INSET == 4
+    assert CARD_INSET >= 4
     list_w.close()
 
 

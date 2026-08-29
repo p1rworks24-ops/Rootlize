@@ -7,6 +7,12 @@ import shutil
 from pathlib import Path
 
 from app.branding import APP_NAME
+from app.semantic.catalog import (
+    DEFAULT_MODEL_KEY,
+    LEGACY_OFFICIAL_MODEL_KEYS,
+    model_id_for_key,
+)
+from app.semantic.query_embedding import DEFAULT_QUERY_EMBEDDING
 from app.paths import (
     ensure_dir,
     folder_has_screenshot_data,
@@ -40,13 +46,16 @@ DEFAULT_CONFIG: dict = {
     "window_title": APP_NAME,
     "clipboard_check_interval_ms": 500,
     "images_folder_tree_expanded": True,
-    "show_tags_in_image_list": True,
+    "nav_favorites_expanded": True,
+    "favorite_folders": [],
+    "recent_folders": [],
+    "show_tags_in_image_list": False,
     "show_tags_in_organize_list": True,
     "filename_template": "{date}_{time}",
     "capture_tags": [],
     "capture_mode": "region",
     "capture_minimize": True,
-    "capture_bar_visible": True,
+    "capture_bar_visible": False,
     "home_stats_mode": "folder",
     "shortcuts": {
         "region_capture": "Ctrl+Shift+R",
@@ -54,7 +63,52 @@ DEFAULT_CONFIG: dict = {
     },
     "show_save_notification": True,
     "notification_duration_sec": 5,
+    # Regular Search is text / filename / tags. Meaning Search is Ask AI.
+    # Hidden combo still remaps leftover hybrid/semantic to vision_relevance.
+    "developer_search_mode": "text",
+    # External AI processing consent. Missing key = not consented.
+    # The current one-screen explanation must be accepted before Ask AI
+    # may send. Older consent without this notice version is shown again.
+    "ask_ai_external_processing_consented": False,
+    "ask_ai_consent_notice_version": 0,
+    # Official Meaning retrieval identity. Keep in sync with
+    # catalog.DEFAULT_MODEL_KEY and the active bundle manifest model_id.
+    "developer_semantic_model": DEFAULT_MODEL_KEY,
+    "developer_query_embedding": DEFAULT_QUERY_EMBEDDING,
 }
+
+OBSOLETE_CONFIG_KEYS = {"developer_semantic_result_limit"}
+
+ASK_AI_EXTERNAL_PROCESSING_CONSENTED_KEY = (
+    "ask_ai_external_processing_consented"
+)
+ASK_AI_CONSENT_NOTICE_VERSION_KEY = "ask_ai_consent_notice_version"
+ASK_AI_CONSENT_NOTICE_VERSION = 2
+
+
+def has_ask_ai_external_processing_consent(config: dict) -> bool:
+    """True only after the user agreed to Ask AI external processing."""
+    return bool(config.get(ASK_AI_EXTERNAL_PROCESSING_CONSENTED_KEY, False))
+
+
+def ask_ai_consent_notice_version(config: dict | None) -> int:
+    try:
+        return int((config or {}).get(ASK_AI_CONSENT_NOTICE_VERSION_KEY) or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def needs_ask_ai_consent_notice(config: dict | None) -> bool:
+    """True until the current one-screen Ask AI explanation is accepted."""
+    return ask_ai_consent_notice_version(config) < ASK_AI_CONSENT_NOTICE_VERSION
+
+
+def accept_ask_ai_consent(config: dict) -> dict:
+    """Persist current Ask AI explanation agreement. Does not start sending."""
+    config[ASK_AI_EXTERNAL_PROCESSING_CONSENTED_KEY] = True
+    config[ASK_AI_CONSENT_NOTICE_VERSION_KEY] = ASK_AI_CONSENT_NOTICE_VERSION
+    return config
+
 
 # Avoid repeating migration within one process
 _migration_attempted = False
@@ -211,6 +265,10 @@ def _migrate_legacy_config_if_needed() -> dict | None:
 
 def _merge_defaults(config: dict) -> bool:
     updated = False
+    for key in OBSOLETE_CONFIG_KEYS:
+        if key in config:
+            del config[key]
+            updated = True
     for key, val in DEFAULT_CONFIG.items():
         if key not in config:
             if key in ("save_folder", "screenshot_dir"):
@@ -238,7 +296,7 @@ def _merge_defaults(config: dict) -> bool:
     if (config.get("window_title") or "").strip() in legacy_titles:
         config["window_title"] = APP_NAME
         updated = True
-    # Brand window title must stay Capixe (ignore stale custom debug titles)
+    # Brand window title must stay APP_NAME (ignore stale custom debug titles)
     if (config.get("window_title") or "").strip() != APP_NAME:
         config["window_title"] = APP_NAME
         updated = True
@@ -256,6 +314,27 @@ def _merge_defaults(config: dict) -> bool:
         config["shortcuts"] = raw_shortcuts
 
     return updated
+
+
+def _migrate_official_retrieval_identity(config: dict) -> bool:
+    """Rewrite a former official retriever key to the current OpenCLIP identity.
+
+    Other settings are left untouched. Already-OpenCLIP configs are unchanged.
+    """
+    raw = config.get("developer_semantic_model", DEFAULT_MODEL_KEY)
+    key = str(raw or "").strip().lower()
+    if key not in LEGACY_OFFICIAL_MODEL_KEYS:
+        return False
+    config["developer_semantic_model"] = DEFAULT_MODEL_KEY
+    logger.info(
+        "Migrated Meaning retrieval identity from developer_semantic_model=%s "
+        "to %s (model_id=%s, query_embedding=%s)",
+        raw,
+        DEFAULT_MODEL_KEY,
+        model_id_for_key(DEFAULT_MODEL_KEY),
+        config.get("developer_query_embedding", DEFAULT_QUERY_EMBEDDING),
+    )
+    return True
 
 
 def load_config() -> dict:
@@ -312,6 +391,8 @@ def load_config() -> dict:
         updated = True
     if _merge_defaults(config):
         updated = True
+    if _migrate_official_retrieval_identity(config):
+        updated = True
     if "onboarding_completed" not in config:
         config["onboarding_completed"] = not is_new_user
         updated = True
@@ -332,6 +413,12 @@ def load_config() -> dict:
         logger.error("Failed to persist config after load: %s", e)
 
     logger.info("config.json を読み込みました: %s", get_config_path())
+    logger.info(
+        "Meaning retrieval identity model=%s model_id=%s query_embedding=%s",
+        config.get("developer_semantic_model", DEFAULT_MODEL_KEY),
+        model_id_for_key(config.get("developer_semantic_model", DEFAULT_MODEL_KEY)),
+        config.get("developer_query_embedding", DEFAULT_QUERY_EMBEDDING),
+    )
     return config
 
 
@@ -339,7 +426,11 @@ def save_config(config: dict) -> None:
     """Persist settings to %APPDATA%\\Capixe\\config.json."""
     path = get_config_path()
     try:
-        _write_json_file(path, config)
+        persisted = {
+            key: value for key, value in config.items()
+            if key not in OBSOLETE_CONFIG_KEYS
+        }
+        _write_json_file(path, persisted)
     except OSError as e:
         logger.error("config.json の保存に失敗しました (%s): %s", path, e)
         raise

@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 from app.branding import APP_NAME, DISPLAY_VERSION, RELEASE_CHANNEL, TAGLINE
 from app.config import DEFAULT_CONFIG
 from app.ui.app_icon import app_mark_pixmap
+from app.ui.design_tokens import COLORS
 
 # Visible long enough to read brand + preview badge
 SPLASH_MIN_MS = 2000
@@ -126,52 +127,52 @@ class SplashScreen(QWidget):
         root.addWidget(card)
 
         self.setStyleSheet(
-            """
-            QWidget#splashScreen {
-                background-color: #f5f6f8;
-            }
-            QFrame#splashCard {
-                background-color: #f5f6f8;
+            f"""
+            QWidget#splashScreen {{
+                background-color: {COLORS.app_bg};
+            }}
+            QFrame#splashCard {{
+                background-color: {COLORS.app_bg};
                 border: none;
-            }
-            QLabel#splashLogo {
+            }}
+            QLabel#splashLogo {{
                 background: transparent;
                 border: none;
-            }
-            QLabel#splashTitle {
-                color: #111827;
+            }}
+            QLabel#splashTitle {{
+                color: {COLORS.text_strong};
                 letter-spacing: -0.4px;
-            }
-            QLabel#splashTagline {
-                color: #1d4ed8;
+            }}
+            QLabel#splashTagline {{
+                color: {COLORS.target};
                 font-size: 15px;
                 font-weight: 600;
-            }
-            QLabel#splashChannel {
-                color: #1e40af;
-                background-color: #eff6ff;
+            }}
+            QLabel#splashChannel {{
+                color: {COLORS.target};
+                background-color: {COLORS.target_soft};
                 border: 1px solid #bfdbfe;
                 border-radius: 10px;
                 padding: 5px 12px;
                 font-size: 12px;
                 font-weight: 600;
-            }
-            QLabel#splashBadge {
-                color: #0f766e;
-                background-color: #f0fdfa;
+            }}
+            QLabel#splashBadge {{
+                color: {COLORS.success};
+                background-color: {COLORS.success_soft};
                 border: 1px solid #99f6e4;
                 border-radius: 10px;
                 padding: 5px 12px;
                 font-size: 12px;
                 font-weight: 600;
-            }
-            QLabel#splashDot {
-                background-color: #dbeafe;
+            }}
+            QLabel#splashDot {{
+                background-color: {COLORS.target_soft};
                 border-radius: 4px;
-            }
-            QLabel#splashDot[on="true"] {
-                background-color: #2563eb;
-            }
+            }}
+            QLabel#splashDot[on="true"] {{
+                background-color: {COLORS.target};
+            }}
             """
         )
 

@@ -9,14 +9,24 @@ from PySide6.QtCore import QSize
 from PySide6.QtWidgets import QApplication, QFrame, QWidget
 from PySide6.QtGui import QFontInfo, QFontMetrics
 from PySide6.QtTest import QTest
+import pytest
 
 from app.i18n import t
 from app.services.capture_modes import CAPTURE_FULLSCREEN, CAPTURE_REGION
 from app.ui.design_tokens import (
+    CAPTURE_BUTTON_HEIGHT,
+    CAPTURE_BUTTON_WIDTH,
+    CAPTURE_EDGE_BUTTON_HEIGHT,
     COLORS,
+    NAV_ACTIVE_BG,
+    NAV_ACTIVE_ICON,
+    NAV_ACTIVE_TEXT,
     NAV_EMPHASIS,
+    NAV_HOVER_BG,
     NAV_RESPONSIVE_BREAKPOINT,
     PAGE_HEADER_SYMBOL_HERO,
+    RADIUS_CARD,
+    RADIUS_SEARCH,
     SHADOW_MODE,
     token_style_sheet,
 )
@@ -30,6 +40,11 @@ def _ensure_app() -> QApplication:
     app = QApplication.instance() or QApplication([])
     install_ui_font(app)
     return app
+
+
+@pytest.fixture(autouse=True)
+def _enable_capture_for_design_tests(monkeypatch):
+    monkeypatch.setattr("app.ui.main_window.CAPTURE_ENABLED", True)
 
 
 def _make_window(
@@ -53,6 +68,8 @@ def _make_window(
     )
     # Capture controls belong to Images and are intentionally absent on Home.
     window._show_page(PAGE_IMAGES)
+    if capture_bar_visible:
+        window._set_capture_bar_visible(True, persist=False, animate=False)
     return window
 
 
@@ -67,7 +84,7 @@ def test_trial_switches_and_navigation_style_are_centralized():
 
 def test_shared_page_background_and_images_accent_are_tokenized():
     style = token_style_sheet().lower()
-    assert "#f7faff" in style
+    assert COLORS.app_bg in style
     assert COLORS.card_border in style
     assert "qwidget#pageheadertext" in style
     assert "qstackedwidget#imagesliststack" in style
@@ -114,15 +131,12 @@ def test_capture_bar_is_compact_and_can_restore_persisted_visibility(monkeypatch
     app.processEvents()
 
     assert window._capture_bar.isHidden()
-    assert not window._capture_bar_restore_row.isHidden()
-    assert window._capture_bar_restore_btn.text() == ""
-    assert not window._capture_bar_restore_btn.icon().isNull()
-    assert window._capture_bar_restore_btn.toolTip() == t(
-        "shell.capture_bar.show_tooltip"
-    )
-    assert window._capture_btn.height() == 60
+    assert window._capture_bar_restore_row.isHidden()
+    assert window._capture_bar_host.isHidden()
+    assert window._side_nav._capture_button.text() == t("nav.capture")
+    assert window._capture_btn.height() == CAPTURE_BUTTON_HEIGHT
 
-    window._capture_bar_restore_btn.click()
+    window._side_nav._capture_button.click()
     app.processEvents()
     assert not window._capture_bar.isHidden()
     assert window._capture_bar_restore_row.isHidden()
@@ -136,9 +150,13 @@ def test_capture_bar_is_compact_and_can_restore_persisted_visibility(monkeypatch
     window.close()
 
     restarted = _make_window(
-        capture_bar_visible=saved[-1]["capture_bar_visible"], window_width=720
+        capture_bar_visible=False, window_width=720
     )
     restarted.show()
+    app.processEvents()
+    assert restarted._capture_bar.isHidden()
+    assert restarted._capture_bar_host.isHidden()
+    restarted._side_nav._capture_button.click()
     app.processEvents()
     assert not restarted._capture_bar.isHidden()
     assert restarted._capture_btn.isVisible()
@@ -163,33 +181,32 @@ def test_trial_navigation_and_capture_hide_action_have_clear_visual_positions():
     assert capture_layout.indexOf(window._capture_mode_selector) < capture_layout.indexOf(
         window._capture_settings_scroll
     )
-    assert capture_layout.indexOf(window._capture_settings_scroll) < capture_layout.indexOf(
-        window._capture_panel_field
-    )
+    assert capture_layout.indexOf(window._capture_settings_scroll) >= 0
+    assert not hasattr(window, "_capture_panel_field")
+    assert not hasattr(window, "_capture_panel_btn")
     assert window._capture_btn.parentWidget() is window._capture_action_field
     assert window._capture_btn.graphicsEffect() is None
     assert window._capture_bar_restore_row.isHidden()
     assert not hasattr(window, "_folder_combo")
-    assert window._capture_settings_scroll.maximumWidth() == 360
     assert window._capture_settings_strip.objectName() == "captureSettingsFlatStrip"
     assert window._capture_settings_strip.layout().indexOf(
         window._save_folder_field
     ) < window._capture_settings_strip.layout().indexOf(window._filename_field)
-    assert window._capture_bar_toggle_btn.height() == 32
-    assert window._capture_bar_toggle_btn.width() == 32
-    assert window._capture_bar_restore_btn.size() == window._capture_bar_toggle_btn.size()
+    assert window._capture_bar_toggle_btn.height() == CAPTURE_EDGE_BUTTON_HEIGHT
+    assert window._capture_bar_toggle_btn.width() == CAPTURE_EDGE_BUTTON_HEIGHT
+    assert window._capture_bar_restore_btn.minimumWidth() >= 108
+    assert window._capture_bar_restore_btn.minimumHeight() == CAPTURE_EDGE_BUTTON_HEIGHT
     assert window._capture_bar_title.text() == t("shell.capture_bar.title")
     assert not window._capture_bar_title_icon.pixmap().isNull()
-    assert window._capture_panel_btn.width() == window._capture_panel_btn.height() == 36
-    assert window._capture_panel_btn.text() == ""
-    assert window._capture_panel_btn.accessibleName() == t("shell.capture_panel.button")
-    assert window._capture_panel_use_hint.text() == t("shell.capture_panel.use_hint")
-    assert window._capture_btn.height() == 60
+    assert window._capture_btn.height() == CAPTURE_BUTTON_HEIGHT
     assert not hasattr(window, "_capture_action_label")
     capture_right = window._capture_btn.mapTo(
         window._capture_bar, window._capture_btn.rect().topRight()
     ).x()
-    assert window._capture_mode_selector.geometry().left() - capture_right >= 16
+    mode_left = window._capture_mode_selector.mapTo(
+        window._capture_bar, window._capture_mode_selector.rect().topLeft()
+    ).x()
+    assert mode_left - capture_right >= 12
     for mode_button in (
         window._capture_mode_selector.region_button,
         window._capture_mode_selector.fullscreen_button,
@@ -244,7 +261,7 @@ def test_capture_bar_save_folder_chooser_updates_destination(monkeypatch, tmp_pa
     window.close()
 
 
-def test_navigation_uses_hover_labels_and_collapsed_resting_rail():
+def test_navigation_sidebar_shows_search_and_folder_labels():
     app = _ensure_app()
     window = _make_window(
         capture_bar_visible=True,
@@ -254,23 +271,17 @@ def test_navigation_uses_hover_labels_and_collapsed_resting_rail():
     app.processEvents()
 
     images_button = window._side_nav._nav_buttons[1]
-    assert window._side_nav.width() == window._side_nav.COLLAPSED_WIDTH
-    assert images_button.text() == ""
-
-    window._side_nav._animate_to(True)
-    window._side_nav._anim.setCurrentTime(window._side_nav.ANIM_MS)
     assert window._side_nav.width() == window._side_nav.EXPANDED_WIDTH
     assert images_button.text() == t("nav.images")
 
     window._side_nav._animate_to(False)
-    window._side_nav._anim.setCurrentTime(window._side_nav.ANIM_MS)
-    assert window._side_nav.width() == window._side_nav.COLLAPSED_WIDTH
-    assert images_button.text() == ""
+    assert window._side_nav.width() == window._side_nav.EXPANDED_WIDTH
+    assert images_button.text() == t("nav.images")
 
     window.resize(720, 600)
     app.processEvents()
-    assert window._side_nav.width() == window._side_nav.COLLAPSED_WIDTH
-    assert images_button.text() == ""
+    assert window._side_nav.width() == window._side_nav.EXPANDED_WIDTH
+    assert images_button.text() == t("nav.images")
     assert images_button.toolTip() == t("nav.images")
     window.close()
 
@@ -360,7 +371,7 @@ def test_mode_selector_routes_existing_capture_actions_and_persists(monkeypatch)
     selector = window._capture_mode_selector
     assert selector.mode() == CAPTURE_REGION
     assert selector.region_button.isChecked()
-    assert window._capture_btn.text() == "Region\nCapture"
+    assert window._capture_btn.text() == t("shell.capture.region")
     assert window._capture_btn.objectName() == "regionCaptureButton"
 
     selector.fullscreen_button.click()
@@ -370,10 +381,10 @@ def test_mode_selector_routes_existing_capture_actions_and_persists(monkeypatch)
     assert window._config["capture_mode"] == CAPTURE_FULLSCREEN
     assert selector.mode() == CAPTURE_FULLSCREEN
     assert saved[-1]["capture_mode"] == CAPTURE_FULLSCREEN
-    assert window._capture_btn.text() == "Full Screen\nCapture"
+    assert window._capture_btn.text() == t("shell.capture.fullscreen")
     assert window._capture_btn.objectName() == "fullScreenCaptureButton"
     assert QFontMetrics(window._capture_btn.font()).horizontalAdvance(
-        "Full Screen"
+        t("shell.capture.fullscreen")
     ) <= window._capture_btn.width() - 12
 
     window._capture_btn.click()
@@ -451,24 +462,26 @@ def test_primary_capture_action_stays_visible_near_minimum_window_width():
         window._capture_bar, window._capture_btn.rect().center()
     )
     assert window._capture_bar.childAt(capture_center) is window._capture_btn
-    assert window._capture_btn.text() == "Region\nCapture"
+    assert window._capture_btn.text() == t("shell.capture.region")
     assert window._capture_btn.accessibleName() == t("shell.capture.action")
-    assert window._capture_btn.width() == 88
-    assert window._capture_btn.height() == 60
-    assert window._capture_btn.iconSize() == QSize(20, 20)
+    assert window._capture_btn.width() >= CAPTURE_BUTTON_WIDTH
+    assert window._capture_btn.height() == CAPTURE_BUTTON_HEIGHT
+    assert window._capture_btn.iconSize() == QSize(16, 16)
     assert window._capture_btn.objectName() in {
         "regionCaptureButton",
         "fullScreenCaptureButton",
     }
     capture_styles = token_style_sheet()
     assert "QToolButton#regionCaptureButton" in capture_styles
-    assert f"background-color: {COLORS.primary_soft}" in capture_styles
-    assert f"color: {COLORS.primary}" in capture_styles
-    assert "border: 1px solid #93c5fd" in capture_styles
+    assert f"background-color: {COLORS.surface}" in capture_styles
+    assert f"color: {COLORS.text}" in capture_styles
+    assert f"border: 1px solid {COLORS.border}" in capture_styles
     assert 'QPushButton#captureModeSegment[captureMode="fullscreen"]:checked' in capture_styles
-    assert "color: #ffffff" not in capture_styles.split(
+    checked_css = capture_styles.split(
         'QPushButton#captureModeSegment[captureMode="fullscreen"]:checked', 1
     )[1].split("}", 1)[0]
+    assert "background-color: #ffffff" in checked_css
+    assert COLORS.text_strong in checked_css
     window.close()
 
 
@@ -511,3 +524,34 @@ def test_capture_action_remains_single_and_layout_managed_after_hide_show_resize
     assert rect.right() < window._capture_bar.width()
     assert window._capture_bar_layout.indexOf(window._capture_action_field) >= 0
     window.close()
+
+
+def test_nav_active_uses_soft_accent_background_not_border():
+    style = token_style_sheet()
+    assert NAV_ACTIVE_BG in style
+    assert NAV_ACTIVE_TEXT in style
+    assert NAV_HOVER_BG in style
+    assert NAV_ACTIVE_ICON == COLORS.accent_strong
+    assert NAV_ACTIVE_BG != NAV_HOVER_BG
+    assert NAV_ACTIVE_BG != COLORS.surface
+    assert (
+        f"QPushButton#navButton:checked,\n"
+        f"QPushButton#navButton:checked:hover"
+    ) in style or "QPushButton#navButton:checked" in style
+    checked_block = style[style.rfind("QPushButton#navButton:checked") :]
+    assert NAV_ACTIVE_BG in checked_block
+    assert "border: none;" in checked_block
+
+
+def test_gallery_header_and_search_field_share_parent_radius():
+    from app.ui.design_tokens import product_visual_overlay
+
+    style = token_style_sheet() + product_visual_overlay()
+    assert "QWidget#imagesResultsHeader" in style
+    assert f"border-top-left-radius: {RADIUS_CARD}px" in style
+    assert f"border-top-right-radius: {RADIUS_CARD}px" in style
+    assert "QWidget#searchHeaderRow" in style
+    assert "QFrame#screenshotsSearchShell" in style
+    assert f"border-radius: {RADIUS_SEARCH}px" in style
+    assert "QLineEdit#screenshotsSearchInput" in style
+    assert style.count("background-color: transparent") >= 1

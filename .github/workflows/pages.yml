@@ -1,4 +1,4 @@
-name: Deploy Capixe website to GitHub Pages
+name: Deploy Rootlize website to GitHub Pages
 
 on:
   push:

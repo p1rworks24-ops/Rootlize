@@ -1,9 +1,9 @@
-/** Capixe landing-page content. */
+/** Rootlize landing-page content. Internal `window.CAPIXE` key is unchanged. */
 window.CAPIXE = {
   brand: {
-    name: "Capixe",
-    tagline: "Find the screenshot you need. Right now.",
-    description: "Stop digging through folders for an image you know you saved. Capixe gives every capture a searchable home, so you can recover the right information without breaking your flow.",
+    name: "Rootlize",
+    tagline: "Your Local Workspace.",
+    description: "Find, organize, and work with the images on your PC — without moving them to the cloud.",
   },
   version: {
     channel: "Prototype Preview",
@@ -11,12 +11,12 @@ window.CAPIXE = {
     get label() { return "Version " + this.number; },
     platform: "Windows",
   },
-  downloadBadges: ["Windows", "Free", "No account required", "Local-first"],
+  downloadBadges: ["Windows", "Free", "Sign-in required", "Local-first"],
   urls: {
     github: "https://github.com/p1rworks24-ops/Capixe",
     releases: "https://github.com/p1rworks24-ops/Capixe/releases",
     releasesApi: "https://api.github.com/repos/p1rworks24-ops/Capixe/releases?per_page=10",
-    download: "https://github.com/p1rworks24-ops/Capixe/releases/download/v0.1.0-preview/Capixe-v0.1.0-preview-win64.zip",
+    download: "https://github.com/p1rworks24-ops/Capixe/releases/download/v0.1.0-preview/Rootlize-v0.1.0-preview-win64.zip",
     license: "https://github.com/p1rworks24-ops/Capixe/blob/master/LICENSE",
     issues: "https://github.com/p1rworks24-ops/Capixe/issues",
     bugReport: "https://github.com/p1rworks24-ops/Capixe/issues/new?template=bug_report.yml",
@@ -26,35 +26,55 @@ window.CAPIXE = {
   screenshots: [
     {
       src: "assets/screenshots/images.png",
-      alt: "Capixe Images - browse and analyze a selected screenshot folder",
-      caption: "Images - choose a folder, analyze, and search",
+      alt: "Rootlize Images workspace with brand header and Basic Search",
+      caption: "Images — Rootlize header, then Basic Search by filename, tags, or text in images",
       slot: "images",
     },
     {
-      src: "assets/screenshots/home.png",
-      alt: "Capixe Home - library overview, root folder, and capture bar",
-      caption: "Home - see your whole library at a glance",
-      slot: "home",
+      src: "assets/screenshots/meaning-search.png",
+      alt: "Rootlize Meaning Search for images by what they show",
+      caption: "Meaning Search — find images by what they show, with the model bundled in the app",
+      slot: "meaning-search",
     },
     {
-      src: "assets/screenshots/about.png",
-      alt: "Capixe About - brand, version, repository, and feedback links",
-      caption: "About - check version details and share feedback",
-      slot: "about",
+      src: "assets/screenshots/ask-ai.png",
+      alt: "Rootlize Ask AI panel beside the Images workspace",
+      caption: "Ask AI — describe find and organize work in your own words",
+      slot: "ask-ai",
+    },
+    {
+      src: "assets/screenshots/automation.png",
+      alt: "Rootlize Automation page for saved workflows",
+      caption: "Automation — save a repeated find-and-organize flow and run it again",
+      slot: "automation",
+    },
+    {
+      src: "assets/screenshots/account.png",
+      alt: "Rootlize Account page showing the Prototype plan",
+      caption: "Account — Prototype plan and local-first use after sign-in",
+      slot: "account",
     },
   ],
   faq: [
     {
-      q: "Is my data sent to the cloud?",
-      a: "No. Capixe is local-first. Screenshots, settings, and the image-analysis index stay on your PC. Capixe does not upload your images to a Capixe cloud service.",
+      q: "Does Rootlize upload my image library?",
+      a: "No. Rootlize is local-first: it works with folders already on your PC and does not move the image library to a Rootlize cloud. Settings and the local search index stay on this PC.",
     },
     {
-      q: "Does Capixe work offline?",
-      a: "Yes. After you download the app, capture, browsing, local image analysis, and search work without an internet connection.",
+      q: "What runs locally, and what needs the internet?",
+      a: "Basic Search, OCR, and bundled Meaning Search run on this PC. You do need to sign in to use the Prototype. Account features and Ask AI need the internet. Ask AI uses an external AI service after you agree, and may send image contents for analysis.",
     },
     {
-      q: "Is Capixe free?",
-      a: "The current Prototype Preview is free to download and try. There is no account and no subscription required for this preview.",
+      q: "Do I need to set up a Meaning Search model?",
+      a: "No. Meaning Search ships with the app. There is no separate model download or extra setup step.",
+    },
+    {
+      q: "Is Rootlize free?",
+      a: "The current Prototype Preview is free to download and try. There is no subscription. You do need to sign in to use the preview.",
+    },
+    {
+      q: "Do I need an account?",
+      a: "Yes. The Prototype opens on a sign-in screen. Sign in with Google, GitHub, or email to continue. Sign-in is for your Rootlize account — it does not upload your image files.",
     },
     {
       q: "Which operating systems are supported?",
@@ -62,7 +82,7 @@ window.CAPIXE = {
     },
     {
       q: "Do I need to install Python?",
-      a: "No. The Release ZIP is a portable Windows build. Keep Capixe.exe together with the _internal folder and run Capixe.exe.",
+      a: "No. The Release ZIP is a portable Windows build. Keep Rootlize.exe together with the _internal folder and run Rootlize.exe.",
     },
   ],
 };

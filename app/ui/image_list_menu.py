@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from PySide6.QtGui import QAction, QActionGroup
+from PySide6.QtGui import QAction, QActionGroup, QIcon
 from PySide6.QtWidgets import QListWidget, QMenu, QWidget
 
 from app.i18n import t
@@ -32,7 +32,7 @@ def populate_image_list_context_menu(
     thumbnail_mode: str,
     selected_count: int,
     has_clipboard: bool,
-    on_set_thumbnail_mode: Callable[[str], None],
+    on_set_thumbnail_mode: Callable[[str], None] | None = None,
     on_open: Callable[[], None],
     on_copy: Callable[[], None],
     on_cut: Callable[[], None],
@@ -40,31 +40,45 @@ def populate_image_list_context_menu(
     on_rename: Callable[[], None],
     on_delete: Callable[[], None],
     on_explorer: Callable[[], None],
-    on_move: Callable[[], None] | None = None,
-) -> None:
+            on_move: Callable[[], None] | None = None,
+            on_analyze: Callable[[], None] | None = None,
+            on_favorite: Callable[[], None] | None = None,
+            favorite_checked: bool = False,
+        ) -> None:
     """Fill menu with View + Open/Copy/Cut/Paste/Rename/Delete/Explorer."""
-    view_menu = menu.addMenu(t("common.view"))
-    view_group = QActionGroup(parent)
-    view_group.setExclusive(True)
+    if on_set_thumbnail_mode is not None:
+        view_menu = menu.addMenu(t("common.view"))
+        view_group = QActionGroup(parent)
+        view_group.setExclusive(True)
 
-    for mode, label in thumbnail_mode_labels():
-        action = QAction(label, parent)
-        action.setCheckable(True)
-        action.setChecked(mode == thumbnail_mode)
-        action.setData(mode)
-        action.triggered.connect(
-            lambda checked=False, m=mode: on_set_thumbnail_mode(m)
-        )
-        view_group.addAction(action)
-        view_menu.addAction(action)
+        for mode, label in thumbnail_mode_labels():
+            action = QAction(label, parent)
+            action.setCheckable(True)
+            action.setChecked(mode == thumbnail_mode)
+            action.setData(mode)
+            action.triggered.connect(
+                lambda checked=False, m=mode: on_set_thumbnail_mode(m)
+            )
+            view_group.addAction(action)
+            view_menu.addAction(action)
 
-    menu.addSeparator()
+        menu.addSeparator()
 
     count = selected_count
     if count >= 1:
         open_action = QAction(t("images.open"), parent)
         open_action.triggered.connect(on_open)
         menu.addAction(open_action)
+
+        if on_favorite is not None:
+            fav_action = QAction(
+                t("images.favorite_image_remove")
+                if favorite_checked
+                else t("images.favorite_image_add"),
+                parent,
+            )
+            fav_action.triggered.connect(on_favorite)
+            menu.addAction(fav_action)
 
         copy_label = (
             t("common.copy") if count == 1 else t("images.copy_count", count=count)
@@ -91,6 +105,11 @@ def populate_image_list_context_menu(
         menu.addAction(rename_action)
 
     if count >= 1:
+        if on_analyze is not None:
+            analyze_action = QAction(t("images.analysis.retry_selected"), parent)
+            analyze_action.triggered.connect(on_analyze)
+            menu.addAction(analyze_action)
+
         if on_move is not None:
             move_action = QAction(t("images.actions.move"), parent)
             move_action.triggered.connect(on_move)
@@ -109,3 +128,20 @@ def populate_image_list_context_menu(
         explorer_action = QAction(t("images.open_explorer"), parent)
         explorer_action.triggered.connect(on_explorer)
         menu.addAction(explorer_action)
+
+
+def populate_empty_gallery_context_menu(
+    menu: QMenu,
+    parent: QWidget,
+    *,
+    enabled: bool,
+    icon: QIcon | None,
+    on_new_folder: Callable[[], None],
+) -> None:
+    """Fill the empty-background gallery menu (currently New Folder only)."""
+    action = QAction(t("images.folder.new_folder"), parent)
+    if icon is not None and not icon.isNull():
+        action.setIcon(icon)
+    action.setEnabled(enabled)
+    action.triggered.connect(on_new_folder)
+    menu.addAction(action)

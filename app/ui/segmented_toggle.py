@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QButtonGroup, QHBoxLayout, QPushButton, QWidget
 
 
@@ -11,11 +12,18 @@ class SegmentedToggle(QWidget):
 
     changed = Signal(int)
 
-    def __init__(self, labels: list[str], parent=None):
+    def __init__(
+        self,
+        labels: list[str],
+        parent=None,
+        *,
+        icons: list[QIcon] | None = None,
+        icon_size: int = 16,
+    ):
         super().__init__(parent)
         self.setObjectName("segmentedToggle")
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(2, 2, 2, 2)
         layout.setSpacing(0)
 
         self._group = QButtonGroup(self)
@@ -23,9 +31,15 @@ class SegmentedToggle(QWidget):
         self._buttons: list[QPushButton] = []
 
         for i, label in enumerate(labels):
-            btn = QPushButton(label, self)
+            icon = icons[i] if icons and i < len(icons) else QIcon()
+            btn = QPushButton("" if not icon.isNull() else label, self)
             btn.setCheckable(True)
             btn.setCursor(Qt.PointingHandCursor)
+            btn.setToolTip(label)
+            btn.setAccessibleName(label)
+            if not icon.isNull():
+                btn.setIcon(icon)
+                btn.setIconSize(QSize(icon_size, icon_size))
             if i == 0:
                 btn.setObjectName("segmentButtonLeft")
             elif i == len(labels) - 1:

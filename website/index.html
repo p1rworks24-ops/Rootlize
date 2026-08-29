@@ -3,13 +3,14 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Capixe — Find the screenshot you need. Right now.</title>
+    <title>Rootlize — Your Local Workspace.</title>
     <meta
       name="description"
-      content="Find the screenshot you need without digging through folders. Capixe gives your captures a searchable, local home on Windows."
+      content="Find, organize, and work with the images on your PC — without moving them to the cloud."
     />
     <meta name="theme-color" content="#f5f6f8" />
     <link rel="icon" type="image/png" href="assets/brand/favicon.png" />
+    <link rel="apple-touch-icon" href="assets/brand/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -22,12 +23,12 @@
     <header class="site-header">
       <div class="container nav">
         <a class="nav-brand" href="#top">
-          <img src="assets/brand/favicon.png" alt="" width="28" height="28" />
-          <span data-brand-name>Capixe</span>
+          <img src="assets/brand/app-icon.png" alt="" width="28" height="28" />
+          <span data-brand-name>Rootlize</span>
         </a>
         <ul class="nav-links">
           <li><a href="#why">Why</a></li>
-          <li><a href="#features">Features</a></li>
+          <li><a href="#workspace">Workspace</a></li>
           <li><a href="#screenshots">Screenshots</a></li>
           <li><a href="#roadmap">Roadmap</a></li>
           <li><a href="#download">Download</a></li>
@@ -42,20 +43,19 @@
       <section class="hero">
         <div class="container hero-grid">
           <div class="hero-copy">
-            <p class="eyebrow">Your screenshots, ready when you need them</p>
-            <h1 data-brand-name>Capixe</h1>
-            <p class="hero-tagline" data-brand-tagline>Find the screenshot you need. Right now.</p>
+            <p class="eyebrow">Prototype Preview</p>
+            <h1 data-brand-name>Rootlize</h1>
+            <p class="hero-tagline" data-brand-tagline>Your Local Workspace.</p>
             <p class="hero-desc" data-brand-description>
-              Stop digging through folders for an image you know you saved.
-              Capixe gives every capture a searchable home, so you can recover
-              the right information without breaking your flow.
+              Find, organize, and work with the images on your PC — without
+              moving them to the cloud.
             </p>
             <div class="cta-row">
               <div class="hero-download">
                 <a
                   class="btn btn-primary"
                   data-url-download
-                  href="https://github.com/p1rworks24-ops/Capixe/releases/download/v0.1.0-preview/Capixe-v0.1.0-preview-win64.zip"
+                  href="https://github.com/p1rworks24-ops/Capixe/releases/download/v0.1.0-preview/Rootlize-v0.1.0-preview-win64.zip"
                   target="capixe-download"
                   >Download Preview</a
                 >
@@ -70,34 +70,39 @@
                 >View on GitHub</a
               >
             </div>
-            <p class="hero-proof">Free preview · No account · Your images stay on your PC</p>
+            <p class="hero-proof">
+              Sign in to start · Use folders you already have · Images stay on
+              your PC
+            </p>
           </div>
           <figure class="hero-visual">
             <img
               src="assets/screenshots/images.png"
-              alt="Capixe Images screen showing the Folder, Analyze, and Search workflow"
+              alt="Rootlize Images workspace: choose an existing folder, then find and work with the images already on your PC"
             />
             <figcaption class="hero-visual-caption">
-              Search by the words you remember. Get back to the work in front of you.
+              A workspace for the files already on your PC — not another cloud
+              library.
             </figcaption>
           </figure>
         </div>
       </section>
 
-      <!-- 2. Why Capixe -->
+      <!-- 2. Why Rootlize -->
       <section class="section" id="why">
         <div class="container">
           <div class="section-head">
             <p class="eyebrow">The moment that matters</p>
             <h2>You know you saved it. You just can’t find it.</h2>
             <p>
-              The problem is not storing another screenshot. It is recovering
-              the information you already captured when you actually need it.
+              The files are already on your PC. Rootlize is the workspace that
+              lets you find them, narrow the set, act on them, and repeat the
+              work — without moving the library to the cloud.
             </p>
           </div>
           <div class="why-grid">
             <article class="panel panel--muted">
-              <h3>When screenshots disappear</h3>
+              <h3>When the folder is not enough</h3>
               <ul>
                 <li>You remember the image, but not its filename.</li>
                 <li>A useful reference vanishes into another crowded folder.</li>
@@ -106,72 +111,115 @@
               </ul>
             </article>
             <article class="panel panel-solution">
-              <h3>Find it when it matters</h3>
+              <h3>Work with the folder you already have</h3>
               <p>
-                Bring screenshots into one searchable library. Use filenames,
-                text inside images, folders, and visual browsing to get back to the right image
-                without breaking your flow.
+                Point Rootlize at an existing local folder. Search, preview,
+                organize, and automate there. Your images stay on this PC —
+                Rootlize does not move the library into a Rootlize cloud.
               </p>
               <p style="margin-bottom: 0; color: var(--text-muted)">
-                Local-first. No account required. Your files stay on your PC.
+                Sign in to start. Local search stays on this PC. Ask AI needs
+                the internet after you agree.
               </p>
             </article>
           </div>
         </div>
       </section>
 
-      <!-- 3. Features -->
-      <section class="section" id="features">
+      <!-- 3. Workspace journey -->
+      <section class="section" id="workspace">
         <div class="container">
           <div class="section-head">
-            <p class="eyebrow">What you get</p>
-            <h2>Get back to what you were doing.</h2>
-            <p>Every feature is designed to shorten the distance between “I saved that” and “here it is.”</p>
+            <p class="eyebrow">How the workspace works</p>
+            <h2>Find. Narrow. Act. Automate.</h2>
+            <p>
+              Rootlize is not only an image search box. It is a local workspace
+              for files that already live on your PC.
+            </p>
           </div>
-          <div class="feature-grid">
-            <article class="feature-card">
-              <div class="feature-icon">An</div>
-              <h3>Analyze on your PC.</h3>
-              <p>Build a private local index from the words visible inside your PNG screenshots.</p>
+          <ol class="journey-grid">
+            <li class="journey-card">
+              <span class="journey-step">01</span>
+              <h3>Find</h3>
+              <p>
+                <strong>Basic Search</strong> uses filename, tags, and text
+                found in images. <strong>Meaning Search</strong> finds images by
+                what they show. The Meaning Search model ships with the app —
+                no extra model setup.
+              </p>
+            </li>
+            <li class="journey-card">
+              <span class="journey-step">02</span>
+              <h3>Narrow</h3>
+              <p>
+                Browse the set visually, preview the ones that matter, and keep
+                working in the same folder. You are not copying the library
+                somewhere else first.
+              </p>
+            </li>
+            <li class="journey-card">
+              <span class="journey-step">03</span>
+              <h3>Act</h3>
+              <p>
+                Organize in place: rename, tag, favorite, or move files. Use
+                <strong>Ask AI</strong> when you want to describe the work in
+                your own words. Ask AI needs sign-in and the internet.
+              </p>
+            </li>
+            <li class="journey-card">
+              <span class="journey-step">04</span>
+              <h3>Automate</h3>
+              <p>
+                Save a repeated find-and-organize flow as
+                <strong>Automation</strong>, then run it again on the same kind
+                of local folder work.
+              </p>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- 4. Local-first accuracy -->
+      <section class="section section--tight" id="local">
+        <div class="container">
+          <div class="section-head">
+            <p class="eyebrow">On your PC</p>
+            <h2>Local-first, with a clear line.</h2>
+            <p>
+              Rootlize does not turn your image library into a cloud library.
+              Some features still need an account and the internet.
+            </p>
+          </div>
+          <div class="privacy-grid">
+            <article class="panel">
+              <h3>Stays on this PC</h3>
+              <p>
+                Your images remain in the folders you choose. Basic Search,
+                OCR, and bundled Meaning Search run locally. Sign-in does not
+                upload the library.
+              </p>
             </article>
-            <article class="feature-card">
-              <div class="feature-icon">Sr</div>
-              <h3>Find screenshots instantly.</h3>
-              <p>Search by filename or image text and narrow a crowded folder to the images that matter.</p>
-            </article>
-            <article class="feature-card">
-              <div class="feature-icon">Fd</div>
-              <h3>Give every capture one home.</h3>
-              <p>Keep screenshots in a Root Folder you choose instead of scattering them across your PC.</p>
-            </article>
-            <article class="feature-card">
-              <div class="feature-icon">Gp</div>
-              <h3>Scan large libraries faster.</h3>
-              <p>Group by date and browse visually so patterns and relevant sets become visible at a glance.</p>
-            </article>
-            <article class="feature-card">
-              <div class="feature-icon">Lc</div>
-              <h3>Keep private context private.</h3>
-              <p>Your screenshots and metadata stay on your PC. No cloud account is required.</p>
-            </article>
-            <article class="feature-card">
-              <div class="feature-icon">Sp</div>
-              <h3>Capture now. Recover it later.</h3>
-              <p>Save useful details while they are in front of you, knowing they will stay findable.</p>
+            <article class="panel">
+              <h3>Needs sign-in and internet</h3>
+              <p>
+                The Prototype opens on a sign-in screen. Account restore and
+                <strong>Ask AI</strong> use online services after you agree.
+                Ask AI may send image contents to an external AI service.
+              </p>
             </article>
           </div>
         </div>
       </section>
 
-      <!-- 4. Screenshots -->
+      <!-- 5. Screenshots -->
       <section class="section" id="screenshots">
         <div class="container">
           <div class="section-head">
             <p class="eyebrow">See it in action</p>
             <h2>From “somewhere on my PC” to found.</h2>
             <p>
-              See how Capixe gives every capture a visible, searchable home.
-              Select any screen to view it at full size.
+              See how Rootlize works with the folders you already have. Select
+              any screen to view it at full size.
             </p>
           </div>
           <div class="shot-gallery" id="screenshot-gallery" data-shot-count="0">
@@ -180,7 +228,7 @@
         </div>
       </section>
 
-      <!-- 5. Roadmap -->
+      <!-- 6. Roadmap -->
       <section class="section" id="roadmap">
         <div class="container">
           <div class="section-head">
@@ -193,28 +241,21 @@
               <span class="roadmap-badge">Soon</span>
               <div>
                 <strong>More image formats</strong>
-                <span>Extend local analysis beyond PNG screenshots.</span>
+                <span>Extend local search beyond the formats this preview indexes today.</span>
               </div>
             </li>
             <li class="roadmap-item">
               <span class="roadmap-badge">Soon</span>
               <div>
-                <strong>AI Auto Tagging</strong>
-                <span>Suggest tags automatically for large libraries.</span>
-              </div>
-            </li>
-            <li class="roadmap-item">
-              <span class="roadmap-badge">Soon</span>
-              <div>
-                <strong>Semantic Search</strong>
-                <span>Search by meaning, not only filenames and tags.</span>
+                <strong>Smarter organization</strong>
+                <span>Suggest tags and groupings for large local libraries.</span>
               </div>
             </li>
             <li class="roadmap-item">
               <span class="roadmap-badge">Soon</span>
               <div>
                 <strong>Smart Collections</strong>
-                <span>Dynamic groups that update as your library grows.</span>
+                <span>Dynamic groups that update as your local folders grow.</span>
               </div>
             </li>
             <li class="roadmap-item">
@@ -228,17 +269,20 @@
         </div>
       </section>
 
-      <!-- 6. Download -->
+      <!-- 7. Download -->
       <section class="section" id="download">
         <div class="container">
           <div class="section-head">
-            <p class="eyebrow">Start finding today</p>
-            <h2>Find the screenshot you’re thinking of.</h2>
-            <p>Try the free Windows preview. No account, subscription, or Python install required.</p>
+            <p class="eyebrow">Start with the folder you have</p>
+            <h2>Your Local Workspace.</h2>
+            <p>
+              Find, organize, and work with the images on your PC — without
+              moving them to the cloud.
+            </p>
           </div>
           <div class="download-card">
             <div>
-              <h3 data-brand-name>Capixe</h3>
+              <h3 data-brand-name>Rootlize</h3>
               <div class="version-block">
                 <p class="version-channel" data-version-channel>Prototype Preview</p>
                 <p class="version-label" data-version-label>Version 0.1.0-preview</p>
@@ -251,19 +295,20 @@
                 <!-- Filled from content.js downloadBadges -->
                 <span class="badge">Windows</span>
                 <span class="badge">Free</span>
-                <span class="badge">No account required</span>
+                <span class="badge">Sign-in required</span>
                 <span class="badge">Local-first</span>
               </div>
               <p class="download-note">
                 Unsigned Prototype Preview. Windows SmartScreen may show a
                 warning — only continue if you trust this GitHub Release.
+                Meaning Search is bundled; you do not download a separate model.
               </p>
             </div>
             <div class="download-actions">
               <a
                 class="btn btn-primary"
                 data-url-download
-                href="https://github.com/p1rworks24-ops/Capixe/releases/download/v0.1.0-preview/Capixe-v0.1.0-preview-win64.zip"
+                href="https://github.com/p1rworks24-ops/Capixe/releases/download/v0.1.0-preview/Rootlize-v0.1.0-preview-win64.zip"
                 target="capixe-download"
                 >Download Preview</a
               >
@@ -281,13 +326,13 @@
         </div>
       </section>
 
-      <!-- 7. FAQ -->
+      <!-- 8. FAQ -->
       <section class="section" id="faq">
         <div class="container">
           <div class="section-head">
             <p class="eyebrow">Questions</p>
             <h2>FAQ</h2>
-            <p>Common questions about privacy, pricing, and platform support.</p>
+            <p>Common questions about privacy, sign-in, and what runs locally.</p>
           </div>
           <div class="faq-list" id="faq-list">
             <!-- Filled from content.js faq[] -->
@@ -295,14 +340,14 @@
         </div>
       </section>
 
-      <!-- 8. Feedback -->
+      <!-- 9. Feedback -->
       <section class="section" id="feedback">
         <div class="container">
           <div class="feedback-box">
             <p class="eyebrow">Early preview</p>
             <h2>Feedback</h2>
             <p>
-              Capixe is currently in an early preview. I'm actively improving it
+              Rootlize is currently in an early preview. I'm actively improving it
               based on user feedback.
             </p>
             <p>I'd especially love feedback about:</p>
@@ -344,14 +389,14 @@
       </section>
     </main>
 
-    <!-- 8. Footer -->
+    <!-- Footer -->
     <footer class="site-footer">
       <div class="container">
         <div class="footer-grid">
           <div>
-            <div class="footer-brand" data-brand-name>Capixe</div>
+            <div class="footer-brand" data-brand-name>Rootlize</div>
             <p class="footer-tagline" data-brand-tagline>
-              Find the screenshot you need. Right now.
+              Your Local Workspace.
             </p>
           </div>
           <nav class="footer-links" aria-label="Footer">
@@ -375,7 +420,7 @@
           </nav>
         </div>
         <p class="footer-copy">
-          © <span id="footer-year">2026</span> Capixe. All rights reserved.
+          © <span id="footer-year">2026</span> Rootlize. All rights reserved.
           Proprietary software.
         </p>
       </div>
@@ -384,7 +429,7 @@
     <iframe
       class="download-frame"
       name="capixe-download"
-      title="Capixe download"
+      title="Rootlize download"
       aria-hidden="true"
     ></iframe>
 

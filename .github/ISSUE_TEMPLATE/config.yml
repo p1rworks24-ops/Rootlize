@@ -1,4 +1,4 @@
-# Capixe — Issue template chooser
+# Rootlize — Issue template chooser
 #
 # blank_issues_enabled: false → users must pick Bug Report or Feature Request
 # (no empty / free-form issue from the New issue screen).
@@ -9,6 +9,6 @@
 # If these labels do not exist yet, create them under Issues → Labels.
 blank_issues_enabled: false
 contact_links:
-  - name: Capixe repository
+  - name: Rootlize repository
     url: https://github.com/p1rworks24-ops/Capixe
     about: Source, Releases, and project overview.

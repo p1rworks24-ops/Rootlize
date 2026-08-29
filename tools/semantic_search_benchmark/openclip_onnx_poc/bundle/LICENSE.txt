@@ -1,0 +1,3 @@
+Model: laion/CLIP-ViT-B-32-laion2B-s34B-b79K
+License: MIT
+Source: https://huggingface.co/laion/CLIP-ViT-B-32-laion2B-s34B-b79K

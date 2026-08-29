@@ -184,6 +184,30 @@ def test_real_controller_requires_python_and_all_three_models(tmp_path, monkeypa
     controller.close()
 
 
+def test_frozen_environment_ignores_source_ocr_env_vars(tmp_path, monkeypatch):
+    from app.ui.ocr_test_controller import REQUIRED_MODEL_FILES
+
+    exe = tmp_path / "Capixe.exe"
+    exe.write_bytes(b"")
+    models = tmp_path / "resources" / "ocr_models"
+    models.mkdir(parents=True)
+    for name in REQUIRED_MODEL_FILES:
+        (models / name).write_bytes(b"model")
+    monkeypatch.setattr("app.ui.ocr_test_controller.is_frozen", lambda: True)
+    monkeypatch.setattr("app.ui.ocr_test_controller.sys.executable", str(exe))
+    monkeypatch.setattr(
+        "app.ui.ocr_test_controller.get_resource_root", lambda: tmp_path
+    )
+    monkeypatch.setenv("CAPIXE_OCR_PYTHON", str(tmp_path / "missing-python.exe"))
+    monkeypatch.setenv("CAPIXE_OCR_MODEL_DIR", str(tmp_path / "missing-models"))
+    controller = OCRTestController()
+    status = controller.environment_status()
+    assert status["runtime"] == "available"
+    assert status["models"] == "ready"
+    assert status["usable"] is True
+    controller.close()
+
+
 def test_cancel_requires_confirmation(tmp_path, monkeypatch):
     panel, controller, _ = _panel(tmp_path)
     controller.progress = OCRIndexProgress(state="running")

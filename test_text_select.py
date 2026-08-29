@@ -14,6 +14,8 @@ def test_enable_label_text_selection():
     label = QLabel("Hello selectable", root)
     section = QLabel("Save folder", root)
     section.setObjectName("sectionTitle")
+    folder_name = QLabel("Project folder", root)
+    folder_name.setObjectName("navFolderName")
     enable_label_text_selection(root)
     flags = label.textInteractionFlags()
     assert flags & Qt.TextSelectableByMouse
@@ -21,4 +23,5 @@ def test_enable_label_text_selection():
     section_flags = section.textInteractionFlags()
     assert section_flags & Qt.TextSelectableByMouse
     assert section_flags & Qt.TextSelectableByKeyboard
+    assert not (folder_name.textInteractionFlags() & Qt.TextSelectableByMouse)
     _ = app

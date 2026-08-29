@@ -32,11 +32,19 @@ from app.ui.design_tokens import (
     CAPTURE_BAR_HEIGHT,
     CAPTURE_BAR_ITEM_GAP,
     CAPTURE_BAR_PADDING_X,
+    CAPTURE_BAR_PADDING_Y,
     CAPTURE_BUTTON_HEIGHT,
     CAPTURE_BUTTON_WIDTH,
     CAPTURE_EDGE_BUTTON_HEIGHT,
+    CAPTURE_FIELD_FILENAME_MIN_WIDTH,
+    CAPTURE_FIELD_FOLDER_MIN_WIDTH,
     CAPTURE_FIELD_HEIGHT,
+    CAPTURE_FIELD_LABEL_GAP,
+    CAPTURE_FIELD_TAGS_MIN_WIDTH,
     CAPTURE_FIELD_TITLE_HEIGHT,
+    CAPTURE_TOGGLE_WIDTH,
+    COLORS,
+    CONTROL_STANDARD,
     NAV_RESPONSIVE_BREAKPOINT,
     apply_card_shadow,
 )
@@ -68,7 +76,7 @@ class _CaptureFlatField(QWidget):
         self._control = control
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)
+        layout.setSpacing(CAPTURE_FIELD_LABEL_GAP)
         label = QLabel(label_text, self)
         label.setObjectName("captureModeSelectorLabel")
         label.setFixedHeight(CAPTURE_FIELD_TITLE_HEIGHT)
@@ -76,6 +84,7 @@ class _CaptureFlatField(QWidget):
         layout.addWidget(label)
         control.setObjectName("captureFlatCombo")
         control.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        control.setFixedHeight(CONTROL_STANDARD)
         layout.addWidget(control)
 
     def set_hint(self, text: str) -> None:
@@ -113,26 +122,28 @@ from app.ui.capture_settings import (
 from app.ui.floating_toast import FloatingToastHost
 from app.ui.icons import (
     icon_about,
-    icon_ai,
     icon_collapse_capture,
-    icon_capture_panel,
     icon_expand_capture,
+    icon_expand_nav,
     icon_organize,
     icon_fullscreen_capture,
     icon_home,
-    icon_images,
     icon_region_capture,
+    icon_automation,
+    icon_images,
     icon_settings,
     icon_tags,
 )
 from app.ui.pages.about_page import AboutPage
 from app.ui.pages.home_page import HomePage
+from app.ui.pages.automation_page import AutomationPage
 from app.ui.pages.images_page import ImagesPage, THUMBNAIL_ICON_SIZE
 from app.ui.pages.settings_page import SettingsPage
 from app.ui.ocr_test_controller import ImageAnalysisController
 from app.ui.pages.tags_page import TagsPage
 from app.ui.pages.work_page import WorkPage
 from app.ui.side_nav import SideNav
+from app.ui.design_tokens import COLORS, apply_product_palette, paint_canvas
 from app.ui.styles import APP_STYLE
 from app.ui.welcome_dialog import WelcomeDialog
 from app.paths import is_frozen
@@ -141,6 +152,7 @@ from app.utils.save_folder import list_folder_names
 from app.utils.selected_folder import selected_folder_state
 from app.utils.snipping_toast import snipping_toast_suppressor
 from app.utils.thumbnail_cache import ThumbnailCache
+from app.utils.logger import setup_logger
 from app.utils.window_acrylic import set_windows_caption_color
 from app.utils.workspace import (
     DEFAULT_FOLDER,
@@ -155,20 +167,28 @@ _SNIP_HOTKEY_DELAY_MS = 250
 
 PAGE_HOME = 0
 PAGE_IMAGES = 1
+PAGE_SEARCH = PAGE_IMAGES
 PAGE_ORGANIZE = 2
 PAGE_ACTION = PAGE_ORGANIZE  # backward-compatible alias
 PAGE_TAGS = 3
 PAGE_SETTINGS = 4
 PAGE_ABOUT = 5
+PAGE_ACCOUNT = 6
+PAGE_AUTOMATION = 7
 
 # Temporarily retired from the product navigation. Keep the implementations and
 # stack positions intact so restoring both pages is a one-line change.
 MANAGEMENT_PAGES_ENABLED = False
 
+# Temporarily hidden for the current prototype verification. Set True to restore
+# Capture in Navigation, the Capture Bar, capture hotkeys, clipboard save, and
+# screenshot toasts (including Snipping Tool toast suppression).
+CAPTURE_ENABLED = False
+
 # (page_id, i18n key, icon factory, navAccent for per-item colors)
 NAV_ITEMS = [
-    (PAGE_HOME, "nav.home", icon_home, "home"),
     (PAGE_IMAGES, "nav.images", icon_images, "images"),
+    (PAGE_HOME, "nav.home", icon_home, "home"),
     (PAGE_ORGANIZE, "nav.organize", icon_organize, "organize"),
     (PAGE_TAGS, "nav.tags", icon_tags, "tags"),
     (PAGE_SETTINGS, "nav.settings", icon_settings, "settings"),
@@ -212,10 +232,20 @@ class MainWindow(QMainWindow):
             config.get("window_height", 900),
         )
         self.setStyleSheet(APP_STYLE)
-        set_windows_caption_color(self, "#F3F6FA")
+        apply_product_palette(self)
+        set_windows_caption_color(self, COLORS.app_bg)
+        if not _icon.isNull():
+            from app.ui.windows_shell import apply_windows_window_icons
+
+            apply_windows_window_icons(self)
 
         self._metadata_service = MetadataService()
         self._thumbnail_cache = ThumbnailCache(size=THUMBNAIL_ICON_SIZE)
+        self._images_navigation_refresh = QTimer(self)
+        self._images_navigation_refresh.setSingleShot(True)
+        self._images_navigation_refresh.timeout.connect(
+            self._refresh_images_after_navigation
+        )
         self._image_saver = ImageSaver(config, self._metadata_service, self._app_root)
         self._screenshot_session = ScreenshotSession(parent=self)
         self._screenshot_session.finished.connect(self._on_screenshot_session_finished)
@@ -235,15 +265,18 @@ class MainWindow(QMainWindow):
 
         enable_label_text_selection(self)
 
-        # Suppress Snipping Tool clipboard toasts while this app is running
-        snipping_toast_suppressor.enter()
-
-        interval_ms = config.get("clipboard_check_interval_ms", 500)
-        self._clipboard_watcher = ClipboardWatcher(
-            interval_ms=interval_ms,
-            on_image_detected=self._on_image_detected,
-        )
-        self._clipboard_watcher.start()
+        self._snipping_toast_held = False
+        self._clipboard_watcher: ClipboardWatcher | None = None
+        if CAPTURE_ENABLED:
+            # Suppress Snipping Tool clipboard toasts while Capture is active
+            snipping_toast_suppressor.enter()
+            self._snipping_toast_held = True
+            interval_ms = config.get("clipboard_check_interval_ms", 500)
+            self._clipboard_watcher = ClipboardWatcher(
+                interval_ms=interval_ms,
+                on_image_detected=self._on_image_detected,
+            )
+            self._clipboard_watcher.start()
 
         # App-lifetime capture hotkeys (unregistered on close).
         # Stay disarmed until splash finishes so startup cannot auto-Capture.
@@ -258,15 +291,27 @@ class MainWindow(QMainWindow):
         _selected, folder_state = selected_folder_state(
             self._config, self._app_root
         )
-        self._show_page(PAGE_HOME if folder_state == "ready" else PAGE_IMAGES)
+        self._show_page(PAGE_IMAGES)
+        self._init_prototype_tour()
 
     def arm_capture_hotkeys(self) -> None:
         """Enable global Capture shortcuts after startup UI is ready."""
+        if not CAPTURE_ENABLED:
+            return
         if hasattr(self, "_hotkey_manager"):
             self._hotkey_manager.set_armed(True)
 
     def show_welcome_if_needed(self) -> None:
-        """Show the lightweight first-run guide after the main UI is visible."""
+        """Start first-run from the prototype tour, not the legacy Welcome dialog."""
+        if callable(getattr(self, "_needs_sign_in_gate", None)) and self._needs_sign_in_gate():
+            return
+        tour = getattr(self, "_prototype_tour", None)
+        if tour is not None:
+            # Prototype first-run is Sign in (packaged) → tour Welcome → folder.
+            # Never stack the old Folder/Analyze/Search dialog on top of it.
+            if tour.has_in_progress() or tour.should_auto_start():
+                tour.offer_welcome()
+            return
         # Source launches are the local design/QA environment and intentionally
         # preview onboarding every time. Packaged users see it only once.
         if is_frozen() and bool(self._config.get("onboarding_completed", False)):
@@ -306,30 +351,63 @@ class MainWindow(QMainWindow):
         root.setSpacing(0)
 
         self._side_nav = SideNav(self)
-        primary_nav_items = NAV_ITEMS[:2]
-        if MANAGEMENT_PAGES_ENABLED:
-            primary_nav_items += NAV_ITEMS[2:4]
-        for page_id, label_key, icon_fn, accent in primary_nav_items:
-            self._side_nav.add_nav_item(
-                page_id, t(label_key), icon_fn(), accent=accent
-            )
-        self._side_nav.add_placeholder_item(
-            t("nav.ai"),
-            icon_ai(muted=True),
-            tooltip=t("nav.ai_tooltip"),
-            accent="ai",
+        self._side_nav.add_nav_item(
+            PAGE_IMAGES, t("nav.images"), icon_images(), accent="images"
         )
-        for page_id, label_key, icon_fn, accent in NAV_ITEMS[4:]:
-            self._side_nav.add_nav_item(
-                page_id, t(label_key), icon_fn(), accent=accent
-            )
+        self._side_nav.add_folder_sections()
+        self._side_nav.set_favorites_expanded(
+            bool(self._config.get("nav_favorites_expanded", True)),
+            notify=False,
+        )
+        if MANAGEMENT_PAGES_ENABLED:
+            for page_id, label_key, icon_fn, accent in NAV_ITEMS[2:4]:
+                self._side_nav.add_nav_item(
+                    page_id, t(label_key), icon_fn(), accent=accent
+                )
+        self._side_nav.add_nav_item(
+            PAGE_AUTOMATION, t("nav.automation"), icon_automation(), accent="automation"
+        )
+        self._side_nav.add_nav_item(
+            PAGE_SETTINGS, t("nav.settings"), icon_settings(), accent="settings"
+        )
         self._side_nav.add_stretch()
-        self._side_nav.add_test_user()
-        self._side_nav.page_selected.connect(self._show_page)
+        self._side_nav.add_nav_item(
+            PAGE_ABOUT, t("nav.about"), icon_about(), accent="about"
+        )
+        self._side_nav.add_account_footer(capture_enabled=CAPTURE_ENABLED)
+        self._side_nav.add_version_footer()
+        self._side_nav.page_selected.connect(self._on_nav_page_selected)
+        self._side_nav.folder_opened.connect(self._open_nav_folder)
+        self._side_nav.favorites_reordered.connect(self._on_favorites_reordered)
+        self._side_nav.favorites_expanded_changed.connect(
+            self._on_nav_favorites_expanded
+        )
+        self._side_nav.expanded_changed.connect(self._on_nav_expanded_changed)
         self._side_nav._anim.valueChanged.connect(
             lambda _value: self._sync_capture_bar_geometry()
         )
         root.addWidget(self._side_nav)
+
+        self._nav_restore_wrap = QWidget(self)
+        self._nav_restore_wrap.setObjectName("navRestoreWrap")
+        restore_wrap_layout = QVBoxLayout(self._nav_restore_wrap)
+        restore_wrap_layout.setContentsMargins(8, 20, 4, 0)
+        restore_wrap_layout.setSpacing(0)
+        self._nav_restore_btn = QPushButton(self._nav_restore_wrap)
+        self._nav_restore_btn.setObjectName("sidebarUtilityButton")
+        self._nav_restore_btn.setIcon(icon_expand_nav())
+        self._nav_restore_btn.setIconSize(QSize(16, 16))
+        self._nav_restore_btn.setCursor(Qt.PointingHandCursor)
+        self._nav_restore_btn.setFocusPolicy(Qt.NoFocus)
+        self._nav_restore_btn.setToolTip(t("nav.expand"))
+        self._nav_restore_btn.setAccessibleName(t("nav.expand"))
+        self._nav_restore_btn.clicked.connect(
+            lambda: self._side_nav.set_expanded(True)
+        )
+        restore_wrap_layout.addWidget(self._nav_restore_btn, 0, Qt.AlignTop)
+        restore_wrap_layout.addStretch(1)
+        self._nav_restore_wrap.hide()
+        root.addWidget(self._nav_restore_wrap, 0)
 
         content_column = QWidget(self)
         content_column.setObjectName("appContent")
@@ -338,6 +416,8 @@ class MainWindow(QMainWindow):
         content_layout.setSpacing(0)
 
         self._stack = QStackedWidget(self)
+        self._stack.setObjectName("pageStack")
+        paint_canvas(self._stack)
 
         self._home_page = HomePage(
             self._config,
@@ -349,7 +429,10 @@ class MainWindow(QMainWindow):
         )
         self._home_page.folder_changed.connect(self._on_home_folder_changed)
 
-        self._image_analysis_controller = ImageAnalysisController(self)
+        self._image_analysis_controller = ImageAnalysisController(self, config=self._config)
+        from app.image_facts.progressive import make_product_progressive_facts_indexer
+
+        self._semantic_index_indexer = make_product_progressive_facts_indexer(self._config)
         self._images_page = ImagesPage(
             self._config,
             self._metadata_service,
@@ -357,8 +440,12 @@ class MainWindow(QMainWindow):
             self._app_root,
             self,
             analysis_controller=self._image_analysis_controller,
+            semantic_index_indexer=self._semantic_index_indexer,
         )
         self._images_page.folder_changed.connect(self._on_images_folder_changed)
+        self._images_page.folder_shortcuts_changed.connect(self._refresh_nav_folders)
+        self._images_page.capture_requested.connect(self._toggle_capture_bar)
+        self._side_nav.capture_clicked.connect(self._on_nav_capture_clicked)
         if self._images_page._analysis_bar is not None:
             self._images_page._analysis_bar.analysis_summary_changed.connect(
                 self._home_page.set_analysis_summary
@@ -404,7 +491,60 @@ class MainWindow(QMainWindow):
         self._settings_page.window_size_changed.connect(
             self._apply_window_size_from_settings
         )
+        self._settings_page.reanalyze_requested.connect(
+            self._images_page.reanalyze_library
+        )
+        self._settings_page.replay_tour_requested.connect(self._replay_prototype_tour)
+        self._settings_page.replay_ai_tour_requested.connect(self._replay_ai_tour)
+        self._settings_page.replay_automation_tour_requested.connect(self._replay_automation_tour)
+        self._settings_page.ask_ai_explanation_requested.connect(
+            self._images_page.show_ask_ai_explanation
+        )
+        self._settings_page.feedback_requested.connect(self._open_prototype_feedback)
         self._about_page = AboutPage(self)
+        from app.ui.account_controller import AccountController
+        from app.ui.pages.account_page import AccountPage
+
+        self._account_controller = AccountController(parent=self)
+        self._account_page = AccountPage(self)
+        self._account_page.google_clicked.connect(self._account_controller.start_google)
+        self._account_page.github_clicked.connect(self._account_controller.start_github)
+        self._account_page.sign_in_clicked.connect(self._account_controller.sign_in_email)
+        self._account_page.sign_up_clicked.connect(self._account_controller.sign_up_email)
+        self._account_page.sign_out_clicked.connect(self._account_controller.sign_out)
+        self._account_controller.session_changed.connect(self._on_account_session)
+        self._account_controller.usage_changed.connect(self._account_page.apply_usage)
+        self._account_controller.busy_changed.connect(self._on_account_busy)
+        self._account_controller.message.connect(self._on_account_message)
+        from app.ai_proxy import bind_ai_proxy_client
+        from app.budget.gate import bind_cloud_budget_gate
+
+        try:
+            bind_cloud_budget_gate(
+                self._account_controller.service, self._account_controller.budget
+            )
+            bind_ai_proxy_client(
+                self._account_controller.service,
+                config=self._account_controller.service.client_config,
+                on_usage=self._account_controller.apply_proxy_usage,
+            )
+        except Exception:
+            setup_logger().exception(
+                "AI proxy / budget bind failed; local features remain available."
+            )
+        self._side_nav._account_control.clicked.connect(lambda: self._show_page(PAGE_ACCOUNT))
+
+        from app.automation import AutomationService
+
+        self._automation_service = AutomationService()
+        self._images_page._automation_service = self._automation_service
+        self._automation_page = AutomationPage(
+            self._automation_service,
+            self,
+            scope_folder_provider=lambda: str(self._images_page._get_folder_dir()),
+        )
+        self._automation_page.run_requested.connect(self._run_automation_workflow)
+        self._images_page.automation_run_finished.connect(self._on_automation_run_finished)
 
         self._stack.addWidget(self._home_page)  # 0
         self._stack.addWidget(self._images_page)  # 1
@@ -412,6 +552,12 @@ class MainWindow(QMainWindow):
         self._stack.addWidget(self._tags_page)  # 3
         self._stack.addWidget(self._settings_page)  # 4
         self._stack.addWidget(self._about_page)  # 5
+        self._stack.addWidget(self._account_page)  # 6
+        self._stack.addWidget(self._automation_page)  # 7
+        for index in range(self._stack.count()):
+            page = self._stack.widget(index)
+            if page is not None:
+                paint_canvas(page)
 
         content_layout.addWidget(self._stack, stretch=1)
 
@@ -427,16 +573,17 @@ class MainWindow(QMainWindow):
         self._capture_bar_restore_row = QWidget(bottom_host)
         self._capture_bar_restore_row.setObjectName("captureBarRestoreRow")
         restore_layout = QHBoxLayout(self._capture_bar_restore_row)
-        restore_layout.setContentsMargins(0, 6, CAPTURE_BAR_PADDING_X, 0)
+        restore_layout.setContentsMargins(0, 4, CAPTURE_BAR_PADDING_X, 4)
         restore_layout.setSpacing(0)
-        self._capture_bar_restore_btn = QPushButton("", self._capture_bar_restore_row)
-        self._capture_bar_restore_btn.setObjectName("captureBarToggleButton")
+        self._capture_bar_restore_btn = QPushButton(
+            t("shell.capture.action"), self._capture_bar_restore_row
+        )
+        self._capture_bar_restore_btn.setObjectName("captureBarRestoreButton")
         self._capture_bar_restore_btn.setIcon(icon_expand_capture())
         self._capture_bar_restore_btn.setIconSize(QSize(14, 14))
         self._capture_bar_restore_btn.setCursor(Qt.PointingHandCursor)
-        self._capture_bar_restore_btn.setFixedSize(
-            CAPTURE_EDGE_BUTTON_HEIGHT, CAPTURE_EDGE_BUTTON_HEIGHT
-        )
+        self._capture_bar_restore_btn.setFixedHeight(CAPTURE_EDGE_BUTTON_HEIGHT)
+        self._capture_bar_restore_btn.setMinimumWidth(108)
         self._capture_bar_restore_btn.clicked.connect(self._toggle_capture_bar)
         restore_layout.addStretch(1)
         restore_layout.addWidget(self._capture_bar_restore_btn)
@@ -453,34 +600,34 @@ class MainWindow(QMainWindow):
         capture_card_layout = QVBoxLayout(bottom_bar)
         capture_card_layout.setContentsMargins(
             CAPTURE_BAR_PADDING_X,
-            18,
+            CAPTURE_BAR_PADDING_Y,
             CAPTURE_BAR_PADDING_X,
-            19,
+            CAPTURE_BAR_PADDING_Y,
         )
-        capture_card_layout.setSpacing(0)
+        capture_card_layout.setSpacing(CAPTURE_BAR_ITEM_GAP)
 
         capture_title_row = QWidget(bottom_bar)
         capture_title_row.setObjectName("captureBarTitleRow")
-        capture_title_row.setFixedHeight(CAPTURE_EDGE_BUTTON_HEIGHT)
+        capture_title_row.setFixedHeight(CONTROL_STANDARD)
         self._capture_bar_title_row = capture_title_row
         capture_title_layout = QHBoxLayout(capture_title_row)
         capture_title_layout.setContentsMargins(0, 0, 0, 0)
-        capture_title_layout.setSpacing(7)
+        capture_title_layout.setSpacing(8)
 
         capture_title_icon = QLabel(capture_title_row)
         capture_title_icon.setObjectName("captureBarTitleIcon")
-        capture_title_icon.setFixedSize(20, 20)
+        capture_title_icon.setFixedSize(16, 16)
         capture_title_icon.setPixmap(
-            icon_fullscreen_capture(color="#2563eb").pixmap(18, 18)
+            icon_fullscreen_capture(color=COLORS.accent).pixmap(16, 16)
         )
         capture_title_icon.setAlignment(Qt.AlignCenter)
         self._capture_bar_title_icon = capture_title_icon
-        capture_title_layout.addWidget(capture_title_icon)
+        capture_title_layout.addWidget(capture_title_icon, 0, Qt.AlignVCenter)
 
         capture_title = QLabel(t("shell.capture_bar.title"), capture_title_row)
         capture_title.setObjectName("captureBarTitle")
         self._capture_bar_title = capture_title
-        capture_title_layout.addWidget(capture_title)
+        capture_title_layout.addWidget(capture_title, 0, Qt.AlignVCenter)
         capture_title_layout.addStretch(1)
 
         self._capture_bar_toggle_btn = QPushButton("", capture_title_row)
@@ -489,10 +636,13 @@ class MainWindow(QMainWindow):
         self._capture_bar_toggle_btn.setIconSize(QSize(14, 14))
         self._capture_bar_toggle_btn.setCursor(Qt.PointingHandCursor)
         self._capture_bar_toggle_btn.setFixedSize(
-            CAPTURE_EDGE_BUTTON_HEIGHT, CAPTURE_EDGE_BUTTON_HEIGHT
+            CAPTURE_TOGGLE_WIDTH, CAPTURE_EDGE_BUTTON_HEIGHT
         )
         self._capture_bar_toggle_btn.clicked.connect(self._toggle_capture_bar)
-        capture_title_layout.addWidget(self._capture_bar_toggle_btn)
+        capture_title_layout.addWidget(
+            self._capture_bar_toggle_btn, 0, Qt.AlignVCenter
+        )
+        capture_card_layout.addWidget(capture_title_row)
 
         capture_controls_row = QWidget(bottom_bar)
         capture_controls_row.setObjectName("captureBarControlsRow")
@@ -500,51 +650,45 @@ class MainWindow(QMainWindow):
         self._capture_bar_layout = bottom_bar_layout
         bottom_bar_layout.setContentsMargins(0, 0, 0, 0)
         bottom_bar_layout.setSpacing(CAPTURE_BAR_ITEM_GAP)
-        bottom_bar_layout.setAlignment(Qt.AlignVCenter)
+        bottom_bar_layout.setAlignment(Qt.AlignBottom)
 
-        bottom_bar_layout.addStretch(1)
-
-        # 1) Capture button (primary action). Its icon and mode label live in
-        # the button itself, matching the compact reference CTA.
         capture_action_field = QWidget(bottom_bar)
         capture_action_field.setObjectName("captureActionField")
-        capture_action_field.setFixedHeight(CAPTURE_BUTTON_HEIGHT)
+        capture_action_field.setFixedHeight(CAPTURE_FIELD_HEIGHT)
         self._capture_action_field = capture_action_field
         capture_action_layout = QVBoxLayout(capture_action_field)
-        # Extra trailing inset separates the primary action from Mode without
-        # changing the spacing used by the rest of the capture bar.
-        capture_action_layout.setContentsMargins(0, 0, 8, 0)
-        capture_action_layout.setSpacing(0)
+        capture_action_layout.setContentsMargins(0, 0, 0, 0)
+        capture_action_layout.setSpacing(CAPTURE_FIELD_LABEL_GAP)
+        capture_action_spacer = QWidget(capture_action_field)
+        capture_action_spacer.setFixedHeight(CAPTURE_FIELD_TITLE_HEIGHT)
+        capture_action_spacer.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        capture_action_layout.addWidget(capture_action_spacer)
 
         self._capture_btn = QToolButton(capture_action_field)
-        self._capture_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self._capture_btn.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
         self._capture_btn.setAccessibleName(t("shell.capture.action"))
         self._capture_btn.setCursor(Qt.PointingHandCursor)
-        self._capture_btn.setFixedSize(CAPTURE_BUTTON_WIDTH, CAPTURE_BUTTON_HEIGHT)
-        self._capture_btn.setIconSize(QSize(20, 20))
+        self._capture_btn.setFixedHeight(CAPTURE_BUTTON_HEIGHT)
+        self._capture_btn.setMinimumWidth(CAPTURE_BUTTON_WIDTH)
+        self._capture_btn.setMaximumHeight(CAPTURE_BUTTON_HEIGHT)
+        self._capture_btn.setIconSize(QSize(16, 16))
         self._capture_btn.clicked.connect(self._on_capture_clicked)
-        capture_action_layout.addWidget(self._capture_btn, 0, Qt.AlignHCenter)
-        bottom_bar_layout.addWidget(capture_action_field, 0, Qt.AlignVCenter)
-        bottom_bar_layout.addSpacing(12)
+        capture_action_layout.addWidget(self._capture_btn, 0, Qt.AlignLeft)
+        capture_action_field.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+        bottom_bar_layout.addWidget(capture_action_field, 0, Qt.AlignBottom)
 
-        # 2) Explicit mode selector. It changes state only; Capture executes it.
         self._capture_mode_selector = CaptureModeSelector(bottom_bar)
         self._capture_mode_selector.mode_selected.connect(self._set_capture_mode)
         bottom_bar_layout.addWidget(
-            self._capture_mode_selector, 0, Qt.AlignVCenter
+            self._capture_mode_selector, 0, Qt.AlignBottom
         )
 
-        # Soft separator before settings (keeps capture controls distinct)
         bar_divider = QFrame(bottom_bar)
         bar_divider.setObjectName("captureBarDivider")
         bar_divider.setFixedWidth(1)
-        bar_divider.setFixedHeight(36)
-        bottom_bar_layout.addSpacing(2)
-        bottom_bar_layout.addWidget(bar_divider, 0, Qt.AlignVCenter)
-        bottom_bar_layout.addSpacing(2)
+        bar_divider.setFixedHeight(CONTROL_STANDARD)
+        bottom_bar_layout.addWidget(bar_divider, 0, Qt.AlignBottom)
 
-        # 4) Settings fields. This is the only shrinkable/scrollable segment;
-        # the primary and secondary actions remain ordinary toolbar widgets.
         settings_scroll = _CaptureSettingsScroll(bottom_bar)
         self._capture_settings_scroll = settings_scroll
         settings_scroll.setObjectName("captureSettingsScroll")
@@ -555,23 +699,21 @@ class MainWindow(QMainWindow):
         settings_scroll.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         settings_scroll.setFixedHeight(CAPTURE_FIELD_HEIGHT)
         settings_scroll.setMinimumWidth(0)
-        settings_scroll.setMaximumWidth(360)
 
         settings_strip = QWidget(settings_scroll)
         settings_strip.setObjectName("captureSettingsFlatStrip")
         self._capture_settings_strip = settings_strip
         settings_strip.setMinimumWidth(0)
-        settings_strip.setMaximumWidth(360)
         settings_strip.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         strip_layout = QHBoxLayout(settings_strip)
         strip_layout.setContentsMargins(0, 0, 0, 0)
-        strip_layout.setSpacing(8)
-        strip_layout.setAlignment(Qt.AlignVCenter)
+        strip_layout.setSpacing(CAPTURE_BAR_ITEM_GAP)
+        strip_layout.setAlignment(Qt.AlignBottom)
 
         self._save_folder_btn = QPushButton(settings_strip)
         self._save_folder_btn.setObjectName("captureSaveFolderButton")
         self._save_folder_btn.setCursor(Qt.PointingHandCursor)
-        self._save_folder_btn.setMinimumWidth(110)
+        self._save_folder_btn.setMinimumWidth(CAPTURE_FIELD_FOLDER_MIN_WIDTH)
         self._save_folder_btn.clicked.connect(self._choose_capture_save_folder)
         self._save_folder_field = _CaptureFlatField(
             t("shell.capture_bar.folder"), self._save_folder_btn, settings_strip
@@ -581,6 +723,7 @@ class MainWindow(QMainWindow):
         strip_layout.addWidget(field_separator(settings_strip))
 
         self._filename_combo = FilenameRuleCombo(settings_strip)
+        self._filename_combo.setMinimumWidth(CAPTURE_FIELD_FILENAME_MIN_WIDTH)
         self._filename_combo.template_changed.connect(self._on_filename_template_changed)
         self._filename_field = _CaptureFlatField(
             t("shell.capture_bar.filename"),
@@ -594,6 +737,7 @@ class MainWindow(QMainWindow):
         self._capture_tag_combo = CaptureTagCombo(
             self._metadata_service, self._app_root, settings_strip
         )
+        self._capture_tag_combo.setMinimumWidth(CAPTURE_FIELD_TAGS_MIN_WIDTH)
         self._capture_tag_combo.set_tags(list(self._config.get("capture_tags") or []))
         self._capture_tag_combo.tags_changed.connect(self._on_capture_tags_changed)
         self._capture_tags_field = _CaptureFlatField(
@@ -602,54 +746,10 @@ class MainWindow(QMainWindow):
         strip_layout.addWidget(self._capture_tags_field, stretch=1)
 
         settings_scroll.setWidget(settings_strip)
-        bottom_bar_layout.addWidget(settings_scroll, 0, Qt.AlignVCenter)
-
-        # Secondary utility group: keep it in the stable toolbar layout while
-        # distinguishing it from the save settings group.
-        secondary_divider = QFrame(bottom_bar)
-        secondary_divider.setObjectName("captureBarDivider")
-        secondary_divider.setFixedWidth(1)
-        secondary_divider.setFixedHeight(36)
-        bottom_bar_layout.addSpacing(2)
-        bottom_bar_layout.addWidget(secondary_divider, 0, Qt.AlignVCenter)
-        bottom_bar_layout.addSpacing(2)
-
-        # Capture Panel opener — button + short hint (matches CompactField rhythm)
-        panel_field = QWidget(bottom_bar)
-        panel_field.setObjectName("capturePanelField")
-        self._capture_panel_field = panel_field
-        panel_field.setFixedHeight(CAPTURE_FIELD_HEIGHT)
-        panel_field_layout = QHBoxLayout(panel_field)
-        panel_field_layout.setContentsMargins(0, 0, 0, 0)
-        panel_field_layout.setSpacing(8)
-        panel_field_layout.setAlignment(Qt.AlignVCenter)
-
-        self._capture_panel_btn = QPushButton(
-            "", panel_field
-        )
-        self._capture_panel_btn.setObjectName("capturePanelPopOutButton")
-        self._capture_panel_btn.setIcon(icon_capture_panel())
-        self._capture_panel_btn.setIconSize(QSize(20, 20))
-        self._capture_panel_btn.setCursor(Qt.PointingHandCursor)
-        self._capture_panel_btn.setFixedSize(36, 36)
-        self._capture_panel_btn.setAccessibleName(t("shell.capture_panel.button"))
-        self._capture_panel_btn.setToolTip(t("shell.capture_panel.pop_out_tooltip"))
-        self._capture_panel_btn.clicked.connect(self._toggle_capture_panel)
-        panel_field_layout.addWidget(self._capture_panel_btn)
-
-        panel_hint = QLabel(t("shell.capture_panel.use_hint"), panel_field)
-        panel_hint.setObjectName("capturePanelUseHint")
-        panel_hint.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self._capture_panel_use_hint = panel_hint
-        panel_field_layout.addWidget(panel_hint)
-
-        bottom_bar_layout.addWidget(panel_field, 0, Qt.AlignVCenter)
-
-        bottom_bar_layout.addStretch(1)
+        bottom_bar_layout.addWidget(settings_scroll, 1, Qt.AlignBottom)
 
         capture_card_layout.addWidget(capture_controls_row)
         bottom_host_layout.addWidget(bottom_bar)
-        capture_title_row.raise_()
         apply_card_shadow(bottom_bar, blue_tinted=True)
 
         # Fixed footer; only the settings segment scrolls when space is limited.
@@ -661,24 +761,59 @@ class MainWindow(QMainWindow):
         self._refresh_capture_mode_ui(animate=False)
 
         root.addWidget(content_column, stretch=1)
-        self.setCentralWidget(central)
+        from app.ui.pages.sign_in_gate import SignInGatePage
+
+        self._app_shell = central
+        self._sign_in_gate = SignInGatePage(self)
+        self._sign_in_gate.google_clicked.connect(self._account_controller.start_google)
+        self._sign_in_gate.github_clicked.connect(self._account_controller.start_github)
+        self._sign_in_gate.sign_in_clicked.connect(self._account_controller.sign_in_email)
+        self._sign_in_gate.sign_up_clicked.connect(self._account_controller.sign_up_email)
+        self._root_stack = QStackedWidget(self)
+        self._root_stack.setObjectName("authRootStack")
+        paint_canvas(self._root_stack)
+        paint_canvas(central)
+        paint_canvas(content_column)
+        self._root_stack.addWidget(self._sign_in_gate)
+        self._root_stack.addWidget(self._app_shell)
+        paint_canvas(self._sign_in_gate)
+        self.setCentralWidget(self._root_stack)
+        self._auth_gate_released = False
         self._apply_navigation_density()
 
         self._refresh_folder_selector()
+        self._refresh_nav_folders()
         self._filename_combo.set_template(
             self._config.get("filename_template") or DEFAULT_FILENAME_TEMPLATE
         )
         self._capture_tag_combo.set_tags(list(self._config.get("capture_tags") or []))
         # Ensure Settings page widgets mirror the last-used config on launch
         self._settings_page.refresh()
-        self._set_capture_bar_visible(
-            bool(self._config.get("capture_bar_visible", True)),
-            persist=False,
-            animate=False,
+        # Search keeps Capture collapsed until the user opens it this session.
+        self._set_capture_bar_visible(False, persist=False, animate=False)
+        self._on_account_session(self._account_controller.session)
+        self._sync_auth_gate()
+        self._account_restore_timer = QTimer(self)
+        self._account_restore_timer.setSingleShot(True)
+        self._account_restore_timer.timeout.connect(
+            self._account_controller.restore_in_background
         )
+        self._account_restore_timer.start(0)
 
     def _toggle_capture_bar(self) -> None:
+        if not CAPTURE_ENABLED:
+            return
         self._set_capture_bar_visible(not self._capture_bar_visible)
+
+    def _on_nav_capture_clicked(self) -> None:
+        """Open Capture Bar from Navigation. Search stays the current page."""
+        if not CAPTURE_ENABLED:
+            return
+        if self._stack.currentIndex() != PAGE_IMAGES:
+            self._show_page(PAGE_IMAGES)
+            self._set_capture_bar_visible(True)
+            return
+        self._toggle_capture_bar()
 
     def _set_capture_bar_visible(
         self,
@@ -687,17 +822,14 @@ class MainWindow(QMainWindow):
         persist: bool = True,
         animate: bool = True,
     ) -> None:
-        """Show/hide compact capture controls while leaving a small restore action."""
+        """Show/hide compact capture controls. Closed Search keeps no capture chrome."""
+        if not CAPTURE_ENABLED:
+            visible = False
         visible = bool(visible)
         self._capture_bar_visible = visible
-        self._capture_bar_host.layout().setContentsMargins(
-            8,
-            2,
-            8,
-            4,
-        )
+        self._capture_bar_host.layout().setContentsMargins(8, 2, 8, 4)
         self._capture_bar_toggle_btn.setText("")
-        self._capture_bar_restore_btn.setText("")
+        self._capture_bar_restore_btn.setText(t("shell.capture.action"))
         self._capture_bar_toggle_btn.setIcon(icon_collapse_capture())
         self._capture_bar_restore_btn.setIcon(icon_expand_capture())
         self._capture_bar_toggle_btn.setToolTip(t("shell.capture_bar.hide_tooltip"))
@@ -716,12 +848,16 @@ class MainWindow(QMainWindow):
         expanded_height = max(
             CAPTURE_BAR_HEIGHT, self._capture_bar.sizeHint().height()
         )
+        self._capture_bar_restore_row.hide()
+        on_search = (
+            hasattr(self, "_stack") and self._stack.currentIndex() == PAGE_IMAGES
+        )
         if not animate:
             self._capture_bar.setMaximumHeight(16777215)
             self._capture_bar.setVisible(visible)
-            self._capture_bar_restore_row.setVisible(not visible)
+            self._capture_bar_host.setVisible(visible and on_search)
         elif visible:
-            self._capture_bar_restore_row.hide()
+            self._capture_bar_host.setVisible(on_search)
             self._capture_bar.setMaximumHeight(0)
             self._capture_bar.show()
             animation = QPropertyAnimation(
@@ -737,7 +873,6 @@ class MainWindow(QMainWindow):
             self._capture_bar_animation = animation
             animation.start()
         else:
-            self._capture_bar_restore_row.hide()
             self._capture_bar.show()
             animation = QPropertyAnimation(
                 self._capture_bar, b"maximumHeight", self
@@ -750,7 +885,8 @@ class MainWindow(QMainWindow):
             def finish_collapse() -> None:
                 self._capture_bar.hide()
                 self._capture_bar.setMaximumHeight(16777215)
-                self._capture_bar_restore_row.show()
+                self._capture_bar_restore_row.hide()
+                self._capture_bar_host.hide()
 
             animation.finished.connect(finish_collapse)
             self._capture_bar_animation = animation
@@ -761,6 +897,10 @@ class MainWindow(QMainWindow):
                 save_config(self._config)
             except OSError:
                 pass
+        if hasattr(self, "_images_page"):
+            self._images_page.set_capture_expanded(visible)
+        if hasattr(self, "_side_nav"):
+            self._side_nav.set_capture_active(visible)
 
     def _persist_runtime_settings(self) -> None:
         """Write last-used shell settings so the next launch restores them.
@@ -906,20 +1046,32 @@ class MainWindow(QMainWindow):
     def _show_page(self, page_id: int) -> None:
         if not MANAGEMENT_PAGES_ENABLED and page_id in (PAGE_ORGANIZE, PAGE_TAGS):
             page_id = PAGE_IMAGES
-        self._stack.setCurrentIndex(page_id)
+        previous_page = self._stack.currentIndex()
+        if page_id == PAGE_IMAGES and previous_page != PAGE_IMAGES:
+            setup_logger().info("Images navigation start from_page=%d", previous_page)
+        target = self._stack.widget(page_id)
+        if target is not None:
+            from app.ui.page_motion import crossfade_stacked
+
+            crossfade_stacked(self._stack, target)
+        else:
+            self._stack.setCurrentIndex(page_id)
         self._side_nav.set_current_page(page_id)
         # Capture controls belong to the Images workspace only. Hiding the
         # host removes its height from every information/settings page.
-        self._capture_bar_host.setVisible(page_id == PAGE_IMAGES)
+        self._capture_bar_host.setVisible(
+            page_id == PAGE_IMAGES and bool(getattr(self, "_capture_bar_visible", False))
+        )
         if page_id == PAGE_IMAGES:
             QTimer.singleShot(0, self._sync_capture_bar_geometry)
         self._refresh_folder_selector()
 
         if page_id == PAGE_HOME:
             self._home_page.refresh()
-            self._images_page._refresh_analysis_preview()
         elif page_id == PAGE_IMAGES:
-            self._images_page.refresh()
+            # Let the newly selected page paint before filesystem/metadata work,
+            # then decode thumbnails in short batches inside ImagesPage.
+            self._images_navigation_refresh.start(0)
         elif page_id == PAGE_ORGANIZE:
             self._work_page.refresh()
         elif page_id == PAGE_TAGS:
@@ -928,16 +1080,237 @@ class MainWindow(QMainWindow):
             self._settings_page.refresh()
         elif page_id == PAGE_ABOUT:
             pass
+        elif page_id == PAGE_ACCOUNT:
+            self._account_page.apply_session(self._account_controller.session)
+            self._account_controller.refresh_usage()
+        elif page_id == PAGE_AUTOMATION:
+            self._automation_page.refresh()
+            if previous_page != PAGE_AUTOMATION:
+                from app.prototype_tour.events import emit_tour_event, tour_event_generation
+                from app.prototype_tour.models import UI_AUTOMATION_PAGE_SHOWN
+
+                emit_tour_event(UI_AUTOMATION_PAGE_SHOWN, generation=tour_event_generation())
+        host = getattr(self, "_tour_host", None)
+        if host is not None:
+            host.refresh_anchors()
+            if host.overlay.isVisible():
+                host.overlay.raise_()
+                host.overlay.refresh_geometry()
+            if host.chrome.isVisible():
+                host.chrome.raise_()
+
+    def _run_automation_workflow(self, workflow_id: str) -> None:
+        workflow = self._automation_service.get(workflow_id)
+        if workflow is None:
+            return
+        from PySide6.QtWidgets import QDialog
+
+        from app.ui.automation_run_dialog import AutomationRunDialog
+
+        dialog = AutomationRunDialog(self, workflow=workflow)
+        if dialog.exec() != QDialog.Accepted:
+            return
+        from app.prototype_tour.events import emit_tour_event, tour_event_generation
+        from app.prototype_tour.models import UI_AUTOMATION_RUN
+
+        emit_tour_event(UI_AUTOMATION_RUN, generation=tour_event_generation())
+        self._automation_page.set_running(workflow.id, True)
+        self._images_page.run_automation_workflow(workflow, auto_confirm=True)
+
+    def _on_automation_run_finished(self, workflow_id: str, ok: bool, message: str) -> None:
+        from app.prototype_tour.events import emit_tour_event, tour_event_generation
+        from app.prototype_tour.models import UI_AUTOMATION_RUN_FINISHED
+
+        emit_tour_event(UI_AUTOMATION_RUN_FINISHED, ok=ok, generation=tour_event_generation())
+        self._automation_service.record_run(workflow_id)
+        self._automation_page.set_running(workflow_id, False)
+        workflow = self._automation_service.get(workflow_id)
+        name = workflow.name if workflow is not None else ""
+        if ok:
+            self._toast_host.show_result(
+                title=t("automation.toast_done_title"),
+                body=message or t("automation.toast_done_body", name=name),
+                ok=True,
+                duration_ms=self._notification_duration_ms(),
+            )
+            return
+        self._toast_host.show_result(
+            title=t("automation.toast_failed_title"),
+            body=message or name,
+            ok=False,
+            duration_ms=self._notification_duration_ms(),
+        )
+
+    def _account_ui_alive(self) -> bool:
+        from app.ui.account_controller import _qobject_alive
+
+        return (
+            _qobject_alive(self)
+            and _qobject_alive(getattr(self, "_account_page", None))
+            and _qobject_alive(getattr(self, "_side_nav", None))
+        )
+
+    def _on_account_session(self, session) -> None:
+        from app.auth import AuthStatus
+        from app.i18n import t
+
+        if not self._account_ui_alive():
+            return
+        self._account_page.apply_session(session)
+        if session.is_authenticated:
+            email = str(session.email or "")
+            from app.auth import email_account_name
+
+            name = email_account_name(email, session.user_id)
+            plan = session.entitlement.plan_label
+            if session.status == AuthStatus.OFFLINE_SESSION:
+                plan = t("account.offline_plan", plan=plan)
+            self._side_nav._account_control.set_identity(
+                name, plan, tooltip=email or name
+            )
+        else:
+            name = t("nav.account.signed_out")
+            plan = ""
+            self._side_nav._account_control.set_identity(name, plan)
+        self._sync_auth_gate()
+        images = getattr(self, "_images_page", None)
+        if images is not None:
+            user_id = ""
+            if session.is_authenticated:
+                user_id = str(getattr(session, "user_id", "") or "")
+            note = getattr(images, "note_ask_ai_account", None)
+            if callable(note):
+                note(user_id)
+        tour = getattr(self, "_prototype_tour", None)
+        if tour is not None and session.is_authenticated:
+            tour.on_signed_in()
+
+    def _needs_sign_in_gate(self) -> bool:
+        if getattr(self, "_auth_gate_released", False):
+            return False
+        if not is_frozen():
+            return False
+        controller = getattr(self, "_account_controller", None)
+        if controller is None:
+            return False
+        session = controller.session
+        if getattr(session, "is_authenticated", False):
+            return False
+        service = getattr(controller, "service", None)
+        if service is not None and service.has_stored_session():
+            return False
+        return True
+
+    def _sync_auth_gate(self) -> None:
+        gate = getattr(self, "_sign_in_gate", None)
+        stack = getattr(self, "_root_stack", None)
+        shell = getattr(self, "_app_shell", None)
+        if gate is None or stack is None or shell is None:
+            return
+        if self._needs_sign_in_gate():
+            service = self._account_controller.service
+            if not getattr(service, "configured", True):
+                gate.show_not_configured()
+            from app.ui.page_motion import crossfade_stacked
+
+            crossfade_stacked(stack, gate)
+            return
+        if self._account_controller.session.is_authenticated:
+            self._auth_gate_released = True
+        from app.ui.page_motion import crossfade_stacked
+
+        crossfade_stacked(stack, shell)
+
+    def _on_account_message(self, text: str) -> None:
+        if not self._account_ui_alive():
+            return
+        self._account_page.show_message(text)
+        gate = getattr(self, "_sign_in_gate", None)
+        if gate is not None:
+            gate.show_message(text)
+
+    def _on_account_busy(self, busy: bool) -> None:
+        if not self._account_ui_alive():
+            return
+        self._account_page.set_busy(busy)
+        gate = getattr(self, "_sign_in_gate", None)
+        if gate is not None:
+            gate.set_busy(busy)
+
+    def _on_nav_page_selected(self, page_id: int) -> None:
+        self._show_page(page_id)
+        if page_id == PAGE_IMAGES:
+            from app.prototype_tour.events import emit_tour_event, tour_event_generation
+            from app.prototype_tour.models import UI_IMAGES_PAGE_SHOWN
+
+            emit_tour_event(UI_IMAGES_PAGE_SHOWN, generation=tour_event_generation())
+
+    def _init_prototype_tour(self) -> None:
+        from app.ui.tour_host import MainWindowTourHost
+
+        self._tour_host = MainWindowTourHost(self)
+        self._prototype_tour = self._tour_host.tour
+
+    def _replay_prototype_tour(self) -> None:
+        tour = getattr(self, "_prototype_tour", None)
+        if tour is not None:
+            tour.replay_core()
+
+    def _replay_ai_tour(self) -> None:
+        tour = getattr(self, "_prototype_tour", None)
+        if tour is not None:
+            tour.replay_ai()
+
+    def _replay_automation_tour(self) -> None:
+        tour = getattr(self, "_prototype_tour", None)
+        if tour is not None:
+            tour.replay_automation()
+
+    def _open_prototype_feedback(self) -> None:
+        tour = getattr(self, "_prototype_tour", None)
+        if tour is not None:
+            tour.open_feedback()
+
+    def _refresh_images_after_navigation(self) -> None:
+        if self._stack.currentIndex() != PAGE_IMAGES:
+            return
+        setup_logger().info("Images UI visible")
+        self._images_page.refresh(defer_thumbnails=True)
 
     def _on_images_folder_changed(self, _name: str = "") -> None:
         # Viewing folder changed — keep save_folder as-is; only refresh combo names
         self._refresh_folder_selector()
+        self._refresh_nav_folders()
         self._home_page.refresh()
         if self._stack.currentIndex() == PAGE_ORGANIZE:
             self._work_page.refresh()
 
+    def _open_nav_folder(self, path: str) -> None:
+        self._images_page.open_folder(path)
+        self._show_page(PAGE_IMAGES)
+
+    def _on_favorites_reordered(self, folders: list) -> None:
+        from app.utils.folder_shortcuts import set_favorite_folder_order
+
+        set_favorite_folder_order(self._config, folders)
+        save_config(self._config)
+
+    def _refresh_nav_folders(self) -> None:
+        from app.utils.folder_shortcuts import list_favorite_folders, list_recent_folders
+        from app.utils.selected_folder import get_selected_folder
+
+        current = get_selected_folder(self._config, self._app_root)
+        self._side_nav.set_folder_shortcuts(
+            favorites=list_favorite_folders(self._config),
+            recents=list_recent_folders(self._config),
+            current_folder=str(current) if current else "",
+        )
+
     def _on_home_folder_changed(self, path: str) -> None:
         """Refresh Images and related views after Home changes the folder."""
+        from app.utils.folder_shortcuts import remember_recent_folder
+
+        remember_recent_folder(self._config, path)
         self._images_page.refresh()
         self._on_images_folder_changed(Path(path).name)
 
@@ -976,6 +1349,9 @@ class MainWindow(QMainWindow):
         self._home_page.refresh()
 
     def _on_settings_saved(self) -> None:
+        # on_folder_changed below performs the single refresh/re-search.
+        self._image_analysis_controller.sync_semantic_model_from_config()
+        self._images_page.sync_search_mode_from_config(rerun=False)
         self._image_saver.update_config(self._config)
         self._metadata_service.invalidate_cache()
         self._thumbnail_cache.clear()
@@ -1011,6 +1387,19 @@ class MainWindow(QMainWindow):
                 self.width() < NAV_RESPONSIVE_BREAKPOINT
             )
 
+    def _on_nav_expanded_changed(self, expanded: bool) -> None:
+        del expanded
+        if hasattr(self, "_nav_restore_wrap"):
+            self._nav_restore_wrap.hide()
+        QTimer.singleShot(0, self._sync_capture_bar_geometry)
+
+    def _on_nav_favorites_expanded(self, expanded: bool) -> None:
+        self._config["nav_favorites_expanded"] = bool(expanded)
+        try:
+            save_config(self._config)
+        except OSError:
+            pass
+
     def _sync_capture_bar_geometry(self) -> None:
         """Align the footer card with the Images gallery workspace."""
         if not hasattr(self, "_capture_bar_host"):
@@ -1040,34 +1429,72 @@ class MainWindow(QMainWindow):
             host.layout().setContentsMargins(left, 2, right, 10)
         except RuntimeError:
             return
-        QTimer.singleShot(0, self._position_capture_bar_header)
-
-    def _position_capture_bar_header(self) -> None:
-        """Overlay the card heading without changing the capture bar height."""
-        if not hasattr(self, "_capture_bar_title_row"):
-            return
-        try:
-            inset = CAPTURE_BAR_PADDING_X
-            self._capture_bar_title_row.setGeometry(
-                inset,
-                6,
-                max(0, self._capture_bar.width() - (inset * 2)),
-                CAPTURE_EDGE_BUTTON_HEIGHT,
-            )
-            self._capture_bar_title_row.raise_()
-        except RuntimeError:
-            return
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
+        from app.ui.page_motion import stop_page_fade
+
+        stop_page_fade(self._stack)
+        if hasattr(self, "_root_stack"):
+            stop_page_fade(self._root_stack)
+        self._stack.update()
+        current = self._stack.currentWidget()
+        if current is not None:
+            current.update()
+        self.update()
         self._apply_navigation_density()
         QTimer.singleShot(0, self._sync_capture_bar_geometry)
         QTimer.singleShot(40, self._sync_capture_bar_geometry)
 
     def showEvent(self, event) -> None:
         super().showEvent(event)
-        QTimer.singleShot(0, self._sync_capture_bar_geometry)
-        QTimer.singleShot(40, self._sync_capture_bar_geometry)
+        QTimer.singleShot(0, self, self._sync_capture_bar_geometry)
+        QTimer.singleShot(40, self, self._sync_capture_bar_geometry)
+        QTimer.singleShot(0, self, self._ensure_semantic_bundle_warmup)
+
+    def _ensure_semantic_bundle_warmup(self) -> None:
+        """Hash OpenCLIP off the UI thread after MainWindow is visible."""
+        if getattr(self, "_semantic_bundle_warmup_started", False):
+            return
+        self._semantic_bundle_warmup_started = True
+        from PySide6.QtCore import QObject, Signal
+
+        from app.semantic.catalog import DEFAULT_MODEL_KEY
+        from app.semantic.installer import start_product_bundle_warmup
+        from app.ui.account_controller import _qobject_alive
+
+        class _WarmupRelay(QObject):
+            finished = Signal()
+
+        relay = _WarmupRelay(self)
+        relay.finished.connect(self._start_meaning_worker_prewarm)
+        self._semantic_prewarm_relay = relay
+        window = self
+
+        def on_done(_bundle, _error):
+            if not _qobject_alive(relay) or not _qobject_alive(window):
+                return
+            try:
+                relay.finished.emit()
+            except RuntimeError:
+                return
+
+        start_product_bundle_warmup(
+            self._config.get("developer_semantic_model", DEFAULT_MODEL_KEY),
+            on_done=on_done,
+        )
+
+    def _start_meaning_worker_prewarm(self) -> None:
+        from app.ui.account_controller import _qobject_alive
+
+        if not _qobject_alive(self):
+            return
+        images = getattr(self, "_images_page", None)
+        if images is None or not _qobject_alive(images):
+            return
+        prewarm = getattr(images, "prewarm_meaning_search", None)
+        if callable(prewarm):
+            prewarm()
 
     def _on_capture_clicked(self) -> None:
         """Toolbar Capture — defer so we are not inside the mouse-press stack."""
@@ -1086,6 +1513,8 @@ class MainWindow(QMainWindow):
         self._start_capture_session(CAPTURE_FULLSCREEN, from_panel=from_panel)
 
     def _on_hotkey_activated(self, action_id: str) -> None:
+        if not CAPTURE_ENABLED:
+            return
         if action_id == ACTION_REGION_CAPTURE:
             self._capture_region(from_panel=False)
         elif action_id == ACTION_FULLSCREEN_CAPTURE:
@@ -1093,6 +1522,10 @@ class MainWindow(QMainWindow):
 
     def _reload_capture_hotkeys(self) -> None:
         """Register shortcuts from config (startup + Settings change)."""
+        if not CAPTURE_ENABLED:
+            if hasattr(self, "_hotkey_manager"):
+                self._hotkey_manager.set_armed(False)
+            return
         bindings = load_shortcuts_from_config(self._config)
         self._config["shortcuts"] = dict(bindings)
         self._hotkey_manager.set_bindings(bindings)
@@ -1152,16 +1585,13 @@ class MainWindow(QMainWindow):
 
     def _apply_capture_mode_chrome(self) -> None:
         info = capture_mode_info(self._capture_mode)
+        icon_color = COLORS.text
         icon = (
-            icon_fullscreen_capture(color="#2563eb")
+            icon_fullscreen_capture(color=icon_color)
             if info.mode_id == CAPTURE_FULLSCREEN
-            else icon_region_capture(color="#2563eb")
+            else icon_region_capture(color=icon_color)
         )
-        self._capture_btn.setText(
-            "Full Screen\nCapture"
-            if info.mode_id == CAPTURE_FULLSCREEN
-            else "Region\nCapture"
-        )
+        self._capture_btn.setText(t(info.label_key))
         self._capture_btn.setIcon(icon)
         self._capture_btn.setToolTip(t(info.tooltip_key))
         self._capture_btn.setObjectName(info.button_object_name)
@@ -1374,6 +1804,8 @@ class MainWindow(QMainWindow):
         self._finish_capture_session_ui()
 
     def _on_image_detected(self, detected: DetectedImage) -> None:
+        if not CAPTURE_ENABLED:
+            return
         saved_path = self._image_saver.save_image(detected.image, detected.detected_at)
         if saved_path is not None:
             self._images_page.add_saved_image(saved_path)
@@ -1398,6 +1830,8 @@ class MainWindow(QMainWindow):
         return max(1, seconds) * 1000
 
     def _show_save_success_toast(self, saved_path: Path) -> None:
+        if not CAPTURE_ENABLED:
+            return
         if not bool(self._config.get("show_save_notification", True)):
             return
         # The written path is authoritative. This keeps the notification in
@@ -1411,6 +1845,8 @@ class MainWindow(QMainWindow):
         )
 
     def _show_save_error_toast(self, message: str) -> None:
+        if not CAPTURE_ENABLED:
+            return
         if not bool(self._config.get("show_save_notification", True)):
             return
         self._toast_host.show_error(
@@ -1419,12 +1855,60 @@ class MainWindow(QMainWindow):
         )
 
     def closeEvent(self, event: QCloseEvent) -> None:
+        tour = getattr(self, "_prototype_tour", None)
+        if tour is not None and tour.intercept_close():
+            event.ignore()
+            return
+        timer = getattr(self, "_account_restore_timer", None)
+        if timer is not None:
+            timer.stop()
+        if hasattr(self, "_account_controller"):
+            from app.ui.account_controller import _disconnect
+
+            _disconnect(
+                self._account_controller.session_changed, self._on_account_session
+            )
+            if hasattr(self, "_account_page"):
+                _disconnect(
+                    self._account_controller.usage_changed,
+                    self._account_page.apply_usage,
+                )
+            _disconnect(self._account_controller.busy_changed, self._on_account_busy)
+            _disconnect(self._account_controller.message, self._on_account_message)
+            self._account_controller.shutdown()
         self._persist_runtime_settings()
-        if hasattr(self, "_images_page") and self._images_page._analysis_bar is not None:
-            self._images_page._analysis_bar.stop_polling()
+        if hasattr(self, "_images_page"):
+            # Cancel in-flight search before tearing down workers so a late
+            # provider error cannot paint Search error on a closing window.
+            cancel_search = getattr(self._images_page, "_cancel_search_tasks", None)
+            if callable(cancel_search):
+                cancel_search()
+            cancel_ask_ai = getattr(
+                self._images_page, "_cancel_ask_ai_search_tasks", None
+            )
+            if callable(cancel_ask_ai):
+                cancel_ask_ai()
+            if hasattr(self._images_page, "_search_request_id"):
+                self._images_page._search_request_id += 1
+            if self._images_page._analysis_bar is not None:
+                self._images_page._analysis_bar.stop_polling()
+        if hasattr(self, "_semantic_index_indexer"):
+            self._semantic_index_indexer.close(timeout=3.0)
         if hasattr(self, "_image_analysis_controller"):
             self._image_analysis_controller.close(timeout=3.0)
-        snipping_toast_suppressor.exit()
+        if (
+            hasattr(self, "_images_page")
+            and self._images_page._owned_semantic_search_provider is not None
+        ):
+            self._images_page._owned_semantic_search_provider.close()
+        if (
+            hasattr(self, "_images_page")
+            and self._images_page._owned_hybrid_search_provider is not None
+        ):
+            self._images_page._owned_hybrid_search_provider.close()
+        if getattr(self, "_snipping_toast_held", False):
+            snipping_toast_suppressor.exit()
+            self._snipping_toast_held = False
         if hasattr(self, "_hotkey_manager"):
             self._hotkey_manager.stop()
         if hasattr(self, "_toast_host"):
@@ -1433,7 +1917,7 @@ class MainWindow(QMainWindow):
             self._capture_panel_window.close()
             self._capture_panel_window = None
         self._screenshot_session.cancel()
-        if hasattr(self, "_clipboard_watcher"):
+        if getattr(self, "_clipboard_watcher", None) is not None:
             self._clipboard_watcher.stop()
 
         app = QApplication.instance()

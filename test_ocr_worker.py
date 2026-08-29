@@ -107,9 +107,11 @@ def test_missing_before_processing(tmp_path):
     assert result.error_type=="file_missing" and result.retryable
 
 
-def test_non_png_is_rejected(tmp_path):
-    path=write_png(tmp_path/"a.jpg"); result=process_request(FakeEngine("success"),make_request(path))
-    assert result.error_type=="file_not_png" and not result.retryable
+def test_normal_jpeg_is_accepted(tmp_path):
+    from PIL import Image
+    path=tmp_path/"a.jpg"; Image.new("RGB",(10,20),"white").save(path,"JPEG")
+    result=process_request(FakeEngine("success"),make_request(path))
+    assert result.success
 
 
 def test_fingerprint_mismatch_is_detected(tmp_path):

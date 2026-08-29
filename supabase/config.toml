@@ -1,0 +1,6 @@
+# Local / deploy metadata for Capixe Supabase functions.
+# Project secrets never belong in this file.
+project_id = "ainhqynrkhddmtkdkppa"
+
+[functions.ai-proxy]
+verify_jwt = true

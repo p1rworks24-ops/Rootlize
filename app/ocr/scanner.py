@@ -1,4 +1,4 @@
-"""Non-recursive PNG folder scanner; it never performs OCR."""
+"""Non-recursive supported-image folder scanner; it never performs OCR."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from app.ocr.models import ScannedImage
 from app.ocr.path_normalization import display_path, normalize_windows_path
 from app.ocr.text_normalization import normalize_search_text
 
-SUPPORTED_IMAGE_SUFFIXES = frozenset({".png"})
+SUPPORTED_IMAGE_SUFFIXES = frozenset({".png", ".jpg", ".jpeg", ".webp", ".bmp"})
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
 
@@ -30,6 +30,24 @@ def _png_dimensions(path: Path) -> tuple[int, int]:
     width, height = struct.unpack(">II", header[16:24])
     if width <= 0 or height <= 0:
         raise ValueError("Invalid PNG dimensions")
+    return width, height
+
+
+def _image_dimensions(path: Path) -> tuple[int, int]:
+    if path.suffix.casefold() == ".png":
+        try:
+            return _png_dimensions(path)
+        except ValueError:
+            # Some valid PNGs contain ancillary chunks before IHDR layouts that
+            # the fast header reader cannot recognize. Fall back to a decoder.
+            pass
+    from PIL import Image
+    with Image.open(path) as image:
+        if (image.format or "").upper() not in {"PNG", "JPEG", "WEBP", "BMP"}:
+            raise ValueError("Unsupported image format")
+        width, height = image.size
+    if width <= 0 or height <= 0:
+        raise ValueError("Invalid image dimensions")
     return width, height
 
 
@@ -55,7 +73,7 @@ def scan_folder(folder: str | Path) -> FolderScan:
                 continue
             path = display_path(entry.path)
             stat = entry.stat(follow_symlinks=False)
-            width, height = _png_dimensions(Path(entry.path))
+            width, height = _image_dimensions(Path(entry.path))
             items.append(ScannedImage(path,normalize_windows_path(path),shown_folder,normalize_windows_path(shown_folder),entry.name,normalize_search_text(entry.name),stat.st_size,stat.st_mtime_ns,width,height,True))
         except (OSError, ValueError) as exc:
             try:

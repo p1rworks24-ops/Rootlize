@@ -1,0 +1,27 @@
+{
+  "seed": 20260811,
+  "public_image_count": 100,
+  "synthetic_screenshot_count": 60,
+  "batch_size": 4,
+  "models": [
+    {
+      "id": "google/siglip2-base-patch16-224",
+      "family": "SigLIP 2",
+      "license": "Apache-2.0",
+      "commercial_redistribution": true
+    },
+    {
+      "id": "jinaai/jina-clip-v2",
+      "family": "jina-clip-v2",
+      "license": "CC-BY-NC-4.0 (downloaded weights)",
+      "commercial_redistribution": false,
+      "trust_remote_code": true
+    },
+    {
+      "id": "facebook/metaclip-2-worldwide-b32",
+      "family": "MetaCLIP 2",
+      "license": "CC-BY-NC-4.0",
+      "commercial_redistribution": false
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
 from PySide6.QtWidgets import QApplication, QLabel, QPushButton
 
 from app.config import DEFAULT_CONFIG
@@ -31,6 +32,11 @@ def _ensure_app() -> QApplication:
     if app is None:
         app = QApplication([])
     return app
+
+
+@pytest.fixture(autouse=True)
+def _enable_capture(monkeypatch):
+    monkeypatch.setattr("app.ui.main_window.CAPTURE_ENABLED", True)
 
 
 def test_default_shortcuts():

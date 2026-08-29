@@ -1,0 +1,898 @@
+[
+  {
+    "id": "dog-ja-l1",
+    "language": "ja",
+    "text": "犬",
+    "level": 1,
+    "challenge": false,
+    "relevant": [
+      "commons-020",
+      "commons-021",
+      "commons-022",
+      "commons-023",
+      "commons-024",
+      "commons-040",
+      "commons-041",
+      "commons-042",
+      "commons-043",
+      "commons-044",
+      "commons-048"
+    ]
+  },
+  {
+    "id": "dog-en-l1",
+    "language": "en",
+    "text": "a dog",
+    "level": 1,
+    "challenge": false,
+    "relevant": [
+      "commons-020",
+      "commons-021",
+      "commons-022",
+      "commons-023",
+      "commons-024",
+      "commons-040",
+      "commons-041",
+      "commons-042",
+      "commons-043",
+      "commons-044",
+      "commons-048"
+    ]
+  },
+  {
+    "id": "cat-ja-l1",
+    "language": "ja",
+    "text": "猫",
+    "level": 1,
+    "challenge": false,
+    "relevant": [
+      "commons-019",
+      "commons-028",
+      "commons-031",
+      "commons-050",
+      "commons-066",
+      "commons-068",
+      "commons-069",
+      "synthetic-003",
+      "synthetic-006",
+      "synthetic-012",
+      "synthetic-015",
+      "synthetic-021",
+      "synthetic-024",
+      "synthetic-030",
+      "synthetic-033",
+      "synthetic-039",
+      "synthetic-042",
+      "synthetic-048",
+      "synthetic-051",
+      "synthetic-057"
+    ]
+  },
+  {
+    "id": "cat-en-l1",
+    "language": "en",
+    "text": "a cat",
+    "level": 1,
+    "challenge": false,
+    "relevant": [
+      "commons-019",
+      "commons-028",
+      "commons-031",
+      "commons-050",
+      "commons-066",
+      "commons-068",
+      "commons-069",
+      "synthetic-003",
+      "synthetic-006",
+      "synthetic-012",
+      "synthetic-015",
+      "synthetic-021",
+      "synthetic-024",
+      "synthetic-030",
+      "synthetic-033",
+      "synthetic-039",
+      "synthetic-042",
+      "synthetic-048",
+      "synthetic-051",
+      "synthetic-057"
+    ]
+  },
+  {
+    "id": "car-ja-l1",
+    "language": "ja",
+    "text": "車",
+    "level": 1,
+    "challenge": false,
+    "relevant": [
+      "commons-025",
+      "commons-026",
+      "commons-027",
+      "commons-028",
+      "commons-029",
+      "commons-060",
+      "commons-061",
+      "commons-062",
+      "commons-063"
+    ]
+  },
+  {
+    "id": "car-en-l1",
+    "language": "en",
+    "text": "a car",
+    "level": 1,
+    "challenge": false,
+    "relevant": [
+      "commons-025",
+      "commons-026",
+      "commons-027",
+      "commons-028",
+      "commons-029",
+      "commons-060",
+      "commons-061",
+      "commons-062",
+      "commons-063"
+    ]
+  },
+  {
+    "id": "person-ja-l1",
+    "language": "ja",
+    "text": "人物",
+    "level": 1,
+    "challenge": false,
+    "relevant": [
+      "commons-035",
+      "commons-036",
+      "commons-037",
+      "commons-038",
+      "commons-039",
+      "commons-045",
+      "commons-046",
+      "commons-047",
+      "commons-048",
+      "commons-049",
+      "commons-055",
+      "commons-056",
+      "commons-057",
+      "commons-058",
+      "commons-059"
+    ]
+  },
+  {
+    "id": "person-en-l1",
+    "language": "en",
+    "text": "a person",
+    "level": 1,
+    "challenge": false,
+    "relevant": [
+      "commons-035",
+      "commons-036",
+      "commons-037",
+      "commons-038",
+      "commons-039",
+      "commons-045",
+      "commons-046",
+      "commons-047",
+      "commons-048",
+      "commons-049",
+      "commons-055",
+      "commons-056",
+      "commons-057",
+      "commons-058",
+      "commons-059"
+    ]
+  },
+  {
+    "id": "food-ja-l1",
+    "language": "ja",
+    "text": "料理や食べ物",
+    "level": 1,
+    "challenge": false,
+    "relevant": [
+      "commons-048"
+    ]
+  },
+  {
+    "id": "food-en-l1",
+    "language": "en",
+    "text": "food or a meal",
+    "level": 1,
+    "challenge": false,
+    "relevant": [
+      "commons-048"
+    ]
+  },
+  {
+    "id": "laptop-ja-l1",
+    "language": "ja",
+    "text": "ノートPC",
+    "level": 1,
+    "challenge": false,
+    "relevant": [
+      "commons-055",
+      "commons-056",
+      "commons-057",
+      "commons-058",
+      "commons-059"
+    ]
+  },
+  {
+    "id": "laptop-en-l1",
+    "language": "en",
+    "text": "a laptop computer",
+    "level": 1,
+    "challenge": false,
+    "relevant": [
+      "commons-055",
+      "commons-056",
+      "commons-057",
+      "commons-058",
+      "commons-059"
+    ]
+  },
+  {
+    "id": "snow-ja-l2",
+    "language": "ja",
+    "text": "雪景色",
+    "level": 2,
+    "challenge": false,
+    "relevant": [
+      "commons-005",
+      "commons-006",
+      "commons-007",
+      "commons-008",
+      "commons-009",
+      "commons-010",
+      "commons-011",
+      "commons-012",
+      "commons-013",
+      "commons-014",
+      "commons-042",
+      "commons-068"
+    ]
+  },
+  {
+    "id": "snow-en-l2",
+    "language": "en",
+    "text": "a snowy scene",
+    "level": 2,
+    "challenge": false,
+    "relevant": [
+      "commons-005",
+      "commons-006",
+      "commons-007",
+      "commons-008",
+      "commons-009",
+      "commons-010",
+      "commons-011",
+      "commons-012",
+      "commons-013",
+      "commons-014",
+      "commons-042",
+      "commons-068"
+    ]
+  },
+  {
+    "id": "beach-ja-l2",
+    "language": "ja",
+    "text": "海辺",
+    "level": 2,
+    "challenge": false,
+    "relevant": [
+      "commons-050",
+      "commons-051",
+      "commons-052",
+      "commons-053",
+      "commons-054"
+    ]
+  },
+  {
+    "id": "beach-en-l2",
+    "language": "en",
+    "text": "a beach by the sea",
+    "level": 2,
+    "challenge": false,
+    "relevant": [
+      "commons-050",
+      "commons-051",
+      "commons-052",
+      "commons-053",
+      "commons-054"
+    ]
+  },
+  {
+    "id": "city-ja-l2",
+    "language": "ja",
+    "text": "街の風景",
+    "level": 2,
+    "challenge": false,
+    "relevant": [
+      "commons-028",
+      "commons-039",
+      "commons-048",
+      "commons-064",
+      "commons-065",
+      "commons-066"
+    ]
+  },
+  {
+    "id": "city-en-l2",
+    "language": "en",
+    "text": "a city scene",
+    "level": 2,
+    "challenge": false,
+    "relevant": [
+      "commons-028",
+      "commons-039",
+      "commons-048",
+      "commons-064",
+      "commons-065",
+      "commons-066"
+    ]
+  },
+  {
+    "id": "night-ja-l2",
+    "language": "ja",
+    "text": "夜の風景",
+    "level": 2,
+    "challenge": false,
+    "relevant": [
+      "commons-066",
+      "commons-067"
+    ]
+  },
+  {
+    "id": "night-en-l2",
+    "language": "en",
+    "text": "a scene at night",
+    "level": 2,
+    "challenge": false,
+    "relevant": [
+      "commons-066",
+      "commons-067"
+    ]
+  },
+  {
+    "id": "indoor-ja-l2",
+    "language": "ja",
+    "text": "室内の写真",
+    "level": 2,
+    "challenge": false,
+    "relevant": [
+      "commons-000",
+      "commons-001",
+      "commons-002",
+      "commons-003",
+      "commons-004"
+    ]
+  },
+  {
+    "id": "indoor-en-l2",
+    "language": "en",
+    "text": "an indoor photo",
+    "level": 2,
+    "challenge": false,
+    "relevant": [
+      "commons-000",
+      "commons-001",
+      "commons-002",
+      "commons-003",
+      "commons-004"
+    ]
+  },
+  {
+    "id": "outdoor-ja-l2",
+    "language": "ja",
+    "text": "屋外の写真",
+    "level": 2,
+    "challenge": false,
+    "relevant": [
+      "commons-030",
+      "commons-031",
+      "commons-032",
+      "commons-033",
+      "commons-034"
+    ]
+  },
+  {
+    "id": "outdoor-en-l2",
+    "language": "en",
+    "text": "an outdoor photo",
+    "level": 2,
+    "challenge": false,
+    "relevant": [
+      "commons-030",
+      "commons-031",
+      "commons-032",
+      "commons-033",
+      "commons-034"
+    ]
+  },
+  {
+    "id": "dog running-ja-l3",
+    "language": "ja",
+    "text": "走っている犬",
+    "level": 3,
+    "challenge": false,
+    "relevant": [
+      "commons-040",
+      "commons-041",
+      "commons-042",
+      "commons-043",
+      "commons-044"
+    ]
+  },
+  {
+    "id": "dog running-en-l3",
+    "language": "en",
+    "text": "a dog running",
+    "level": 3,
+    "challenge": false,
+    "relevant": [
+      "commons-040",
+      "commons-041",
+      "commons-042",
+      "commons-043",
+      "commons-044"
+    ]
+  },
+  {
+    "id": "person cooking-ja-l3",
+    "language": "ja",
+    "text": "料理している人",
+    "level": 3,
+    "challenge": false,
+    "relevant": [
+      "commons-045",
+      "commons-046",
+      "commons-047",
+      "commons-048",
+      "commons-049"
+    ]
+  },
+  {
+    "id": "person cooking-en-l3",
+    "language": "en",
+    "text": "a person cooking",
+    "level": 3,
+    "challenge": false,
+    "relevant": [
+      "commons-045",
+      "commons-046",
+      "commons-047",
+      "commons-048",
+      "commons-049"
+    ]
+  },
+  {
+    "id": "person walking-ja-l3",
+    "language": "ja",
+    "text": "歩いている人",
+    "level": 3,
+    "challenge": false,
+    "relevant": [
+      "commons-035",
+      "commons-036",
+      "commons-037",
+      "commons-038",
+      "commons-039"
+    ]
+  },
+  {
+    "id": "person walking-en-l3",
+    "language": "en",
+    "text": "a person walking",
+    "level": 3,
+    "challenge": false,
+    "relevant": [
+      "commons-035",
+      "commons-036",
+      "commons-037",
+      "commons-038",
+      "commons-039"
+    ]
+  },
+  {
+    "id": "person laptop-ja-l3",
+    "language": "ja",
+    "text": "PCを使っている人",
+    "level": 3,
+    "challenge": false,
+    "relevant": [
+      "commons-055",
+      "commons-056",
+      "commons-057",
+      "commons-058",
+      "commons-059"
+    ]
+  },
+  {
+    "id": "person laptop-en-l3",
+    "language": "en",
+    "text": "a person using a computer",
+    "level": 3,
+    "challenge": false,
+    "relevant": [
+      "commons-055",
+      "commons-056",
+      "commons-057",
+      "commons-058",
+      "commons-059"
+    ]
+  },
+  {
+    "id": "code_editor-ja-l4",
+    "language": "ja",
+    "text": "コードを書いている画面",
+    "level": 4,
+    "challenge": false,
+    "relevant": [
+      "synthetic-000",
+      "synthetic-009",
+      "synthetic-018",
+      "synthetic-027",
+      "synthetic-036",
+      "synthetic-045",
+      "synthetic-054"
+    ]
+  },
+  {
+    "id": "code_editor-en-l4",
+    "language": "en",
+    "text": "a screen showing source code",
+    "level": 4,
+    "challenge": false,
+    "relevant": [
+      "synthetic-000",
+      "synthetic-009",
+      "synthetic-018",
+      "synthetic-027",
+      "synthetic-036",
+      "synthetic-045",
+      "synthetic-054"
+    ]
+  },
+  {
+    "id": "terminal-ja-l4",
+    "language": "ja",
+    "text": "ターミナル画面",
+    "level": 4,
+    "challenge": false,
+    "relevant": [
+      "synthetic-001",
+      "synthetic-010",
+      "synthetic-019",
+      "synthetic-028",
+      "synthetic-037",
+      "synthetic-046",
+      "synthetic-055"
+    ]
+  },
+  {
+    "id": "terminal-en-l4",
+    "language": "en",
+    "text": "a terminal command line screen",
+    "level": 4,
+    "challenge": false,
+    "relevant": [
+      "synthetic-001",
+      "synthetic-010",
+      "synthetic-019",
+      "synthetic-028",
+      "synthetic-037",
+      "synthetic-046",
+      "synthetic-055"
+    ]
+  },
+  {
+    "id": "error_dialog-ja-l4",
+    "language": "ja",
+    "text": "エラーが表示されている画面",
+    "level": 4,
+    "challenge": false,
+    "relevant": [
+      "synthetic-002",
+      "synthetic-011",
+      "synthetic-020",
+      "synthetic-029",
+      "synthetic-038",
+      "synthetic-047",
+      "synthetic-056"
+    ]
+  },
+  {
+    "id": "error_dialog-en-l4",
+    "language": "en",
+    "text": "a computer screen showing an error",
+    "level": 4,
+    "challenge": false,
+    "relevant": [
+      "synthetic-002",
+      "synthetic-011",
+      "synthetic-020",
+      "synthetic-029",
+      "synthetic-038",
+      "synthetic-047",
+      "synthetic-056"
+    ]
+  },
+  {
+    "id": "settings-ja-l4",
+    "language": "ja",
+    "text": "設定画面",
+    "level": 4,
+    "challenge": false,
+    "relevant": [
+      "synthetic-003",
+      "synthetic-012",
+      "synthetic-021",
+      "synthetic-030",
+      "synthetic-039",
+      "synthetic-048",
+      "synthetic-057"
+    ]
+  },
+  {
+    "id": "settings-en-l4",
+    "language": "en",
+    "text": "an application settings screen",
+    "level": 4,
+    "challenge": false,
+    "relevant": [
+      "synthetic-003",
+      "synthetic-012",
+      "synthetic-021",
+      "synthetic-030",
+      "synthetic-039",
+      "synthetic-048",
+      "synthetic-057"
+    ]
+  },
+  {
+    "id": "product_page-ja-l4",
+    "language": "ja",
+    "text": "商品ページ",
+    "level": 4,
+    "challenge": false,
+    "relevant": [
+      "synthetic-004",
+      "synthetic-013",
+      "synthetic-022",
+      "synthetic-031",
+      "synthetic-040",
+      "synthetic-049",
+      "synthetic-058"
+    ]
+  },
+  {
+    "id": "product_page-en-l4",
+    "language": "en",
+    "text": "an online product page",
+    "level": 4,
+    "challenge": false,
+    "relevant": [
+      "synthetic-004",
+      "synthetic-013",
+      "synthetic-022",
+      "synthetic-031",
+      "synthetic-040",
+      "synthetic-049",
+      "synthetic-058"
+    ]
+  },
+  {
+    "id": "comparison_page-ja-l4",
+    "language": "ja",
+    "text": "商品を比較している画面",
+    "level": 4,
+    "challenge": false,
+    "relevant": [
+      "synthetic-005",
+      "synthetic-014",
+      "synthetic-023",
+      "synthetic-032",
+      "synthetic-041",
+      "synthetic-050",
+      "synthetic-059"
+    ]
+  },
+  {
+    "id": "comparison_page-en-l4",
+    "language": "en",
+    "text": "a screen comparing products",
+    "level": 4,
+    "challenge": false,
+    "relevant": [
+      "synthetic-005",
+      "synthetic-014",
+      "synthetic-023",
+      "synthetic-032",
+      "synthetic-041",
+      "synthetic-050",
+      "synthetic-059"
+    ]
+  },
+  {
+    "id": "login_screen-ja-l4",
+    "language": "ja",
+    "text": "ログイン画面",
+    "level": 4,
+    "challenge": false,
+    "relevant": [
+      "synthetic-006",
+      "synthetic-015",
+      "synthetic-024",
+      "synthetic-033",
+      "synthetic-042",
+      "synthetic-051"
+    ]
+  },
+  {
+    "id": "login_screen-en-l4",
+    "language": "en",
+    "text": "a login screen",
+    "level": 4,
+    "challenge": false,
+    "relevant": [
+      "synthetic-006",
+      "synthetic-015",
+      "synthetic-024",
+      "synthetic-033",
+      "synthetic-042",
+      "synthetic-051"
+    ]
+  },
+  {
+    "id": "dashboard-ja-l4",
+    "language": "ja",
+    "text": "統計ダッシュボード",
+    "level": 4,
+    "challenge": false,
+    "relevant": [
+      "synthetic-007",
+      "synthetic-016",
+      "synthetic-025",
+      "synthetic-034",
+      "synthetic-043",
+      "synthetic-052"
+    ]
+  },
+  {
+    "id": "dashboard-en-l4",
+    "language": "en",
+    "text": "an analytics dashboard",
+    "level": 4,
+    "challenge": false,
+    "relevant": [
+      "synthetic-007",
+      "synthetic-016",
+      "synthetic-025",
+      "synthetic-034",
+      "synthetic-043",
+      "synthetic-052"
+    ]
+  },
+  {
+    "id": "documentation-ja-l4",
+    "language": "ja",
+    "text": "ドキュメントを読んでいる画面",
+    "level": 4,
+    "challenge": false,
+    "relevant": [
+      "synthetic-008",
+      "synthetic-017",
+      "synthetic-026",
+      "synthetic-035",
+      "synthetic-044",
+      "synthetic-053"
+    ]
+  },
+  {
+    "id": "documentation-en-l4",
+    "language": "en",
+    "text": "a software documentation page",
+    "level": 4,
+    "challenge": false,
+    "relevant": [
+      "synthetic-008",
+      "synthetic-017",
+      "synthetic-026",
+      "synthetic-035",
+      "synthetic-044",
+      "synthetic-053"
+    ]
+  },
+  {
+    "id": "comparison_page-ja-l5",
+    "language": "ja",
+    "text": "価格を比較している画像",
+    "level": 5,
+    "challenge": true,
+    "relevant": [
+      "synthetic-005",
+      "synthetic-014",
+      "synthetic-023",
+      "synthetic-032",
+      "synthetic-041",
+      "synthetic-050",
+      "synthetic-059"
+    ]
+  },
+  {
+    "id": "comparison_page-en-l5",
+    "language": "en",
+    "text": "an image comparing prices",
+    "level": 5,
+    "challenge": true,
+    "relevant": [
+      "synthetic-005",
+      "synthetic-014",
+      "synthetic-023",
+      "synthetic-032",
+      "synthetic-041",
+      "synthetic-050",
+      "synthetic-059"
+    ]
+  },
+  {
+    "id": "login_failure-ja-l5",
+    "language": "ja",
+    "text": "ログインに失敗している画面",
+    "level": 5,
+    "challenge": true,
+    "relevant": [
+      "synthetic-015",
+      "synthetic-033",
+      "synthetic-051"
+    ]
+  },
+  {
+    "id": "login_failure-en-l5",
+    "language": "en",
+    "text": "a failed login screen",
+    "level": 5,
+    "challenge": true,
+    "relevant": [
+      "synthetic-015",
+      "synthetic-033",
+      "synthetic-051"
+    ]
+  },
+  {
+    "id": "problem-ja-l5",
+    "language": "ja",
+    "text": "何か問題が起きているPC画面",
+    "level": 5,
+    "challenge": true,
+    "relevant": [
+      "synthetic-002",
+      "synthetic-011",
+      "synthetic-015",
+      "synthetic-020",
+      "synthetic-029",
+      "synthetic-033",
+      "synthetic-038",
+      "synthetic-047",
+      "synthetic-051",
+      "synthetic-056"
+    ]
+  },
+  {
+    "id": "problem-en-l5",
+    "language": "en",
+    "text": "a computer screen where something went wrong",
+    "level": 5,
+    "challenge": true,
+    "relevant": [
+      "synthetic-002",
+      "synthetic-011",
+      "synthetic-015",
+      "synthetic-020",
+      "synthetic-029",
+      "synthetic-033",
+      "synthetic-038",
+      "synthetic-047",
+      "synthetic-051",
+      "synthetic-056"
+    ]
+  }
+]

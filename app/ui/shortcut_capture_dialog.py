@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from PySide6.QtCore import QKeyCombination, Qt
 from PySide6.QtGui import QKeySequence
-from PySide6.QtWidgets import QDialog, QLabel, QVBoxLayout
+from PySide6.QtWidgets import QLabel, QVBoxLayout
 
 from app.i18n import t
+from app.ui.page_motion import AnimatedDialog
 from app.services.shortcut_spec import (
     format_shortcut_display,
     normalize_shortcut,
@@ -14,7 +15,7 @@ from app.services.shortcut_spec import (
 )
 
 
-class ShortcutCaptureDialog(QDialog):
+class ShortcutCaptureDialog(AnimatedDialog):
     """Press a key combo to capture; Escape cancels."""
 
     def __init__(self, parent=None):

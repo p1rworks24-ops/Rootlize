@@ -39,13 +39,22 @@ def test_scan_empty_folder(tmp_path):
     assert scan.items == ()
 
 
-def test_scan_png_case_insensitive_and_excludes_other_formats_and_subfolders(tmp_path):
+def test_scan_supported_formats_case_insensitive_and_excludes_subfolders(tmp_path):
     write_png(tmp_path / "one.png")
     write_png(tmp_path / "TWO.PNG")
-    write_png(tmp_path / "ignored.jpg")
+    from PIL import Image
+    Image.new("RGB", (7, 9)).save(tmp_path / "photo.jpg")
+    Image.new("RGB", (8, 10)).save(tmp_path / "picture.JPEG")
+    Image.new("RGB", (11, 12)).save(tmp_path / "web.webp")
+    Image.new("RGB", (13, 14)).save(tmp_path / "bitmap.bmp")
+    (tmp_path / "ignored.gif").write_bytes(b"GIF89a")
     write_png(tmp_path / ".hidden.png")
     write_png(tmp_path / "child" / "nested.png")
-    assert [item.filename for item in scan_folder(tmp_path).items] == ["one.png", "TWO.PNG"]
+    items = scan_folder(tmp_path).items
+    assert [item.filename for item in items] == [
+        "bitmap.bmp", "one.png", "photo.jpg", "picture.JPEG", "TWO.PNG", "web.webp"
+    ]
+    assert all(item.read_success for item in items)
 
 
 def test_scan_reads_dimensions_and_non_ascii_paths(tmp_path):
@@ -132,6 +141,46 @@ def test_second_scan_is_unchanged_without_duplicate(repository, tmp_path):
     assert len(result.unchanged_items) == 1 and len(repository.list_images()) == 1
     image = repository.list_images()[0]
     assert repository.get_ocr_document(image.image_id).status == "pending"
+
+
+def test_default_settings_do_not_invalidate_ready_ocr(repository, tmp_path):
+    image_path = write_png(tmp_path / "one.png")
+    apply_folder(repository, tmp_path)
+    image = repository.get_image_by_path(image_path)
+    repository.save_ocr_document(
+        image.image_id,
+        status="ready",
+        ocr_text="visible Youtube label",
+        model_sha256="d2988765c9ee371238c575e3675f5c74206119dc3a4dd9f4ea78491fb25c2a29",
+    )
+    result = apply_folder(repository, tmp_path)
+    assert len(result.unchanged_items) == 1
+    assert repository.get_ocr_document(image.image_id).status == "ready"
+    search = repository.get_search_document(image.image_id)
+    assert "youtube" in search.ocr_norm
+    assert repository.search_images("Youtube", folder_path=tmp_path).total_count == 1
+
+
+def test_unchanged_stale_restores_searchable_ocr_without_wiping(repository, tmp_path):
+    image_path = write_png(tmp_path / "one.png")
+    apply_folder(repository, tmp_path)
+    image = repository.get_image_by_path(image_path)
+    repository.save_ocr_document(image.image_id, status="ready", ocr_text="visible Youtube label")
+    repository.update_scanned_metadata(
+        image.image_id,
+        size_bytes=image.size_bytes,
+        mtime_ns=image.mtime_ns,
+        width=10,
+        height=20,
+        quick_fingerprint=image.quick_fingerprint or "",
+        stale=True,
+    )
+    assert repository.get_ocr_document(image.image_id).status == "stale"
+    assert repository.get_search_document(image.image_id).ocr_norm == ""
+    apply_folder(repository, tmp_path)
+    assert repository.get_ocr_document(image.image_id).status == "ready"
+    assert "youtube" in repository.get_search_document(image.image_id).ocr_norm
+    assert repository.search_images("Youtube", folder_path=tmp_path).total_count == 1
 
 
 def test_size_change_becomes_stale_and_only_ocr_search_is_cleared(repository, tmp_path):

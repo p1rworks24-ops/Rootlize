@@ -1,6 +1,6 @@
-# Capixe website
+# Rootlize website
 
-Official marketing landing page for Capixe (static HTML/CSS/JS).
+Official marketing landing page for Rootlize (static HTML/CSS/JS).
 
 Not part of the desktop app runtime. No npm build step.
 
@@ -43,11 +43,11 @@ The gallery is **data-driven**. To add more shots:
 
 The gallery uses two columns on larger screens and one column on mobile. `main.js` renders the list into `#screenshot-gallery` and provides the lightbox behavior.
 
-Hero search view: `images-search.png`
+Hero workspace view: `images.png`
 
-Gallery order: `images.png`, `organize.png`, `home.png`, `tags.png`, `about.png`
+Gallery in `js/content.js`: `images.png`, `meaning-search.png`, `ask-ai.png`, `automation.png`, `account.png`. The landing page presents Rootlize as a local workspace (Find → Narrow → Act → Automate). Desktop implementation Source of Truth remains `.ai/SPEC.md`.
 
-Brand icon: `assets/brand/app-icon.png` (also used as favicon)
+Brand icon: `assets/brand/app-icon.png` (512px, transparent). Tab icon: `assets/brand/favicon.png`.
 
 ## Future pages
 

@@ -21,6 +21,8 @@ from app.ui.pages.images_page import ImagesPage
 from app.ui.pages.tags_page import TagsPage
 from app.utils.thumbnail_cache import ThumbnailCache
 
+from conftest import gallery_image_items
+
 
 def _ensure_app() -> QApplication:
     app = QApplication.instance()
@@ -52,6 +54,7 @@ def _setup(tmp: str) -> tuple[Path, Path, Path, dict, MetadataService, ImagesPag
         "current_folder": "Default",
         "window_width": 900,
         "window_height": 700,
+        "developer_search_mode": "text",
     }
     service = MetadataService()
     service.ensure_sstool(project_dir)
@@ -87,7 +90,7 @@ def test_full_tag_checklist(monkeypatch):
         images.refresh()
         app.processEvents()
         assert images._list_widget.count() >= 1
-        images._list_widget.setCurrentItem(images._list_widget.item(0))
+        images._list_widget.setCurrentItem(gallery_image_items(images._list_widget)[0])
         app.processEvents()
         assert images._info_widget.isEnabled()
 
@@ -195,7 +198,7 @@ def test_full_tag_checklist(monkeypatch):
         images._search_input.setText("Debug")
         images._on_search()
         app.processEvents()
-        assert images._list_widget.count() == 1
+        assert len(gallery_image_items(images._list_widget)) == 1
         images._on_clear_search()
         app.processEvents()
         assert images._list_widget.count() >= 1

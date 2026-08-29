@@ -1,5 +1,7 @@
 # RapidOCR independent PoC
 
+Isolated OCR experiment. Not the Capixe product spec (`.ai/SPEC.md`). The app runtime uses `requirements.txt` (ONNX Runtime 1.28.0).
+
 This directory is an isolated technical PoC for local screenshot OCR. It does
 not import, modify, or store data in the Capixe application.
 

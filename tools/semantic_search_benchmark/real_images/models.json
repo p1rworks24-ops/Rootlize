@@ -1,0 +1,7 @@
+[
+  {"name":"SigLIP 2 Base/224","kind":"transformers","image_model":"google/siglip2-base-patch16-224","license":"Apache-2.0","onnx":"Already exported and deployed by Capixe"},
+  {"name":"MetaCLIP 2 Worldwide B/32","kind":"transformers","image_model":"facebook/metaclip-2-worldwide-b32","license":"CC-BY-NC-4.0","onnx":"Standard Transformers dual encoder; export expected to be straightforward"},
+  {"name":"Jina CLIP v2","kind":"transformers","image_model":"jinaai/jina-clip-v2","trust_remote_code":true,"license":"CC-BY-NC-4.0","onnx":"Official FP32/FP16/INT8 ONNX files published"},
+  {"name":"OpenCLIP ViT-B/32 LAION-2B","kind":"open_clip","image_model":"laion/CLIP-ViT-B-32-laion2B-s34B-b79K","license":"MIT","onnx":"Native PyTorch towers; conventional torch.onnx export"},
+  {"name":"Nomic Embed Vision/Text v1.5","kind":"nomic","image_model":"nomic-ai/nomic-embed-vision-v1.5","text_model":"nomic-ai/nomic-embed-text-v1.5","trust_remote_code":true,"license":"Apache-2.0","onnx":"Vision card declares ONNX; separate text/image towers add integration work"}
+]

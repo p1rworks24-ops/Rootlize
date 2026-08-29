@@ -1,0 +1,1 @@
+Record one unified fact record. The first image is the full overview and the following images are overlapping detail regions of that same image, not separate images. Merge observations by subject and do not duplicate an individual merely because it appears in overview and detail. Do not infer a user query.

@@ -1,0 +1,24 @@
+{
+  "manifest_schema_version": 1,
+  "bundle_version": "1",
+  "model_id": "siglip2-base-patch16-224",
+  "model_name": "SigLIP 2 Base/224",
+  "source": "google/siglip2-base-patch16-224",
+  "revision": "75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2",
+  "license": {"spdx_id": "Apache-2.0", "file": "LICENSE.txt"},
+  "embedding": {"dimension": 768, "dtype": "float32", "normalized": true},
+  "image": {"width": 224, "height": 224, "color_mode": "RGB", "preprocess_config": "preprocessor_config.json"},
+  "text": {"max_length": 64, "tokenizer": "tokenizer.json", "tokenizer_config": "tokenizer_config.json"},
+  "runtime": {"name": "onnxruntime", "minimum_version": "1.28.0", "opset": 17, "providers": ["CPUExecutionProvider"]},
+  "pipeline_version": 1,
+  "files": [
+    {"role": "image_encoder", "path": "image_encoder.onnx", "size_bytes": 371764237, "sha256": "8d3bc6251a73f2ca6ff9f2f45e6ceac2d754dff96eaa33dafbc107b957bcf39c"},
+    {"role": "text_encoder", "path": "text_encoder.onnx", "size_bytes": 1129415763, "sha256": "8725c09eea566688a258437b8347e56f391b5f4da4c9ce78f333d47d7e2903d2"},
+    {"role": "tokenizer", "path": "tokenizer.json", "size_bytes": 34363039, "sha256": "cb9140fae3ac5122c972d37adf83e1248471a38147ad76f8215c8872c6fd8322"},
+    {"role": "tokenizer_config", "path": "tokenizer_config.json", "size_bytes": 47164, "sha256": "14afe629fe4959b9e0d51e1852b8d9f7ad074f90a1a7125a4fcdd17f06e78fc8"},
+    {"role": "preprocess_config", "path": "preprocessor_config.json", "size_bytes": 394, "sha256": "9b36b57ebaf20f09bf4c22100ccc21877ea6bfe5aead0c00c59f8af8ccefacfc"},
+    {"role": "model_config", "path": "model_config.json", "size_bytes": 253, "sha256": "fe8b5fe6d5734360678fd71c11c21e1ea3364bd8598d34295d9206335973ffd7"},
+    {"role": "license", "path": "LICENSE.txt", "size_bytes": 11358, "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"}
+  ],
+  "total_size_bytes": 1535602208
+}

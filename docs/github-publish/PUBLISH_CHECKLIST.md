@@ -1,6 +1,6 @@
-# Capixe GitHub 公開前チェックリスト
+# Rootlize GitHub 公開前チェックリスト
 
-Prototype Preview `v0.1.0-preview` 向け。
+Prototype Preview `v0.1.0-preview` 向けの公開作業メモ。製品実装の Source of Truth ではない。現行仕様は `.ai/SPEC.md`。
 
 ## リポジトリ安全
 
@@ -28,15 +28,15 @@ Prototype Preview `v0.1.0-preview` 向け。
 - [ ] バージョン統一（`app/branding.py` = `0.1.0-preview` / 表示 `v0.1.0-preview`）
 - [ ] README / ZIP名 / Release名が一致
 - [ ] About にバージョン表示
-- [ ] ウィンドウタイトルが Capixe
+- [ ] ウィンドウタイトルが Rootlize
 - [ ] アプリアイコン反映
 
 ## ビルド・配布
 
-- [ ] `python -m PyInstaller Capixe.spec --clean --noconfirm` 成功
-- [ ] `release/Capixe-v0.1.0-preview-win64.zip` 生成
+- [ ] `.build-venv\Scripts\python.exe tools\build_official_prototype.py` 成功（Auth configured。正本は `dist\Rootlize\Rootlize.exe` のみ）
+- [ ] `release/Rootlize-v0.1.0-preview-win64.zip` 生成
 - [ ] ZIP 内に config / tags / screenshots / Capture / ユーザーPNG / ログなし
-- [ ] ZIP 展開後に `Capixe.exe` + `_internal` + `README.txt` がある
+- [ ] ZIP 展開後に `Rootlize.exe` + `_internal` + `README.txt` がある
 - [ ] ZIP から起動成功
 - [ ] 起動時に展開フォルダへ config 等が生成されない
 - [ ] 起動時の自動 Capture 再発なし
@@ -60,6 +60,10 @@ Prototype Preview `v0.1.0-preview` 向け。
 - [ ] タグ作成（例: `v0.1.0-preview`）
 - [ ] GitHub Release 作成と ZIP 添付
 - [ ] Public 化の最終承認
+
+## Known issues (Public Prototype)
+
+- Closing the app during an in-flight Meaning Search previously logged `ERROR` and could flash Search error if the worker died before cancel. Shutdown now cancels search first; a late cancelled failure is not shown as a user-visible error.
 
 ## 今回の公開準備では行わない
 

@@ -36,13 +36,14 @@ class OCRIndexService:
 
     def preview_indexing(self,folder_path): return OCRDiffService(self.repository,settings=self.settings).reconcile(folder_path,dry_run=True)
 
-    def start_indexing(self,folder_path)->str:
+    def start_indexing(self,folder_path,image_ids=None)->str:
         with self._lock:
             if self._closed: raise OCRIndexClosedError("OCR index service is closed.")
             if self.is_running(): raise OCRIndexAlreadyRunningError("OCR indexing is already running.")
             run_id=uuid.uuid4().hex; self._pause=False; self._cancel=False; self._started_at=time.perf_counter(); self._ocr_durations=[]
             self._progress=OCRIndexProgress(run_id=run_id,folder_path=str(Path(folder_path).resolve()),state="preparing")
-            self._thread=threading.Thread(target=self._run,args=(folder_path,run_id),name="CapixeOCRIndex",daemon=True); self._thread.start()
+            selected_ids=None if image_ids is None else frozenset(int(value) for value in image_ids)
+            self._thread=threading.Thread(target=self._run,args=(folder_path,run_id,selected_ids),name="CapixeOCRIndex",daemon=True); self._thread.start()
             return run_id
 
     def pause(self):
@@ -82,7 +83,7 @@ class OCRIndexService:
         with self._lock: self._closed=True; self._set(state="closing")
         self.repository.database.close()
 
-    def _run(self,folder_path,run_id):
+    def _run(self,folder_path,run_id,selected_ids=None):
         try:
             self._set(state="scanning")
             preview=OCRDiffService(self.repository,settings=self.settings).reconcile(folder_path,dry_run=True)
@@ -95,6 +96,8 @@ class OCRIndexService:
             now=self.repository.database.clock(); cutoff=(datetime.fromisoformat(now)-timedelta(seconds=LEASE_SECONDS)).astimezone(timezone.utc).isoformat()
             self.repository.recover_expired_claims(before=cutoff)
             candidates=self.repository.list_ocr_candidates(folder_path=folder_path,now=now,retry_limit=MAX_RETRIES)
+            if selected_ids is not None:
+                candidates=[item for item in candidates if item[0].image_id in selected_ids]
             self._set(state="running",total_requires_ocr=len(candidates),pending=len(candidates))
             for image,document in candidates:
                 if not self._before_next(): break

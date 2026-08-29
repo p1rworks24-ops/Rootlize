@@ -3,6 +3,14 @@ import shutil
 from pathlib import Path
 
 from app.utils.file_copy_name import make_unique_copy_filename
+from app.utils.image_favorite import (
+    copy_image_entry,
+    is_favorite_tag_name,
+    migrate_favorite_tag_metadata,
+    image_entry_is_favorite,
+    image_is_favorite,
+    visible_tags,
+)
 from app.utils.logger import setup_logger
 from app.utils.tag_format import normalize_tag
 from app.utils.unique_name import make_unique_name
@@ -23,6 +31,8 @@ DEFAULT_PROJECT: dict = {
         "manual_order": [],
         "thumbnail_size": 128,
         "thumbnail_mode": "large",
+        "group_by": "none",
+        "display_schema": 1,
     }
 }
 
@@ -111,6 +121,12 @@ class MetadataService:
         if "images" not in metadata:
             metadata["images"] = {}
 
+        if migrate_favorite_tag_metadata(metadata):
+            try:
+                self.save_metadata(project_dir, metadata)
+            except OSError:
+                logger.exception("Failed to persist Favorite tag migration")
+
         self._metadata_cache[cache_key] = self._copy_metadata(metadata)
         return self._copy_metadata(metadata)
 
@@ -183,14 +199,43 @@ class MetadataService:
         self._project_cache.pop(cache_key, None)
 
     def get_image_tags(self, project_dir: Path, file_name: str) -> list[str]:
-        """Return the tag list for a single image."""
+        """Return the visible tag list for a single image. Favorite is not a tag."""
         metadata = self.load_metadata(project_dir)
-        return metadata.get("images", {}).get(file_name, {}).get("tags", [])
+        return visible_tags(
+            metadata.get("images", {}).get(file_name, {}).get("tags", [])
+        )
+
+    def is_image_favorite(self, project_dir: Path, file_name: str) -> bool:
+        return image_is_favorite(self.load_metadata(project_dir), file_name)
+
+    def set_image_favorite(
+        self, project_dir: Path, file_name: str, favorite: bool
+    ) -> bool:
+        """Set the independent Favorite attribute. Does not add or remove tags."""
+        metadata = self.load_metadata(project_dir)
+        images = metadata.setdefault("images", {})
+        entry = images.setdefault(file_name, {"tags": []})
+        cleaned = visible_tags(entry.get("tags", []))
+        current = image_entry_is_favorite(entry)
+        if (
+            bool(favorite) == current
+            and cleaned == list(entry.get("tags", []))
+            and ("favorite" in entry) == bool(favorite)
+        ):
+            return False
+        entry["tags"] = cleaned
+        if favorite:
+            entry["favorite"] = True
+        else:
+            entry.pop("favorite", None)
+        images[file_name] = entry
+        self.save_metadata(project_dir, metadata)
+        return True
 
     def add_image_tag(self, project_dir: Path, file_name: str, tag: str) -> bool:
         """Add a tag to an image. Returns True if the tag was added."""
         tag = normalize_tag(tag)
-        if not tag:
+        if not tag or is_favorite_tag_name(tag):
             return False
 
         metadata = self.load_metadata(project_dir)
@@ -198,12 +243,36 @@ class MetadataService:
         if file_name not in metadata["images"]:
             metadata["images"][file_name] = {"tags": []}
 
-        tags = metadata["images"][file_name].get("tags", [])
+        tags = visible_tags(metadata["images"][file_name].get("tags", []))
         if tag in tags:
             return False
 
         tags.append(tag)
         metadata["images"][file_name]["tags"] = tags
+        self.save_metadata(project_dir, metadata)
+        return True
+
+    def set_image_tags(
+        self, project_dir: Path, file_name: str, tags: list[str] | tuple[str, ...]
+    ) -> bool:
+        """Replace the visible tag list. Favorite is left unchanged. True if tags changed."""
+        wanted: list[str] = []
+        seen: set[str] = set()
+        for raw in tags or ():
+            tag = normalize_tag(str(raw))
+            if not tag or is_favorite_tag_name(tag) or tag.casefold() in seen:
+                continue
+            seen.add(tag.casefold())
+            wanted.append(tag)
+
+        metadata = self.load_metadata(project_dir)
+        images = metadata.setdefault("images", {})
+        entry = images.setdefault(file_name, {"tags": []})
+        current = visible_tags(entry.get("tags", []))
+        if current == wanted:
+            return False
+        entry["tags"] = wanted
+        images[file_name] = entry
         self.save_metadata(project_dir, metadata)
         return True
 
@@ -215,7 +284,7 @@ class MetadataService:
         if file_name not in metadata.get("images", {}):
             return False
 
-        tags = metadata["images"][file_name].get("tags", [])
+        tags = visible_tags(metadata["images"][file_name].get("tags", []))
         if tag not in tags:
             return False
 
@@ -242,9 +311,7 @@ class MetadataService:
         """Copy one image entry (including tags) to a new file name (same project)."""
         metadata = self.load_metadata(project_dir)
         source = metadata.get("images", {}).get(source_file_name, {"tags": []})
-        metadata["images"][dest_file_name] = {
-            "tags": list(source.get("tags", [])),
-        }
+        metadata["images"][dest_file_name] = copy_image_entry(source)
         self.save_metadata(project_dir, metadata)
 
     def copy_image_to_project(
@@ -284,9 +351,7 @@ class MetadataService:
         dest_meta = self.load_metadata(dest_project_dir)
         if "images" not in dest_meta:
             dest_meta["images"] = {}
-        dest_meta["images"][dest_name] = {
-            "tags": list(source_entry.get("tags", [])),
-        }
+        dest_meta["images"][dest_name] = copy_image_entry(source_entry)
         self.save_metadata(dest_project_dir, dest_meta)
 
         logger.info(
@@ -352,15 +417,17 @@ class MetadataService:
         new_name: str,
     ) -> Path:
         """
-        Rename a PNG and its metadata entry within the same project.
+        Rename an image and its metadata entry within the same project.
 
-        new_name should include the .png extension.
+        If ``new_name`` has no recognized image suffix, the source suffix is kept.
         """
+        from app.actions.filenames import normalize_rename_filename
+
         project_dir = project_dir.resolve()
         old_name = Path(old_name).name
-        new_name = Path(new_name).name
-        if not new_name.lower().endswith(".png"):
-            new_name = f"{new_name}.png"
+        new_name = normalize_rename_filename(old_name, Path(new_name).name)
+        if not new_name:
+            raise ValueError("new_name must not be empty")
 
         src = project_dir / old_name
         dest = project_dir / new_name
@@ -414,6 +481,14 @@ class MetadataService:
                 logger.error("Failed to load tags.json: %s", e)
                 tags = []
 
+        visible = visible_tags(tags)
+        if visible != tags:
+            try:
+                self.save_global_tags(app_root, visible)
+            except OSError:
+                logger.exception("Failed to remove leftover Favorite from tags.json")
+            tags = visible
+
         self._global_tags_cache = list(tags)
         self._global_tags_path = path_key
         return list(tags)
@@ -435,7 +510,7 @@ class MetadataService:
     def add_global_tag(self, app_root: Path, tag: str) -> str:
         """Add a common tag. Duplicates become 'name (1)', 'name (2)', ..."""
         tag = normalize_tag(tag)
-        if not tag:
+        if not tag or is_favorite_tag_name(tag):
             return ""
 
         tags = self.load_global_tags(app_root)
@@ -447,7 +522,7 @@ class MetadataService:
     def ensure_global_tag(self, app_root: Path, tag: str) -> str:
         """Ensure exact tag exists in the common list (no rename if already present)."""
         tag = normalize_tag(tag)
-        if not tag:
+        if not tag or is_favorite_tag_name(tag):
             return ""
 
         tags = self.load_global_tags(app_root)
@@ -462,7 +537,7 @@ class MetadataService:
         """Rename a common tag. Duplicate names become 'name (1)' etc."""
         old_tag = normalize_tag(old_tag)
         new_tag = normalize_tag(new_tag)
-        if not new_tag:
+        if not new_tag or is_favorite_tag_name(new_tag):
             return None
 
         tags = self.load_global_tags(app_root)

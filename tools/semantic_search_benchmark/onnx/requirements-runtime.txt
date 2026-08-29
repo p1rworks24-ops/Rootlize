@@ -1,0 +1,5 @@
+numpy>=2.0,<3
+onnxruntime==1.28.0
+Pillow>=10.4,<13
+psutil>=6,<8
+tokenizers>=0.21,<1

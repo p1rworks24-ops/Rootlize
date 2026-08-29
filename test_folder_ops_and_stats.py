@@ -12,6 +12,36 @@ from app.utils.folder_ops import (
 from app.utils.workspace_stats import collect_folder_stats, collect_tag_stats, format_bytes
 
 
+def test_create_folder_validates_and_does_not_overwrite(tmp_path: Path):
+    from app.utils.folder_ops import create_folder, is_valid_folder_name
+
+    assert not is_valid_folder_name("")
+    assert not is_valid_folder_name("   ")
+    assert not is_valid_folder_name(".")
+    assert not is_valid_folder_name("..")
+    assert not is_valid_folder_name("a/b")
+    assert not is_valid_folder_name("a:b")
+    assert not is_valid_folder_name("a*b")
+    assert is_valid_folder_name("Dogs")
+    assert is_valid_folder_name("  Dogs  ")
+
+    created = create_folder(tmp_path, "  Dogs  ")
+    assert created == tmp_path / "Dogs"
+    assert created.is_dir()
+
+    try:
+        create_folder(tmp_path, "Dogs")
+        raise AssertionError("expected FileExistsError")
+    except FileExistsError:
+        pass
+
+    try:
+        create_folder(tmp_path, "bad:name")
+        raise AssertionError("expected ValueError")
+    except ValueError:
+        pass
+
+
 def test_make_unique_folder_copy_name(tmp_path: Path):
     (tmp_path / "Project").mkdir()
     assert make_unique_folder_copy_name(tmp_path, "Project") == "Project - Copy"

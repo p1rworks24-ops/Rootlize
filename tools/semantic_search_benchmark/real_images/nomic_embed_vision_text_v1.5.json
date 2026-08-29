@@ -1,0 +1,851 @@
+{
+  "model": {
+    "name": "Nomic Embed Vision/Text v1.5",
+    "kind": "nomic",
+    "image_model": "nomic-ai/nomic-embed-vision-v1.5",
+    "text_model": "nomic-ai/nomic-embed-text-v1.5",
+    "trust_remote_code": true,
+    "license": "Apache-2.0",
+    "onnx": "Vision card declares ONNX; separate text/image towers add integration work"
+  },
+  "image_count": 98,
+  "query_count": 24,
+  "dimension": 768,
+  "performance": {
+    "load_seconds": 120.67189470000449,
+    "image_total_seconds": 11.547315799980424,
+    "image_ms_each": 117.82975306102473,
+    "text_total_seconds": 0.2255851999798324,
+    "text_ms_each": 9.399383332493016,
+    "peak_rss_mb": 1428.6875,
+    "incremental_peak_rss_mb": 1235.265625,
+    "parameter_mb": 876.1533203125
+  },
+  "metrics": {
+    "top_1": 0.2916666666666667,
+    "top_3": 0.375,
+    "top_5": 0.5416666666666666,
+    "top_10": 0.75,
+    "mrr": 0.4118909746773974,
+    "queries": [
+      {
+        "query": "Windows desktop",
+        "best_relevant_rank": 5,
+        "relevant_ranks": {
+          "20260718_202724.png": 5,
+          "ScreenShot_Atest_001.png": 6,
+          "20260718_203016.png": 7,
+          "20260718_202718.png": 8
+        },
+        "top_10": [
+          "Screenshot_001.png",
+          "Screenshot_005.png",
+          "20260720_234601.png",
+          "20260718_202728.png",
+          "20260718_202724.png",
+          "ScreenShot_Atest_001.png",
+          "20260718_203016.png",
+          "20260718_202718.png",
+          "20260718_202750.png",
+          "20260718_202211.png"
+        ],
+        "false_positives_top_5": [
+          "Screenshot_001.png",
+          "Screenshot_005.png",
+          "20260720_234601.png",
+          "20260718_202728.png"
+        ],
+        "false_negatives_after_20": []
+      },
+      {
+        "query": "Windows desktop screenshot",
+        "best_relevant_rank": 20,
+        "relevant_ranks": {
+          "ScreenShot_Atest_001.png": 20,
+          "20260718_202724.png": 21,
+          "20260718_203016.png": 25,
+          "20260718_202718.png": 26
+        },
+        "top_10": [
+          "Screenshot_001.png",
+          "Screenshot_005.png",
+          "20260720_234601.png",
+          "20260718_202211.png",
+          "ScreenShot_Atest_011.png",
+          "20260718_210026.png",
+          "20260718_204024.png",
+          "20260718_202750.png",
+          "20260718_160712_001.png",
+          "ScreenShot_Atest_002.png"
+        ],
+        "false_positives_top_5": [
+          "Screenshot_001.png",
+          "Screenshot_005.png",
+          "20260720_234601.png",
+          "20260718_202211.png",
+          "ScreenShot_Atest_011.png"
+        ],
+        "false_negatives_after_20": [
+          "20260718_202718.png",
+          "20260718_203016.png",
+          "20260718_202724.png"
+        ]
+      },
+      {
+        "query": "desktop with application windows",
+        "best_relevant_rank": 8,
+        "relevant_ranks": {
+          "20260718_202728.png": 8,
+          "20260718_202750.png": 16,
+          "20260718_203006.png": 65
+        },
+        "top_10": [
+          "Screenshot_001.png",
+          "Screenshot_005.png",
+          "20260720_234601.png",
+          "20260718_202724.png",
+          "ScreenShot_Atest_001.png",
+          "20260718_203016.png",
+          "20260718_202718.png",
+          "20260718_202728.png",
+          "20260718_202211.png",
+          "ScreenShot_Atest_008.png"
+        ],
+        "false_positives_top_5": [
+          "Screenshot_001.png",
+          "Screenshot_005.png",
+          "20260720_234601.png",
+          "20260718_202724.png",
+          "ScreenShot_Atest_001.png"
+        ],
+        "false_negatives_after_20": [
+          "20260718_203006.png"
+        ]
+      },
+      {
+        "query": "dog",
+        "best_relevant_rank": 1,
+        "relevant_ranks": {
+          "A2.png": 1,
+          "images.jpg": 4
+        },
+        "top_10": [
+          "A2.png",
+          "20260718_203006.png",
+          "_001.png",
+          "images.jpg",
+          "20260718_142639_001.png",
+          "20260718_143926_001.png",
+          "20260718_201716.png",
+          "20260718_201717.png",
+          "20260718_201711.png",
+          "20260718_163013.png"
+        ],
+        "false_positives_top_5": [
+          "20260718_203006.png",
+          "_001.png",
+          "20260718_142639_001.png"
+        ],
+        "false_negatives_after_20": []
+      },
+      {
+        "query": "a dog",
+        "best_relevant_rank": 1,
+        "relevant_ranks": {
+          "A2.png": 1,
+          "images.jpg": 11
+        },
+        "top_10": [
+          "A2.png",
+          "20260718_203006.png",
+          "20260718_142639_001.png",
+          "20260718_143926_001.png",
+          "20260718_201716.png",
+          "20260718_201717.png",
+          "20260718_201711.png",
+          "20260812_215858.png",
+          "20260718_163013.png",
+          "20260718_202750.png"
+        ],
+        "false_positives_top_5": [
+          "20260718_203006.png",
+          "20260718_142639_001.png",
+          "20260718_143926_001.png",
+          "20260718_201716.png"
+        ],
+        "false_negatives_after_20": []
+      },
+      {
+        "query": "dog photo",
+        "best_relevant_rank": 1,
+        "relevant_ranks": {
+          "A2.png": 1,
+          "images.jpg": 12
+        },
+        "top_10": [
+          "A2.png",
+          "ScreenShot_Atest_002.png",
+          "20260716_194523_001.png",
+          "20260716_194437.png",
+          "20260721_204338.png",
+          "20260801_114057.png",
+          "20260718_204024.png",
+          "20260720_234601.png",
+          "ScreenShot_Atest_009.png",
+          "ScreenShot_Atest_010.png"
+        ],
+        "false_positives_top_5": [
+          "ScreenShot_Atest_002.png",
+          "20260716_194523_001.png",
+          "20260716_194437.png",
+          "20260721_204338.png"
+        ],
+        "false_negatives_after_20": []
+      },
+      {
+        "query": "image search application",
+        "best_relevant_rank": 10,
+        "relevant_ranks": {
+          "20260718_202750.png": 10,
+          "20260801_114225.png": 14,
+          "20260801_114154.png": 26,
+          "20260801_114232.png": 28,
+          "20260801_132030.png": 37,
+          "20260801_120311.png": 59,
+          "photo_001.png": 62,
+          "20260801_135518.png": 63,
+          "images.png": 64,
+          "20260801_120339.png": 65,
+          "organize.png": 66,
+          "20260717_000902.png": 70,
+          "20260717_001005.png": 71
+        },
+        "top_10": [
+          "ScreenShot_Atest_004.png",
+          "ScreenShot_Atest_005.png",
+          "ScreenShot_Atest_006.png",
+          "20260720_220157.png",
+          "20260718_175748.png",
+          "20260718_180103.png",
+          "ScreenShot_Atest_008.png",
+          "ScreenShot_Atest_002.png",
+          "20260801_114247.png",
+          "20260718_202750.png"
+        ],
+        "false_positives_top_5": [
+          "ScreenShot_Atest_004.png",
+          "ScreenShot_Atest_005.png",
+          "ScreenShot_Atest_006.png",
+          "20260720_220157.png",
+          "20260718_175748.png"
+        ],
+        "false_negatives_after_20": [
+          "20260717_000902.png",
+          "photo_001.png",
+          "20260717_001005.png",
+          "images.png",
+          "20260801_135518.png",
+          "20260801_120339.png",
+          "20260801_120311.png",
+          "organize.png",
+          "20260801_114232.png",
+          "20260801_132030.png",
+          "20260801_114154.png"
+        ]
+      },
+      {
+        "query": "code editor",
+        "best_relevant_rank": 11,
+        "relevant_ranks": {
+          "20260718_202211.png": 11,
+          "20260720_233800.png": 55,
+          "20260718_201716.png": 59,
+          "20260718_201717.png": 60,
+          "20260718_201711.png": 61
+        },
+        "top_10": [
+          "20260716_194437.png",
+          "20260718_204024.png",
+          "20260716_194523_001.png",
+          "20260718_160651_001.png",
+          "ScreenShot_Atest_009.png",
+          "ScreenShot_Atest_010.png",
+          "_001.png",
+          "20260801_114057.png",
+          "20260718_210026.png",
+          "ScreenShot_Atest_011.png"
+        ],
+        "false_positives_top_5": [
+          "20260716_194437.png",
+          "20260718_204024.png",
+          "20260716_194523_001.png",
+          "20260718_160651_001.png",
+          "ScreenShot_Atest_009.png"
+        ],
+        "false_negatives_after_20": [
+          "20260718_201716.png",
+          "20260720_233800.png",
+          "20260718_201711.png",
+          "20260718_201717.png"
+        ]
+      },
+      {
+        "query": "browser window",
+        "best_relevant_rank": 1,
+        "relevant_ranks": {
+          "20260718_202750.png": 1
+        },
+        "top_10": [
+          "20260718_202750.png",
+          "ScreenShot_Atest_002.png",
+          "20260718_163013.png",
+          "20260721_204338.png",
+          "20260718_201711.png",
+          "20260718_201717.png",
+          "20260718_201716.png",
+          "ScreenShot_Atest_008.png",
+          "20260801_114057.png",
+          "20260718_202728.png"
+        ],
+        "false_positives_top_5": [
+          "ScreenShot_Atest_002.png",
+          "20260718_163013.png",
+          "20260721_204338.png",
+          "20260718_201711.png"
+        ],
+        "false_negatives_after_20": []
+      },
+      {
+        "query": "settings screen",
+        "best_relevant_rank": 17,
+        "relevant_ranks": {
+          "20260721_204004.png": 17,
+          "20260718_142639_001.png": 30,
+          "20260718_143926_001.png": 31,
+          "20260801_120357.png": 69,
+          "tags.png": 70,
+          "20260721_203901.png": 95
+        },
+        "top_10": [
+          "_001.png",
+          "20260721_203957.png",
+          "タイトルなし.jpg",
+          "20260721_203931.png",
+          "20260721_203944.png",
+          "20260801_114232.png",
+          "20260718_202211.png",
+          "20260721_204338.png",
+          "20260801_114225.png",
+          "20260717_000902.png"
+        ],
+        "false_positives_top_5": [
+          "_001.png",
+          "20260721_203957.png",
+          "タイトルなし.jpg",
+          "20260721_203931.png",
+          "20260721_203944.png"
+        ],
+        "false_negatives_after_20": [
+          "tags.png",
+          "20260721_203901.png",
+          "20260718_142639_001.png",
+          "20260718_143926_001.png",
+          "20260801_120357.png"
+        ]
+      },
+      {
+        "query": "command prompt",
+        "best_relevant_rank": 2,
+        "relevant_ranks": {
+          "20260716_194523_001.png": 2,
+          "20260718_204024.png": 5,
+          "20260716_194437.png": 6,
+          "ScreenShot_Atest_009.png": 9,
+          "ScreenShot_Atest_010.png": 10,
+          "20260718_160651_001.png": 11
+        },
+        "top_10": [
+          "_001.png",
+          "20260716_194523_001.png",
+          "20260718_202211.png",
+          "20260718_210026.png",
+          "20260718_204024.png",
+          "20260716_194437.png",
+          "ScreenShot_Atest_011.png",
+          "20260718_160712_001.png",
+          "ScreenShot_Atest_009.png",
+          "ScreenShot_Atest_010.png"
+        ],
+        "false_positives_top_5": [
+          "_001.png",
+          "20260718_202211.png",
+          "20260718_210026.png"
+        ],
+        "false_negatives_after_20": []
+      },
+      {
+        "query": "terminal window",
+        "best_relevant_rank": 6,
+        "relevant_ranks": {
+          "20260716_194523_001.png": 6,
+          "20260718_160651_001.png": 7,
+          "20260718_204024.png": 9,
+          "ScreenShot_Atest_009.png": 15,
+          "ScreenShot_Atest_010.png": 16,
+          "20260716_194437.png": 17
+        },
+        "top_10": [
+          "20260720_234601.png",
+          "Screenshot_001.png",
+          "Screenshot_005.png",
+          "_001.png",
+          "ScreenShot_Atest_002.png",
+          "20260716_194523_001.png",
+          "20260718_160651_001.png",
+          "20260718_202211.png",
+          "20260718_204024.png",
+          "20260718_160712_001.png"
+        ],
+        "false_positives_top_5": [
+          "20260720_234601.png",
+          "Screenshot_001.png",
+          "Screenshot_005.png",
+          "_001.png",
+          "ScreenShot_Atest_002.png"
+        ],
+        "false_negatives_after_20": []
+      },
+      {
+        "query": "file explorer window",
+        "best_relevant_rank": 2,
+        "relevant_ranks": {
+          "Screenshot_001.png": 2,
+          "Screenshot_005.png": 3
+        },
+        "top_10": [
+          "20260720_234601.png",
+          "Screenshot_001.png",
+          "Screenshot_005.png",
+          "ScreenShot_Atest_002.png",
+          "ScreenShot_Atest_008.png",
+          "20260718_160712_001.png",
+          "20260801_114247.png",
+          "20260718_202211.png",
+          "20260718_204024.png",
+          "ScreenShot_Atest_001.png"
+        ],
+        "false_positives_top_5": [
+          "20260720_234601.png",
+          "ScreenShot_Atest_002.png",
+          "ScreenShot_Atest_008.png"
+        ],
+        "false_negatives_after_20": []
+      },
+      {
+        "query": "screenshot manager application",
+        "best_relevant_rank": 4,
+        "relevant_ranks": {
+          "20260718_202750.png": 4,
+          "20260801_114225.png": 7,
+          "20260717_000902.png": 9,
+          "20260717_001005.png": 10,
+          "20260801_114232.png": 14,
+          "20260801_114154.png": 18,
+          "photo_001.png": 21,
+          "20260720_220157.png": 26,
+          "20260801_120311.png": 28,
+          "20260801_135518.png": 31,
+          "images.png": 32,
+          "20260801_132030.png": 34,
+          "home.png": 35,
+          "20260801_120339.png": 42,
+          "organize.png": 43,
+          "20260801_120423.png": 61,
+          "about.png": 62,
+          "20260801_120155.png": 85,
+          "title.png": 86,
+          "20260801_120357.png": 87,
+          "tags.png": 88,
+          "20260720_220408.png": 91
+        },
+        "top_10": [
+          "ScreenShot_Atest_008.png",
+          "ScreenShot_Atest_007.png",
+          "20260721_204338.png",
+          "20260718_202750.png",
+          "testshot_002.png",
+          "20260721_203944.png",
+          "20260801_114225.png",
+          "20260721_203957.png",
+          "20260717_000902.png",
+          "20260717_001005.png"
+        ],
+        "false_positives_top_5": [
+          "ScreenShot_Atest_008.png",
+          "ScreenShot_Atest_007.png",
+          "20260721_204338.png",
+          "testshot_002.png"
+        ],
+        "false_negatives_after_20": [
+          "20260801_120311.png",
+          "20260801_120357.png",
+          "20260720_220408.png",
+          "images.png",
+          "20260801_120423.png",
+          "20260801_135518.png",
+          "title.png",
+          "organize.png",
+          "photo_001.png",
+          "tags.png",
+          "20260801_132030.png",
+          "home.png",
+          "20260720_220157.png",
+          "20260801_120155.png",
+          "about.png",
+          "20260801_120339.png"
+        ]
+      },
+      {
+        "query": "video game screenshot",
+        "best_relevant_rank": 1,
+        "relevant_ranks": {
+          "20260718_212500.png": 1,
+          "20260718_205213.png": 2,
+          "20260718_205234.png": 3,
+          "20260718_212504.png": 4,
+          "20260718_212516.png": 6,
+          "20260718_210026.png": 19
+        },
+        "top_10": [
+          "20260718_212500.png",
+          "20260718_205213.png",
+          "20260718_205234.png",
+          "20260718_212504.png",
+          "_001.png",
+          "20260718_212516.png",
+          "20260720_234601.png",
+          "Screenshot_001.png",
+          "Screenshot_005.png",
+          "ScreenShot_Atest_011.png"
+        ],
+        "false_positives_top_5": [
+          "_001.png"
+        ],
+        "false_negatives_after_20": []
+      },
+      {
+        "query": "mountain desktop wallpaper",
+        "best_relevant_rank": 1,
+        "relevant_ranks": {
+          "ScreenShot_Atest_001.png": 1,
+          "20260718_202718.png": 2,
+          "20260718_203016.png": 3,
+          "20260718_202724.png": 4
+        },
+        "top_10": [
+          "ScreenShot_Atest_001.png",
+          "20260718_202718.png",
+          "20260718_203016.png",
+          "20260718_202724.png",
+          "20260720_234601.png",
+          "Screenshot_001.png",
+          "Screenshot_005.png",
+          "ScreenShot_Atest_008.png",
+          "ScreenShot_Atest_007.png",
+          "20260718_202728.png"
+        ],
+        "false_positives_top_5": [
+          "20260720_234601.png"
+        ],
+        "false_negatives_after_20": []
+      },
+      {
+        "query": "application error message",
+        "best_relevant_rank": 17,
+        "relevant_ranks": {
+          "20260718_175748.png": 17,
+          "20260718_180103.png": 18,
+          "20260812_215858.png": 19
+        },
+        "top_10": [
+          "20260718_210026.png",
+          "ScreenShot_Atest_011.png",
+          "20260718_202211.png",
+          "20260718_204024.png",
+          "20260718_160712_001.png",
+          "20260720_233733.png",
+          "testshot_001.png",
+          "20260718_163013.png",
+          "20260716_194437.png",
+          "ScreenShot_Atest_009.png"
+        ],
+        "false_positives_top_5": [
+          "20260718_210026.png",
+          "ScreenShot_Atest_011.png",
+          "20260718_202211.png",
+          "20260718_204024.png",
+          "20260718_160712_001.png"
+        ],
+        "false_negatives_after_20": []
+      },
+      {
+        "query": "image gallery",
+        "best_relevant_rank": 5,
+        "relevant_ranks": {
+          "20260801_114225.png": 5,
+          "20260801_135518.png": 6,
+          "images.png": 7,
+          "20260717_000902.png": 8,
+          "20260717_001005.png": 9,
+          "20260801_114154.png": 11,
+          "photo_001.png": 12,
+          "20260718_202750.png": 13,
+          "20260801_132030.png": 15,
+          "20260801_114232.png": 27,
+          "20260801_120311.png": 31,
+          "20260801_120339.png": 49,
+          "organize.png": 50
+        },
+        "top_10": [
+          "_002.png",
+          "20260721_203944.png",
+          "20260721_203931.png",
+          "20260721_203957.png",
+          "20260801_114225.png",
+          "20260801_135518.png",
+          "images.png",
+          "20260717_000902.png",
+          "20260717_001005.png",
+          "ScreenShot_Atest_008.png"
+        ],
+        "false_positives_top_5": [
+          "_002.png",
+          "20260721_203944.png",
+          "20260721_203931.png",
+          "20260721_203957.png"
+        ],
+        "false_negatives_after_20": [
+          "20260801_120339.png",
+          "20260801_120311.png",
+          "organize.png",
+          "20260801_114232.png"
+        ]
+      },
+      {
+        "query": "tag management screen",
+        "best_relevant_rank": 6,
+        "relevant_ranks": {
+          "20260801_120357.png": 6,
+          "tags.png": 7,
+          "20260721_204004.png": 30,
+          "20260721_203901.png": 89
+        },
+        "top_10": [
+          "20260801_114232.png",
+          "20260718_142639_001.png",
+          "20260718_143926_001.png",
+          "20260811_113536.png",
+          "タイトルなし.jpg",
+          "20260801_120357.png",
+          "tags.png",
+          "_002.png",
+          "photo_001.png",
+          "ScreenShot_Atest_008.png"
+        ],
+        "false_positives_top_5": [
+          "20260801_114232.png",
+          "20260718_142639_001.png",
+          "20260718_143926_001.png",
+          "20260811_113536.png",
+          "タイトルなし.jpg"
+        ],
+        "false_negatives_after_20": [
+          "20260721_204004.png",
+          "20260721_203901.png"
+        ]
+      },
+      {
+        "query": "login screen",
+        "best_relevant_rank": 43,
+        "relevant_ranks": {
+          "20260721_210812.png": 43,
+          "20260729_234504.png": 79
+        },
+        "top_10": [
+          "_001.png",
+          "20260721_204004.png",
+          "20260721_203931.png",
+          "20260801_114057.png",
+          "20260801_114232.png",
+          "20260721_204338.png",
+          "ScreenShot_Atest_003.png",
+          "20260718_202750.png",
+          "タイトルなし.jpg",
+          "20260812_222344.png"
+        ],
+        "false_positives_top_5": [
+          "_001.png",
+          "20260721_204004.png",
+          "20260721_203931.png",
+          "20260801_114057.png",
+          "20260801_114232.png"
+        ],
+        "false_negatives_after_20": [
+          "20260721_210812.png",
+          "20260729_234504.png"
+        ]
+      },
+      {
+        "query": "dark themed application",
+        "best_relevant_rank": 5,
+        "relevant_ranks": {
+          "20260720_233933.png": 5,
+          "ScreenShot_Atest_011.png": 8,
+          "20260720_234601.png": 9,
+          "20260718_202211.png": 14,
+          "20260718_160712_001.png": 19,
+          "20260718_204024.png": 23,
+          "ScreenShot_Atest_009.png": 25,
+          "ScreenShot_Atest_010.png": 26,
+          "20260720_233800.png": 28,
+          "20260716_194437.png": 44,
+          "20260716_194523_001.png": 47,
+          "20260718_160651_001.png": 51,
+          "20260718_201716.png": 85,
+          "20260718_201717.png": 86,
+          "20260718_201711.png": 87
+        },
+        "top_10": [
+          "20260718_212504.png",
+          "_001.png",
+          "20260718_205234.png",
+          "20260718_212500.png",
+          "20260720_233933.png",
+          "20260718_205213.png",
+          "ScreenShot_Atest_002.png",
+          "ScreenShot_Atest_011.png",
+          "20260720_234601.png",
+          "ScreenShot_Atest_003.png"
+        ],
+        "false_positives_top_5": [
+          "20260718_212504.png",
+          "_001.png",
+          "20260718_205234.png",
+          "20260718_212500.png"
+        ],
+        "false_negatives_after_20": [
+          "20260718_201716.png",
+          "20260718_160651_001.png",
+          "ScreenShot_Atest_009.png",
+          "20260720_233800.png",
+          "20260716_194437.png",
+          "20260718_204024.png",
+          "ScreenShot_Atest_010.png",
+          "20260718_201711.png",
+          "20260716_194523_001.png",
+          "20260718_201717.png"
+        ]
+      },
+      {
+        "query": "screen capture settings",
+        "best_relevant_rank": 35,
+        "relevant_ranks": {
+          "20260721_204004.png": 35,
+          "20260718_142639_001.png": 59,
+          "20260718_143926_001.png": 60,
+          "20260721_203901.png": 93
+        },
+        "top_10": [
+          "_001.png",
+          "20260718_205213.png",
+          "20260718_205234.png",
+          "20260718_202211.png",
+          "20260718_212516.png",
+          "ScreenShot_Atest_002.png",
+          "20260720_234601.png",
+          "20260718_160712_001.png",
+          "20260717_000902.png",
+          "20260717_001005.png"
+        ],
+        "false_positives_top_5": [
+          "_001.png",
+          "20260718_205213.png",
+          "20260718_205234.png",
+          "20260718_202211.png",
+          "20260718_212516.png"
+        ],
+        "false_negatives_after_20": [
+          "20260721_204004.png",
+          "20260718_142639_001.png",
+          "20260718_143926_001.png",
+          "20260721_203901.png"
+        ]
+      },
+      {
+        "query": "folder selection screen",
+        "best_relevant_rank": 6,
+        "relevant_ranks": {
+          "20260811_113411.png": 6,
+          "20260721_204338.png": 24,
+          "20260721_203944.png": 31,
+          "20260718_163013.png": 75,
+          "20260720_233733.png": 86
+        },
+        "top_10": [
+          "20260720_234601.png",
+          "20260801_114225.png",
+          "Screenshot_001.png",
+          "Screenshot_005.png",
+          "ScreenShot_Atest_008.png",
+          "20260811_113411.png",
+          "20260721_203957.png",
+          "_002.png",
+          "ScreenShot_Atest_007.png",
+          "ScreenShot_Atest_002.png"
+        ],
+        "false_positives_top_5": [
+          "20260720_234601.png",
+          "20260801_114225.png",
+          "Screenshot_001.png",
+          "Screenshot_005.png",
+          "ScreenShot_Atest_008.png"
+        ],
+        "false_negatives_after_20": [
+          "20260721_203944.png",
+          "20260721_204338.png",
+          "20260718_163013.png",
+          "20260720_233733.png"
+        ]
+      },
+      {
+        "query": "software installation screen",
+        "best_relevant_rank": 1,
+        "relevant_ranks": {
+          "20260721_203957.png": 1,
+          "20260721_203931.png": 25
+        },
+        "top_10": [
+          "20260721_203957.png",
+          "ScreenShot_Atest_008.png",
+          "20260801_114225.png",
+          "20260721_204338.png",
+          "20260721_203944.png",
+          "20260720_234601.png",
+          "ScreenShot_Atest_002.png",
+          "20260801_114057.png",
+          "20260718_202750.png",
+          "20260718_204024.png"
+        ],
+        "false_positives_top_5": [
+          "ScreenShot_Atest_008.png",
+          "20260801_114225.png",
+          "20260721_204338.png",
+          "20260721_203944.png"
+        ],
+        "false_negatives_after_20": [
+          "20260721_203931.png"
+        ]
+      }
+    ]
+  }
+}

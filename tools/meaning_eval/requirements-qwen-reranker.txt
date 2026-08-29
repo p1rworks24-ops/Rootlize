@@ -1,0 +1,14 @@
+# Isolated eval-only deps for Qwen3-VL-Reranker-2B PoC.
+# Install into tools/meaning_eval/.venv-qwen, not the product .build-venv.
+# Torch CUDA wheels are installed separately from the PyTorch index.
+transformers==4.57.3
+huggingface_hub>=0.34.0,<1.0
+qwen-vl-utils>=0.0.14
+accelerate>=1.0.0
+bitsandbytes>=0.45.0
+pillow>=10.0.0
+psutil>=5.9.0
+huggingface_hub>=0.26.0
+sentencepiece>=0.2.0
+protobuf>=4.0.0
+scipy>=1.11.0

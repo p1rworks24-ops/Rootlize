@@ -6,8 +6,9 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-from PySide6.QtWidgets import QApplication, QPushButton
+from PySide6.QtWidgets import QApplication, QLabel, QPushButton
 
+from app.i18n import t
 from app.ui.pages.settings_page import SettingsPage
 from app.utils.filename_template import DEFAULT_FILENAME_TEMPLATE
 
@@ -51,6 +52,36 @@ def test_settings_page_has_no_save_button():
             if lab.objectName() == "settingsAutosaveHint"
         ]
         assert hints == [t("settings.autosave_hint")]
+
+
+def test_capture_and_about_sections_hidden_while_capture_disabled():
+    app = _ensure_app()
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        (root / "screenshots").mkdir()
+        config = {
+            "screenshot_dir": "screenshots",
+            "window_width": 1100,
+            "window_height": 720,
+            "filename_template": DEFAULT_FILENAME_TEMPLATE,
+            "current_folder": "Default",
+            "save_folder": "Default",
+        }
+        page = SettingsPage(config, root)
+        app.processEvents()
+        titles = [
+            lab.text()
+            for lab in page.findChildren(QLabel)
+            if lab.objectName() == "sectionTitle"
+        ]
+        assert t("settings.shortcuts") not in titles
+        assert t("settings.capture_minimize") not in titles
+        assert t("nav.about") not in titles
+        assert t("settings.ui") in titles
+        assert t("settings.notifications") in titles
+        assert t("settings.help") in titles
+        assert not hasattr(page, "_filename_panel")
+        assert not hasattr(page, "_minimize_toggle")
 
 
 def test_filename_rule_row_marks_selected():

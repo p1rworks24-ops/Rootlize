@@ -1,5 +1,5 @@
 /**
- * Capixe landing — minimal interactions (smooth scroll, content binding).
+ * Rootlize landing — minimal interactions (smooth scroll, content binding).
  */
 (function () {
   "use strict";
@@ -40,7 +40,7 @@
           }
           asset =
             release.assets.find(function (item) {
-              return /^Capixe-.*\.zip$/i.test(item.name || "");
+              return /^(Rootlize|Capixe)-.*\.zip$/i.test(item.name || "");
             }) ||
             release.assets.find(function (item) {
               return /\.zip$/i.test(item.name || "");

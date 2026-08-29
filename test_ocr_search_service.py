@@ -89,6 +89,18 @@ def test_ocr_snippet_is_short_plain_text_around_match(repository, tmp_path):
     assert result.ocr_snippet.startswith("…") and result.ocr_snippet.endswith("…")
 
 
+def test_filename_ocr_and_tag_search_stay_stable_across_repeated_queries(repository, tmp_path):
+    folder = tmp_path / "shots"
+    add_image(repository, folder, "alpha-file.png")
+    add_image(repository, folder, "other.png", text="visible ocr token")
+    add_image(repository, folder, "tagged.png", tags=["beta-tag"])
+    for query in ("alpha-file", "ocr token", "beta-tag"):
+        first = repository.search_images(query, folder_path=folder)
+        second = repository.search_images(query, folder_path=folder)
+        assert first.total_count == second.total_count >= 1
+        assert [item.image_id for item in first.results] == [item.image_id for item in second.results]
+
+
 def test_non_ready_ocr_is_excluded_but_filename_and_tags_remain_searchable(repository, tmp_path):
     folder = tmp_path / "shots"
     for index, status in enumerate(("pending", "running", "stale", "failed")):

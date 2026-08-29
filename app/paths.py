@@ -13,7 +13,7 @@ import os
 import sys
 from pathlib import Path
 
-from app.branding import APP_NAME
+from app.branding import DATA_DIR_NAME
 
 # ---------------------------------------------------------------------------
 # Test overrides (None = use real environment)
@@ -97,8 +97,8 @@ def get_app_data_dir() -> Path:
         return _app_data_override.resolve()
     appdata = (os.environ.get("APPDATA") or "").strip()
     if appdata:
-        return (Path(appdata) / APP_NAME).resolve()
-    return (Path.home() / "AppData" / "Roaming" / APP_NAME).resolve()
+        return (Path(appdata) / DATA_DIR_NAME).resolve()
+    return (Path.home() / "AppData" / "Roaming" / DATA_DIR_NAME).resolve()
 
 
 def get_local_app_data_dir() -> Path:
@@ -107,13 +107,27 @@ def get_local_app_data_dir() -> Path:
         return _local_app_data_override.resolve()
     local = (os.environ.get("LOCALAPPDATA") or "").strip()
     if local:
-        return (Path(local) / APP_NAME).resolve()
-    return (Path.home() / "AppData" / "Local" / APP_NAME).resolve()
+        return (Path(local) / DATA_DIR_NAME).resolve()
+    return (Path.home() / "AppData" / "Local" / DATA_DIR_NAME).resolve()
 
 
 def get_logs_dir() -> Path:
     """Defined location for future file logs (not used yet)."""
     return get_local_app_data_dir() / "logs"
+
+
+def get_bundled_semantic_models_dir() -> Path:
+    """Read-only shipped Semantic bundles. Same layout as OCR: resources/ under get_resource_root()."""
+    return get_resource_root() / "resources" / "semantic-models"
+
+
+def get_bundled_semantic_bundle_dir(bundle_version: str) -> Path:
+    return get_bundled_semantic_models_dir() / bundle_version
+
+
+def get_semantic_models_dir() -> Path:
+    """Writable fallback for existing user-installed Semantic model bundles."""
+    return get_local_app_data_dir() / "semantic-models"
 
 
 def get_config_path() -> Path:
@@ -129,6 +143,11 @@ def get_tags_path() -> Path:
     return get_app_data_dir() / "tags.json"
 
 
+def get_automations_path() -> Path:
+    """Local Automation workflows. Not synced."""
+    return get_app_data_dir() / "automations.json"
+
+
 def get_legacy_tags_path() -> Path:
     return get_legacy_install_root() / "tags.json"
 
@@ -138,7 +157,7 @@ def get_default_screenshot_root() -> Path:
     if _default_screenshot_override is not None:
         return _default_screenshot_override.resolve()
     pictures = _resolve_pictures_dir()
-    return (pictures / APP_NAME).resolve()
+    return (pictures / DATA_DIR_NAME).resolve()
 
 
 def _resolve_pictures_dir() -> Path:

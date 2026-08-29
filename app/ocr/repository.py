@@ -91,6 +91,50 @@ class OCRRepository:
         if row is None: raise OCRRecordNotFoundError(f"OCR document {image_id} was not found.")
         return OCRDocumentRecord(**dict(row))
 
+    def queue_ocr_retry(self, image_ids) -> int:
+        """Queue only selected OCR components; Semantic embeddings are untouched."""
+        ids = tuple(dict.fromkeys(int(value) for value in image_ids))
+        if not ids:
+            return 0
+        placeholders = ",".join("?" for _ in ids)
+        with self.database.transaction():
+            cursor = self.conn.execute(
+                f"UPDATE ocr_documents SET status='pending',previous_status=NULL,"
+                f"error_type=NULL,error_message_safe=NULL,retry_count=0,claimed_at=NULL,"
+                f"worker_id=NULL,next_retry_at=NULL WHERE image_id IN ({placeholders}) "
+                "AND status<>'running'",
+                ids,
+            )
+        return int(cursor.rowcount)
+
+    def restore_searchable_ocr(self, image_id: int, *, ready: bool = True) -> None:
+        """Put existing OCR text back on the search index. Does not re-read the file."""
+        document = self.get_ocr_document(image_id)
+        if not document.ocr_text:
+            return
+        from app.ocr.text_normalization import normalize_compact_text, normalize_search_text
+
+        norm = document.ocr_text_norm or normalize_search_text(document.ocr_text)
+        compact = document.ocr_text_compact_norm or normalize_compact_text(document.ocr_text)
+        with self.database.transaction():
+            self.conn.execute(
+                "UPDATE search_documents SET ocr_norm=?,ocr_compact_norm=? WHERE image_id=?",
+                (norm, compact, image_id),
+            )
+            if ready and document.status == "stale":
+                self.conn.execute(
+                    "UPDATE ocr_documents SET status='ready',previous_status=NULL WHERE image_id=? AND status='stale'",
+                    (image_id,),
+                )
+
+    def mark_ocr_stale_keep_search(self, image_id: int) -> None:
+        """Queue re-OCR without removing the last searchable text."""
+        with self.database.transaction():
+            self.conn.execute(
+                "UPDATE ocr_documents SET status='stale',previous_status=CASE WHEN status<>'stale' THEN status ELSE previous_status END WHERE image_id=?",
+                (image_id,),
+            )
+
     def update_tags(self, image_id: int, tags: list[str] | str) -> SearchDocumentRecord:
         text=tags if isinstance(tags,str) else " ".join(tags); value=normalize_search_text(text)
         with self.database.transaction():

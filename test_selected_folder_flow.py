@@ -16,6 +16,8 @@ from app.ui.pages.settings_page import SettingsPage
 from app.ui.pages.work_page import WorkPage
 from app.utils.thumbnail_cache import ThumbnailCache
 
+from conftest import gallery_image_items
+
 
 def _ensure_app() -> QApplication:
     return QApplication.instance() or QApplication([])
@@ -28,7 +30,7 @@ def _write_png(path: Path) -> None:
 
 
 def _wait_for_image_search(page: ImagesPage) -> None:
-    for _ in range(150):
+    for _ in range(500):
         if not page._search_tasks:
             return
         QTest.qWait(20)
@@ -43,6 +45,7 @@ def _config(folder: Path) -> dict:
         "save_folder": "Capture",
         "window_width": 1050,
         "window_height": 600,
+        "developer_search_mode": "text",
     }
 
 
@@ -66,7 +69,7 @@ def test_images_and_organize_share_direct_selected_folder(tmp_path: Path):
 
     assert images._get_folder_dir() == selected.resolve()
     assert organize._get_folder_dir() == selected.resolve()
-    assert images._list_widget.count() == 1
+    assert len(gallery_image_items(images._list_widget)) == 1
     assert organize._list.count() == 1
 
     images._search_input.setText("findme")

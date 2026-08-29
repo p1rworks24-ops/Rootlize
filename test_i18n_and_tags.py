@@ -12,9 +12,13 @@ from app.i18n.en import MESSAGES
 from app.services.metadata_service import MetadataService
 from app.ui.pages.images_page import ImagesPage
 from app.ui.pages.tags_page import TagsPage
-from app.utils.sort_order import sort_option_labels
+from app.utils.sort_order import images_sort_option_labels, sort_option_labels
 from app.utils.thumbnail_cache import ThumbnailCache
 from app.utils.view_mode import thumbnail_mode_labels
+
+from app.ui.caption_delegate import ITEM_KIND_IMAGE, ITEM_KIND_ROLE
+
+from conftest import gallery_image_items
 
 
 def _ensure_app() -> QApplication:
@@ -62,19 +66,29 @@ def test_i18n_unknown_key_returns_key():
 
 
 def test_i18n_catalog_has_no_empty_values():
+    # Unsigned Account control hides the plan row; the catalog keeps an empty placeholder.
+    allowed_empty = {"nav.account.plan"}
     for key, value in MESSAGES.items():
+        if key in allowed_empty:
+            assert isinstance(value, str)
+            continue
         assert isinstance(value, str) and value.strip(), f"empty message: {key}"
 
 
 def test_sort_and_view_labels_resolve():
     labels = sort_option_labels()
-    assert len(labels) == 4
+    assert len(labels) == 5
     assert all(isinstance(label, str) and label for _, label in labels)
     assert all("sort." not in label for _, label in labels)
 
     view_labels = thumbnail_mode_labels()
     assert len(view_labels) == 3
     assert all(isinstance(label, str) and label for _, label in view_labels)
+
+    images_labels = images_sort_option_labels()
+    assert len(images_labels) == 5
+    assert all(isinstance(label, str) and label for _, label in images_labels)
+    assert all("sort." not in label for _, label in images_labels)
 
 
 def test_images_preview_tag_actions_and_tags_page_sync():
@@ -114,8 +128,8 @@ def test_images_preview_tag_actions_and_tags_page_sync():
         page.refresh()
         app.processEvents()
 
-        assert page._list_widget.count() >= 1
-        first = page._list_widget.item(0)
+        assert len(gallery_image_items(page._list_widget)) >= 1
+        first = gallery_image_items(page._list_widget)[0]
         page._list_widget.setCurrentItem(first)
         app.processEvents()
 
@@ -197,6 +211,7 @@ def test_invalid_png_still_allows_tagging():
 
         item = QListWidgetItem(image_path.name)
         item.setData(Qt.UserRole, str(image_path.resolve()))
+        item.setData(ITEM_KIND_ROLE, ITEM_KIND_IMAGE)
         page._list_widget.addItem(item)
         page._list_widget.setCurrentItem(item)
         app.processEvents()
