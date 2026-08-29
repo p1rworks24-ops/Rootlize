@@ -413,6 +413,45 @@
     });
   }
 
+  function setupConceptMotion() {
+    var nodes = document.querySelectorAll(".viz");
+    if (!nodes.length) return;
+    if (prefersReducedMotion()) return;
+    if (typeof window.IntersectionObserver !== "function") {
+      nodes.forEach(function (el) {
+        el.classList.add("is-playing");
+      });
+      return;
+    }
+    var visible = [];
+    var observer = new window.IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            if (visible.indexOf(entry.target) === -1) visible.push(entry.target);
+          } else {
+            visible = visible.filter(function (node) {
+              return node !== entry.target;
+            });
+          }
+          entry.target.classList.toggle(
+            "is-playing",
+            entry.isIntersecting && !document.hidden
+          );
+        });
+      },
+      { threshold: 0.22 }
+    );
+    nodes.forEach(function (el) {
+      observer.observe(el);
+    });
+    document.addEventListener("visibilitychange", function () {
+      visible.forEach(function (el) {
+        el.classList.toggle("is-playing", !document.hidden);
+      });
+    });
+  }
+
   function setupSmoothScroll() {
     document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
       anchor.addEventListener("click", function (e) {
@@ -437,6 +476,7 @@
     resolveLatestDownload();
     setupLightbox();
     setupReveal();
+    setupConceptMotion();
     setupSmoothScroll();
     setupYear();
   });

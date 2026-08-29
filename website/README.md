@@ -32,9 +32,14 @@ Do not point Download CTAs at `urls.download` until GitHub has that exact ZIP. `
 
 The product showcase is **data-driven**. `main.js` renders `screenshots` from `js/content.js` into `#hero-carousel` (auto-advance, arrows, dots, swipe, lightbox). Honor `prefers-reduced-motion`.
 
-Keep all slides the same pixel size and aspect ratio so the frame does not letterbox. Current set:
+Keep all slides the same pixel size and aspect ratio so the frame does not letterbox. Replace files in place — do not change `js/content.js` keys.
 
-`images.png`, `meaning-search.png`, `ask-ai.png`, `automation.png`, `account.png`.
+Recommended drop-in assets:
+
+- 3 distinct product shots is enough (the carousel accepts any length)
+- `1600 × 930` PNG (aspect `1600 / 930`)
+- Same crop / window chrome on every slide
+- Filenames: `images.png`, `meaning-search.png`, `ask-ai.png`, `automation.png`, `account.png`
 
 The landing page presents Rootlize as a local workspace (Find → Narrow → Act → Automate). Desktop implementation Source of Truth remains `.ai/SPEC.md`.
 

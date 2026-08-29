@@ -29,6 +29,8 @@ window.CAPIXE = {
     privacy: "/privacy",
     terms: "/terms",
   },
+  // Hero carousel is data-driven. Keep 3 distinct product shots; extra
+  // near-duplicate screens can be removed without changing the renderer.
   screenshots: [
     {
       src: "assets/screenshots/images.png",
