@@ -24,31 +24,19 @@ Edit [`js/content.js`](js/content.js):
 - FAQ items
 - GitHub / Releases / Issues URLs
 - Download asset wiring (`urls.downloadAsset`, `urls.downloadTag`, `urls.download`)
-- Screenshot gallery (`screenshots` array)
+- Hero carousel slides (`screenshots` array)
 
 Do not point Download CTAs at `urls.download` until GitHub has that exact ZIP. `js/main.js` enables Download Preview only when Releases API returns `Rootlize-v0.1.0-preview-win64.zip`. Until then the buttons stay on `#download`. After the Rootlize GitHub Release is published, no extra LP edit is required if that filename is attached. If the tag cannot be `v0.1.0-preview`, keep the filename and let the API match it, or update `urls.downloadAsset`.
 
-## Screenshots gallery
+## Hero carousel
 
-The gallery is **data-driven**. To add more shots:
+The product showcase is **data-driven**. `main.js` renders `screenshots` from `js/content.js` into `#hero-carousel` (auto-advance, arrows, dots, swipe, lightbox). Honor `prefers-reduced-motion`.
 
-1. Add image files under `assets/screenshots/`.
-2. Append objects to `screenshots` in `js/content.js`:
+Keep all slides the same pixel size and aspect ratio so the frame does not letterbox. Current set:
 
-```js
-{
-  src: "assets/screenshots/your-shot.png",
-  alt: "…",
-  caption: "…",
-  slot: "unique-id",
-}
-```
+`images.png`, `meaning-search.png`, `ask-ai.png`, `automation.png`, `account.png`.
 
-The gallery uses two columns on larger screens and one column on mobile. `main.js` renders the list into `#screenshot-gallery` and provides the lightbox behavior.
-
-Hero workspace view: `images.png`
-
-Gallery in `js/content.js`: `images.png`, `meaning-search.png`, `ask-ai.png`, `automation.png`, `account.png`. The landing page presents Rootlize as a local workspace (Find → Narrow → Act → Automate). Desktop implementation Source of Truth remains `.ai/SPEC.md`.
+The landing page presents Rootlize as a local workspace (Find → Narrow → Act → Automate). Desktop implementation Source of Truth remains `.ai/SPEC.md`.
 
 Brand icon: `assets/brand/app-icon.png` (512px, transparent). Tab icon: `assets/brand/favicon.png`.
 
