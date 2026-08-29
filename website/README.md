@@ -52,6 +52,11 @@ Gallery in `js/content.js`: `images.png`, `meaning-search.png`, `ask-ai.png`, `a
 
 Brand icon: `assets/brand/app-icon.png` (512px, transparent). Tab icon: `assets/brand/favicon.png`.
 
+Public legal pages:
+
+- [Privacy Policy](privacy/index.html) — `https://rootlize.com/privacy`
+- [Terms](terms/index.html) — `https://rootlize.com/terms`
+
 ## Future pages
 
 Add siblings next to `index.html` without refactoring the app:

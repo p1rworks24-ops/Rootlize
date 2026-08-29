@@ -39,7 +39,7 @@
   function setDownloadLive(assetUrl, releaseUrl) {
     document.querySelectorAll("[data-url-download]").forEach(function (el) {
       el.setAttribute("href", assetUrl);
-      el.setAttribute("target", "capixe-download");
+      el.setAttribute("target", "rootlize-download");
       el.removeAttribute("aria-disabled");
       el.classList.remove("is-pending");
     });
@@ -251,6 +251,8 @@
     setHref("[data-url-bug]", C.urls.bugReport);
     setHref("[data-url-feature]", C.urls.featureRequest);
     setHref("[data-url-contact]", C.urls.contact);
+    setHref("[data-url-privacy]", C.urls.privacy);
+    setHref("[data-url-terms]", C.urls.terms);
 
     renderGallery();
     renderBadges();

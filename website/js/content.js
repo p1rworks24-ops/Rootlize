@@ -26,6 +26,8 @@ window.CAPIXE = {
     bugReport: "https://github.com/p1rworks24-ops/Rootlize/issues/new?template=bug_report.yml",
     featureRequest: "https://github.com/p1rworks24-ops/Rootlize/issues/new?template=feature_request.yml",
     contact: "https://github.com/p1rworks24-ops/Rootlize/issues/new?template=feature_request.yml",
+    privacy: "/privacy",
+    terms: "/terms",
   },
   screenshots: [
     {
