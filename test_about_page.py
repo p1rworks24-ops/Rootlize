@@ -144,13 +144,13 @@ def test_about_nav_and_stack():
 
 
 def test_feedback_urls_centralized():
-    assert APP_GITHUB_URL == "https://github.com/p1rworks24-ops/Capixe"
+    assert APP_GITHUB_URL == "https://github.com/p1rworks24-ops/Rootlize"
     assert resolve_feedback_url("feedback") == github_issues_url()
     assert resolve_feedback_url("bug") == (
-        "https://github.com/p1rworks24-ops/Capixe/issues/new?template=bug_report.yml"
+        "https://github.com/p1rworks24-ops/Rootlize/issues/new?template=bug_report.yml"
     )
     assert resolve_feedback_url("feature") == (
-        "https://github.com/p1rworks24-ops/Capixe/issues/new"
+        "https://github.com/p1rworks24-ops/Rootlize/issues/new"
         "?template=feature_request.yml"
     )
     assert APP_URL_REPORT_BUG is None  # override slot ready for templates

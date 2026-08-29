@@ -16,17 +16,17 @@ from app.repo_links import (
 
 def test_default_capixe_repo_configured():
     assert github_repo_configured()
-    assert github_repo_url() == "https://github.com/p1rworks24-ops/Capixe"
+    assert github_repo_url() == "https://github.com/p1rworks24-ops/Rootlize"
     assert APP_GITHUB_URL == github_repo_url()
-    assert github_issues_url() == "https://github.com/p1rworks24-ops/Capixe/issues"
+    assert github_issues_url() == "https://github.com/p1rworks24-ops/Rootlize/issues"
     assert resolve_feedback_url("feedback") == github_issues_url()
     assert (
         resolve_feedback_url("bug")
-        == "https://github.com/p1rworks24-ops/Capixe/issues/new?template=bug_report.yml"
+        == "https://github.com/p1rworks24-ops/Rootlize/issues/new?template=bug_report.yml"
     )
     assert (
         resolve_feedback_url("feature")
-        == "https://github.com/p1rworks24-ops/Capixe/issues/new"
+        == "https://github.com/p1rworks24-ops/Rootlize/issues/new"
         "?template=feature_request.yml"
     )
     assert github_bug_report_url() == resolve_feedback_url("bug")

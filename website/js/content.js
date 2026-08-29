@@ -13,19 +13,19 @@ window.CAPIXE = {
   },
   downloadBadges: ["Windows", "Free", "Sign-in required", "Local-first"],
   urls: {
-    github: "https://github.com/p1rworks24-ops/Capixe",
-    releases: "https://github.com/p1rworks24-ops/Capixe/releases",
-    releasesApi: "https://api.github.com/repos/p1rworks24-ops/Capixe/releases?per_page=10",
+    github: "https://github.com/p1rworks24-ops/Rootlize",
+    releases: "https://github.com/p1rworks24-ops/Rootlize/releases",
+    releasesApi: "https://api.github.com/repos/p1rworks24-ops/Rootlize/releases?per_page=10",
     // Planned GitHub Release asset. Do not use as a live href until this exact file exists.
     downloadAsset: "Rootlize-v0.1.0-preview-win64.zip",
     downloadTag: "v0.1.0-preview",
     download:
-      "https://github.com/p1rworks24-ops/Capixe/releases/download/v0.1.0-preview/Rootlize-v0.1.0-preview-win64.zip",
-    license: "https://github.com/p1rworks24-ops/Capixe/blob/master/LICENSE",
-    issues: "https://github.com/p1rworks24-ops/Capixe/issues",
-    bugReport: "https://github.com/p1rworks24-ops/Capixe/issues/new?template=bug_report.yml",
-    featureRequest: "https://github.com/p1rworks24-ops/Capixe/issues/new?template=feature_request.yml",
-    contact: "https://github.com/p1rworks24-ops/Capixe/issues/new?template=feature_request.yml",
+      "https://github.com/p1rworks24-ops/Rootlize/releases/download/v0.1.0-preview/Rootlize-v0.1.0-preview-win64.zip",
+    license: "https://github.com/p1rworks24-ops/Rootlize/blob/master/LICENSE",
+    issues: "https://github.com/p1rworks24-ops/Rootlize/issues",
+    bugReport: "https://github.com/p1rworks24-ops/Rootlize/issues/new?template=bug_report.yml",
+    featureRequest: "https://github.com/p1rworks24-ops/Rootlize/issues/new?template=feature_request.yml",
+    contact: "https://github.com/p1rworks24-ops/Rootlize/issues/new?template=feature_request.yml",
   },
   screenshots: [
     {

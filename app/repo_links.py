@@ -14,7 +14,7 @@ from __future__ import annotations
 GITHUB_HOST = "https://github.com"
 
 GITHUB_OWNER = "p1rworks24-ops"
-GITHUB_REPO = "Capixe"
+GITHUB_REPO = "Rootlize"
 
 # Issue Form file names under .github/ISSUE_TEMPLATE/
 GITHUB_BUG_REPORT_TEMPLATE = "bug_report.yml"

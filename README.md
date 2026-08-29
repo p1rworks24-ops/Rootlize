@@ -30,7 +30,7 @@ Rootlize does not move your image library to a Rootlize cloud. Basic Search, OCR
 
 ## Download and installation
 
-Download `Rootlize-v0.1.0-preview-win64.zip` from [GitHub Releases](https://github.com/p1rworks24-ops/Capixe/releases), extract it completely, then run `Rootlize.exe` inside the extracted `Rootlize` folder.
+Download `Rootlize-v0.1.0-preview-win64.zip` from [GitHub Releases](https://github.com/p1rworks24-ops/Rootlize/releases), extract it completely, then run `Rootlize.exe` inside the extracted `Rootlize` folder.
 
 Keep `Rootlize.exe` together with the `_internal` folder. Python is not required. This preview has no installer or automatic updater.
 
@@ -58,8 +58,8 @@ Changing or moving the application folder does not move screenshots or settings.
 
 ## Feedback
 
-- [Bug report](https://github.com/p1rworks24-ops/Capixe/issues/new?template=bug_report.yml)
-- [Feature request](https://github.com/p1rworks24-ops/Capixe/issues/new?template=feature_request.yml)
+- [Bug report](https://github.com/p1rworks24-ops/Rootlize/issues/new?template=bug_report.yml)
+- [Feature request](https://github.com/p1rworks24-ops/Rootlize/issues/new?template=feature_request.yml)
 
 Do not post passwords, API keys, personal emails, or private file paths in Issues.
 

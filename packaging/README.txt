@@ -38,7 +38,7 @@ KNOWN LIMITATIONS
 - Windows only
 - No installer, automatic update, or code signing
 
-Feedback: https://github.com/p1rworks24-ops/Capixe/issues
-Source: https://github.com/p1rworks24-ops/Capixe
+Feedback: https://github.com/p1rworks24-ops/Rootlize/issues
+Source: https://github.com/p1rworks24-ops/Rootlize
 
 Rootlize is proprietary software. Copyright (c) 2026 Rootlize. All rights reserved.
