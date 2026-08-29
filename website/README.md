@@ -23,7 +23,10 @@ Edit [`js/content.js`](js/content.js):
 - Download badges
 - FAQ items
 - GitHub / Releases / Issues URLs
+- Download asset wiring (`urls.downloadAsset`, `urls.downloadTag`, `urls.download`)
 - Screenshot gallery (`screenshots` array)
+
+Do not point Download CTAs at `urls.download` until GitHub has that exact ZIP. `js/main.js` enables Download Preview only when Releases API returns `Rootlize-v0.1.0-preview-win64.zip`. Until then the buttons stay on `#download`. After the Rootlize GitHub Release is published, no extra LP edit is required if that filename is attached. If the tag cannot be `v0.1.0-preview`, keep the filename and let the API match it, or update `urls.downloadAsset`.
 
 ## Screenshots gallery
 

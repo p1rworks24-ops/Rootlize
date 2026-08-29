@@ -13,6 +13,46 @@
     });
   }
 
+  function expectedDownloadName() {
+    return (C.urls && C.urls.downloadAsset) || "Rootlize-v0.1.0-preview-win64.zip";
+  }
+
+  function setDownloadPending() {
+    document.querySelectorAll("[data-url-download]").forEach(function (el) {
+      el.setAttribute("href", "#download");
+      el.removeAttribute("target");
+      el.removeAttribute("rel");
+      el.setAttribute("aria-disabled", "true");
+      el.classList.add("is-pending");
+    });
+    document.querySelectorAll("[data-url-releases]").forEach(function (el) {
+      el.setAttribute("href", "#download");
+      el.removeAttribute("target");
+      el.removeAttribute("rel");
+    });
+    setText(
+      "[data-download-meta]",
+      "Windows 10 / 11 · ZIP available after the GitHub Release"
+    );
+  }
+
+  function setDownloadLive(assetUrl, releaseUrl) {
+    document.querySelectorAll("[data-url-download]").forEach(function (el) {
+      el.setAttribute("href", assetUrl);
+      el.setAttribute("target", "capixe-download");
+      el.removeAttribute("aria-disabled");
+      el.classList.remove("is-pending");
+    });
+    if (releaseUrl) {
+      document.querySelectorAll("[data-url-releases]").forEach(function (el) {
+        el.setAttribute("href", releaseUrl);
+        el.setAttribute("target", "_blank");
+        el.setAttribute("rel", "noopener noreferrer");
+      });
+    }
+    setText("[data-download-meta]", "Windows 10 / 11 · Free Preview");
+  }
+
   function setText(selector, text) {
     document.querySelectorAll(selector).forEach(function (el) {
       el.textContent = text;
@@ -20,7 +60,11 @@
   }
 
   function resolveLatestDownload() {
-    if (!C.urls.releasesApi || typeof window.fetch !== "function") return;
+    var expected = expectedDownloadName().toLowerCase();
+    if (!C.urls.releasesApi || typeof window.fetch !== "function") {
+      setDownloadPending();
+      return;
+    }
 
     window
       .fetch(C.urls.releasesApi, {
@@ -31,29 +75,35 @@
         return response.json();
       })
       .then(function (releases) {
-        if (!Array.isArray(releases)) return;
+        if (!Array.isArray(releases)) {
+          setDownloadPending();
+          return;
+        }
 
-        var asset = null;
+        var match = null;
         releases.some(function (release) {
           if (!release || release.draft || !Array.isArray(release.assets)) {
             return false;
           }
-          asset =
-            release.assets.find(function (item) {
-              return /^(Rootlize|Capixe)-.*\.zip$/i.test(item.name || "");
-            }) ||
-            release.assets.find(function (item) {
-              return /\.zip$/i.test(item.name || "");
-            });
-          return Boolean(asset);
+          var asset = release.assets.find(function (item) {
+            return String(item.name || "").toLowerCase() === expected;
+          });
+          if (!asset || !asset.browser_download_url) return false;
+          match = { asset: asset, release: release };
+          return true;
         });
 
-        if (asset && asset.browser_download_url) {
-          setHref("[data-url-download]", asset.browser_download_url);
+        if (match) {
+          setDownloadLive(
+            match.asset.browser_download_url,
+            match.release.html_url || C.urls.releases
+          );
+          return;
         }
+        setDownloadPending();
       })
       .catch(function () {
-        /* Keep the known working direct-download URL from content.js. */
+        setDownloadPending();
       });
   }
 
@@ -196,8 +246,6 @@
     setText("[data-version-platform]", C.version.platform);
 
     setHref("[data-url-github]", C.urls.github);
-    setHref("[data-url-releases]", C.urls.releases);
-    setHref("[data-url-download]", C.urls.download);
     setHref("[data-url-license]", C.urls.license);
     setHref("[data-url-issues]", C.urls.issues);
     setHref("[data-url-bug]", C.urls.bugReport);
@@ -229,6 +277,7 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     bindContent();
+    setDownloadPending();
     resolveLatestDownload();
     setupLightbox();
     setupSmoothScroll();

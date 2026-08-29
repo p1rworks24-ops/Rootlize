@@ -276,6 +276,17 @@ p {
   color: #fff;
 }
 
+.btn-primary.is-pending,
+.btn-primary[aria-disabled="true"] {
+  background: #64748b;
+}
+
+.btn-primary.is-pending:hover,
+.btn-primary[aria-disabled="true"]:hover {
+  background: #475569;
+  color: #fff;
+}
+
 .btn-secondary {
   background: var(--bg-elevated);
   color: var(--text-strong);
