@@ -187,6 +187,12 @@
       nodes[index].setAttribute("aria-hidden", "true");
       nodes[next].classList.add("is-active");
       nodes[next].setAttribute("aria-hidden", "false");
+      var zoomImg = nodes[next].querySelector("img");
+      if (zoomImg) {
+        zoomImg.style.animation = "none";
+        void zoomImg.offsetWidth;
+        zoomImg.style.animation = "";
+      }
 
       dots.querySelectorAll(".showcase-dot").forEach(function (dot, i) {
         dot.classList.toggle("is-active", i === next);

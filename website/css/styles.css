@@ -357,7 +357,7 @@ p {
 
 .showcase-viewport {
   position: relative;
-  aspect-ratio: 1600 / 930;
+  aspect-ratio: 1592 / 922;
   background: var(--bg-elevated);
   overflow: hidden;
   touch-action: pan-y;
@@ -368,32 +368,46 @@ p {
   inset: 0;
   margin: 0;
   opacity: 0;
-  transform: translateX(14px);
   pointer-events: none;
-  transition:
-    opacity 280ms var(--ease-out),
-    transform 280ms var(--ease-out);
+  transition: opacity 420ms var(--ease-out);
 }
 
 .showcase-slide.is-active {
   opacity: 1;
-  transform: translateX(0);
   pointer-events: auto;
   z-index: 1;
 }
 
 .showcase-slide.is-exit {
   opacity: 0;
-  transform: translateX(-10px);
 }
 
 .showcase-slide img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center top;
+  object-position: center 38%;
   background: var(--bg-elevated);
   image-rendering: auto;
+  transform: scale(0.88);
+  transform-origin: 50% 42%;
+  will-change: transform;
+}
+
+.showcase-slide.is-active img {
+  animation: showcase-enlarge 5.2s var(--ease-out) both;
+}
+
+@keyframes showcase-enlarge {
+  0% {
+    transform: scale(0.86);
+  }
+  22% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.08);
+  }
 }
 
 .showcase-slide button {
@@ -1872,6 +1886,21 @@ p {
   display: flex;
 }
 
+.lightbox.is-open .lightbox-content img {
+  animation: lightbox-enlarge 480ms var(--ease-out) both;
+}
+
+@keyframes lightbox-enlarge {
+  from {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .lightbox-content {
   display: flex;
   flex-direction: column;
@@ -1886,7 +1915,7 @@ p {
 .lightbox-content img {
   width: auto;
   height: auto;
-  max-width: min(100%, 1600px);
+  max-width: min(100%, 1592px);
   max-height: calc(100vh - 6rem);
   object-fit: contain;
   object-position: center;
@@ -2306,10 +2335,14 @@ p {
   .capability-card:hover,
   .btn:active,
   .showcase-arrow:active,
-  .showcase-dot.is-active {
+  .showcase-dot.is-active,
+  .showcase-slide img,
+  .lightbox-content img {
     transform: none;
   }
 
+  .showcase-slide img,
+  .lightbox.is-open .lightbox-content img,
   .find-lens,
   .shot,
   .narrow-funnel,
