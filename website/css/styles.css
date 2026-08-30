@@ -603,43 +603,41 @@ p {
 }
 
 .shot {
+  --shot-paper: #eef2f6;
+  --shot-ink: #64748b;
+  position: relative;
   display: block;
+  overflow: hidden;
   aspect-ratio: 1;
-  border-radius: 0.32rem;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.42);
-  background: #cbd5e1;
+  border-radius: 0.3rem;
+  background: var(--shot-paper);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.85),
+    0 0 0 1px #d5dbe3;
 }
 
-.shot:nth-child(8n + 1) {
-  background: linear-gradient(180deg, #7dd3fc 42%, #86efac 42%);
+.shot::before {
+  content: "";
+  position: absolute;
+  inset: 14%;
+  background-color: var(--shot-ink);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='8' cy='8.2' r='2.1'/%3E%3Cpath d='M3 19 8.4 12.4l3.5 4 3.2-3.5L21 19H3z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='8' cy='8.2' r='2.1'/%3E%3Cpath d='M3 19 8.4 12.4l3.5 4 3.2-3.5L21 19H3z'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 
-.shot:nth-child(8n + 2) {
-  background: linear-gradient(160deg, #fdba74 0%, #fb7185 100%);
+.shot:nth-child(4n + 2) {
+  --shot-paper: #f3f1ec;
+  --shot-ink: #78716c;
 }
 
-.shot:nth-child(8n + 3) {
-  background: linear-gradient(180deg, #e2e8f0 55%, #94a3b8 55%);
+.shot:nth-child(4n + 3) {
+  --shot-paper: #e8edf3;
+  --shot-ink: #5b6b7c;
 }
 
-.shot:nth-child(8n + 4) {
-  background: linear-gradient(135deg, #c4b5fd, #818cf8);
-}
-
-.shot:nth-child(8n + 5) {
-  background: linear-gradient(180deg, #fde68a 38%, #38bdf8 38%);
-}
-
-.shot:nth-child(8n + 6) {
-  background: linear-gradient(180deg, #fecdd3, #fda4af);
-}
-
-.shot:nth-child(8n + 7) {
-  background: linear-gradient(135deg, #a5b4fc, #67e8f9);
-}
-
-.shot:nth-child(8n + 8) {
-  background: linear-gradient(180deg, #d6d3d1 50%, #78716c 50%);
+.shot:nth-child(4n + 4) {
+  --shot-paper: #eeeef0;
+  --shot-ink: #57534e;
 }
 
 .shot-grid {
@@ -832,11 +830,13 @@ p {
 .act-card .shot {
   width: 100%;
   border-radius: 0.45rem;
-  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.8),
+    0 6px 14px rgba(15, 23, 42, 0.08);
 }
 
-.act-card:nth-child(2) .shot {
-  background: linear-gradient(180deg, #e2e8f0 52%, #64748b 52%);
+.act-card .shot::before {
+  inset: 20%;
 }
 
 .act-name {
@@ -1286,7 +1286,6 @@ p {
 }
 
 .scene-meaning .shot.is-hit {
-  background: linear-gradient(160deg, #fda4af, #ef4444);
   animation: meaning-hit 4.8s var(--ease-in-out) infinite;
   animation-play-state: paused;
 }
