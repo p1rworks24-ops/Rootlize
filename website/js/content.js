@@ -34,15 +34,9 @@ window.CAPIXE = {
   screenshots: [
     {
       src: "assets/screenshots/images.png",
-      alt: "Rootlize Images workspace with Basic Search",
+      alt: "Rootlize Images workspace",
       caption: "Images — search the folder already on your PC",
       slot: "images",
-    },
-    {
-      src: "assets/screenshots/meaning-search.png",
-      alt: "Rootlize Meaning Search",
-      caption: "Meaning Search — find images by what they show",
-      slot: "meaning-search",
     },
     {
       src: "assets/screenshots/ask-ai.png",
@@ -55,12 +49,6 @@ window.CAPIXE = {
       alt: "Rootlize Automation page",
       caption: "Automation — save a flow and run it again",
       slot: "automation",
-    },
-    {
-      src: "assets/screenshots/account.png",
-      alt: "Rootlize Account page",
-      caption: "Account — Prototype plan after sign-in",
-      slot: "account",
     },
   ],
   faq: [
