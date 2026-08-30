@@ -349,33 +349,16 @@ p {
 
 .showcase-frame {
   background: var(--bg-elevated);
-  border: 1px solid var(--border);
+  border: 0;
   border-radius: calc(var(--radius) + 4px);
   box-shadow: var(--shadow);
   overflow: hidden;
 }
 
-.showcase-chrome {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  height: 1.35rem;
-  padding: 0 0.75rem;
-  background: #eef1f5;
-  border-bottom: 1px solid var(--border);
-}
-
-.showcase-chrome span {
-  width: 0.48rem;
-  height: 0.48rem;
-  border-radius: 50%;
-  background: #d1d5db;
-}
-
 .showcase-viewport {
   position: relative;
-  aspect-ratio: 1600 / 930;
-  background: #f3f4f6;
+  aspect-ratio: 1014 / 585;
+  background: var(--bg-elevated);
   overflow: hidden;
   touch-action: pan-y;
 }
@@ -407,9 +390,10 @@ p {
 .showcase-slide img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center top;
-  background: #f3f4f6;
+  background: var(--bg-elevated);
+  image-rendering: auto;
 }
 
 .showcase-slide button {
