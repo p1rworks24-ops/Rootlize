@@ -286,7 +286,7 @@
     if (!lightbox || !image || !caption) return;
 
     lightboxReturnFocus = trigger || document.activeElement;
-    image.src = shot.src;
+    image.src = shot.full || shot.src;
     image.alt = shot.alt || "";
     caption.textContent = shot.caption || "";
     lightbox.classList.add("is-open");

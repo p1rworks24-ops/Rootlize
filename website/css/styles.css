@@ -357,7 +357,7 @@ p {
 
 .showcase-viewport {
   position: relative;
-  aspect-ratio: 1014 / 585;
+  aspect-ratio: 1600 / 930;
   background: var(--bg-elevated);
   overflow: hidden;
   touch-action: pan-y;
@@ -1886,10 +1886,11 @@ p {
 .lightbox-content img {
   width: auto;
   height: auto;
-  max-width: 100%;
+  max-width: min(100%, 1600px);
   max-height: calc(100vh - 6rem);
   object-fit: contain;
   object-position: center;
+  image-rendering: auto;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
 }
 

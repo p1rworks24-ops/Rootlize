@@ -34,18 +34,21 @@ window.CAPIXE = {
   screenshots: [
     {
       src: "assets/screenshots/images.png",
+      full: "assets/screenshots/images-full.png",
       alt: "Rootlize Images workspace",
       caption: "Images — search the folder already on your PC",
       slot: "images",
     },
     {
       src: "assets/screenshots/ask-ai.png",
+      full: "assets/screenshots/ask-ai-full.png",
       alt: "Rootlize Ask AI panel",
       caption: "Ask AI — describe the work in your own words",
       slot: "ask-ai",
     },
     {
       src: "assets/screenshots/automation.png",
+      full: "assets/screenshots/automation-full.png",
       alt: "Rootlize Automation page",
       caption: "Automation — save a flow and run it again",
       slot: "automation",
