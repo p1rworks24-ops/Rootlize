@@ -129,6 +129,7 @@ EVENT_ONBOARDING_STARTED = "onboarding_started"
 EVENT_FOLDER_SELECTED = "folder_selected"
 EVENT_ONBOARDING_COMPLETED = "onboarding_completed"
 EVENT_ONBOARDING_SKIPPED = "onboarding_skipped"
+EVENT_TUTORIAL_COMPLETED = "tutorial_completed"
 EVENT_AI_TUTORIAL_STARTED = "ai_tutorial_started"
 EVENT_AI_PREPARATION_STARTED = "ai_preparation_started"
 EVENT_MEANING_SEARCH_COMPLETED = "meaning_search_completed"
@@ -193,7 +194,6 @@ LEGACY_ANALYTICS_EVENTS = {
     "automation_completed": EVENT_WORKFLOW_SAVED,
     "automation_run": EVENT_WORKFLOW_RUN,
     "act_completed": EVENT_FAVORITE_ADDED,
-    "tag_added": EVENT_FAVORITE_ADDED,
 }
 
 UI_FOLDER_SELECTED = "folder_selected"
@@ -201,6 +201,7 @@ UI_FIND_FINISHED = "find_finished"
 UI_FIND_FAILED = "find_failed"
 UI_SELECTION_CHANGED = "selection_changed"
 UI_FAVORITE_CHANGED = "favorite_changed"
+UI_TAG_ADDED = "tag_added_ui"
 UI_ASK_AI_OPENED = "ask_ai_opened"
 UI_ACT_PREVIEW_SHOWN = "act_preview_shown"
 UI_ACT_COMPLETED = "act_completed"
@@ -245,6 +246,9 @@ ALLOWED_ANALYTICS_EVENTS = frozenset(
         EVENT_FEEDBACK_SHOWN,
         EVENT_FEEDBACK_SUBMITTED,
         EVENT_FEEDBACK_DISMISSED,
+        EVENT_BASIC_SEARCH_COMPLETED,
+        EVENT_TAG_ADDED,
+        EVENT_TUTORIAL_COMPLETED,
     }
 )
 

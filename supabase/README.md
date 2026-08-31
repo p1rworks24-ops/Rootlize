@@ -33,11 +33,19 @@ Official packaged Prototype build (`tools/build_official_prototype.py`) bakes on
 
 ## Dashboard
 
-1. Run `supabase/migrations/001_auth_v1.sql`, then `002_ai_budget_v1.sql`, then `003_prototype_feedback_v1.sql` for Prototype feedback / funnel events, then `004_prototype_ai_budget_v1.sql` for the Public Prototype AI hard cap.
+1. Run `supabase/migrations/001_auth_v1.sql`, then `002_ai_budget_v1.sql`, then `003_prototype_feedback_v1.sql` for Prototype feedback / funnel events, then `004_prototype_ai_budget_v1.sql` for the Public Prototype AI hard cap, then `005_admin_analytics_v1.sql` for operator admin analytics.
 2. Auth → Providers: Email, Google, GitHub.
 3. Auth → URL configuration. Add redirect:
 
    `http://127.0.0.1:47831/auth/callback`
+
+   For the operator admin page, also add:
+
+   `https://rootlize.com/admin/`
+
+   Local admin testing:
+
+   `http://localhost:8080/admin/`
 
    Capixe opens the **default browser** and completes OAuth with PKCE on this loopback URL (D-022). Do **not** put a client `state` on `/auth/v1/authorize`; GoTrue owns the Google/GitHub `flow_state` UUID. A client token in `state` becomes `400: OAuth state parameter is invalid` on `/callback`.
 4. Optional: enable email confirmations. The app shows “Check your email…” when signup has no session.
@@ -81,6 +89,35 @@ Those functions use `auth.uid()`. Do not accept a client-supplied `user_id`.
 Public Prototype amounts live in `plan_defaults` / `entitlements`: onboarding $1.25, regular $0.25 / UTC month, lifetime hard cap $1.25 / user. `get_ai_usage_status` reports used % against the hard cap, not the monthly bucket. Final Free / Next / Pro prices are not decided and must not appear in the public UI. User-facing plan name is Prototype while the internal plan ID stays `free`. Change amounts in the database only.
 
 Local `%LOCALAPPDATA%\Capixe\ai-usage.sqlite3` remains debug telemetry. Cloud usage is the enforceable budget.
+
+## Operator admin analytics
+
+Static GitHub Pages cannot authorize admin reads. The admin UI at `https://rootlize.com/admin/` signs in with Supabase Auth (anon / publishable key only) and calls SECURITY DEFINER RPCs:
+
+* `admin_get_overview`
+* `admin_get_users`
+* `admin_get_user_activity`
+* `admin_get_api_usage`
+
+Those RPCs call `_admin_require()`, which checks `public.admin_users`. Ordinary signed-in Rootlize users receive `not_admin` and no rows. Do not put a service_role key in the website, EXE, or admin JS.
+
+After applying `005_admin_analytics_v1.sql`, grant yourself access in the SQL editor (use your real operator email):
+
+```sql
+insert into public.admin_users (user_id)
+select id from auth.users
+where email = 'YOUR_OPERATOR_EMAIL'
+on conflict (user_id) do nothing;
+```
+
+Confirm with `supabase/ops/e2e_verify_005_admin_analytics.sql`. Expected: `admin_users` / `website_analytics` present; anon can insert website events but cannot select them; authenticated can execute the admin RPCs (the RPC still rejects non-admins).
+
+Landing-page events (`lp_visit`, `page_view`, `download_click`) go to `website_analytics`. Operator browsers can opt out without deleting visitor rows:
+
+* `https://rootlize.com/?analytics=off` — stop sending
+* `https://rootlize.com/?analytics=on` — resume sending
+
+The flag is `localStorage.rootlize_analytics_opt_out = true`. Console: `__rootlizeAnalytics.optOut()`, `.optIn()`, `.status()`.
 
 ## AI Provider Proxy v1
 

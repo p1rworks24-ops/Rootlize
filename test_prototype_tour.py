@@ -49,6 +49,7 @@ from app.prototype_tour.models import (
     EVENT_AUTOMATION_TUTORIAL_COMPLETED,
     EVENT_AUTOMATION_TUTORIAL_SKIPPED,
     EVENT_AUTOMATION_TUTORIAL_STARTED,
+    EVENT_BASIC_SEARCH_COMPLETED,
     EVENT_FEEDBACK_DISMISSED,
     EVENT_FEEDBACK_SHOWN,
     EVENT_FEEDBACK_SUBMITTED,
@@ -59,6 +60,7 @@ from app.prototype_tour.models import (
     EVENT_ONBOARDING_STARTED,
     EVENT_PROTOTYPE_STARTED,
     EVENT_TAG_ADDED,
+    EVENT_TUTORIAL_COMPLETED,
     EVENT_WORKFLOW_RUN,
     EVENT_WORKFLOW_SAVED,
     STEP_AI_ACTION,
@@ -109,6 +111,7 @@ from app.prototype_tour.models import (
     UI_FOLDER_SELECTED,
     UI_IMAGES_PAGE_SHOWN,
     UI_SELECTION_CHANGED,
+    UI_TAG_ADDED,
 )
 from app.prototype_tour.state.analytics import TourAnalytics
 from app.prototype_tour.state.feedback import FeedbackStore, build_feedback
@@ -267,6 +270,38 @@ def test_analytics_migrates_legacy_event_names(tmp_path: Path) -> None:
     assert '"chapter_ai_started"' not in raw
 
 
+def test_tag_added_is_not_mapped_to_favorite(tmp_path: Path) -> None:
+    analytics = TourAnalytics(tmp_path / "events.jsonl")
+    event = analytics.record("tag_added", session_id="s")
+    assert event is not None
+    assert event.event_name == EVENT_TAG_ADDED
+    raw = (tmp_path / "events.jsonl").read_text(encoding="utf-8")
+    assert "tag_added" in raw
+    assert "favorite_added" not in raw
+
+
+def test_product_feature_events_record_outside_tour(tmp_path: Path) -> None:
+    tour = _controller(tmp_path, authenticated=True)
+    tour.handle_event(UI_FIND_FINISHED, {"ok": True, "result_count": 1, "kind": "basic"})
+    tour.handle_event(UI_FIND_FINISHED, {"ok": True, "result_count": 2, "kind": "meaning"})
+    tour.handle_event(UI_TAG_ADDED, {})
+    tour.handle_event(UI_AUTOMATION_SAVED, {})
+    tour.handle_event(UI_AUTOMATION_RUN_FINISHED, {"ok": False})
+    tour.handle_event(UI_AUTOMATION_RUN_FINISHED, {"ok": True})
+    names = _names(tour)
+    assert names.count(EVENT_BASIC_SEARCH_COMPLETED) == 1
+    assert names.count(EVENT_MEANING_SEARCH_COMPLETED) == 1
+    assert names.count(EVENT_TAG_ADDED) == 1
+    assert names.count(EVENT_WORKFLOW_SAVED) == 1
+    assert names.count(EVENT_WORKFLOW_RUN) == 1
+
+
+def test_empty_or_failed_search_is_not_recorded(tmp_path: Path) -> None:
+    tour = _controller(tmp_path, authenticated=True)
+    tour.handle_event(UI_FIND_FINISHED, {"ok": False, "result_count": 0, "kind": "basic"})
+    assert _names(tour) == []
+
+
 def test_feedback_strips_disallowed_choice_and_keeps_safe_fields() -> None:
     payload = build_feedback(
         session_id="sess",
@@ -405,6 +440,7 @@ def test_first_launch_start_and_interaction_progression(tmp_path: Path) -> None:
     assert tour.store.status == STATUS_COMPLETED
     assert tour.view().active is False
     assert EVENT_ONBOARDING_COMPLETED in _names(tour)
+    assert EVENT_TUTORIAL_COMPLETED not in _names(tour)
     assert tour.store.record.ai_status == STATUS_NOT_STARTED
     assert tour.store.record.automation_status == STATUS_NOT_STARTED
 
@@ -471,6 +507,7 @@ def test_first_launch_start_and_interaction_progression(tmp_path: Path) -> None:
     tour.next_fallback()
     assert tour.store.record.automation_status == STATUS_COMPLETED
     assert EVENT_AUTOMATION_TUTORIAL_COMPLETED in _names(tour)
+    assert EVENT_TUTORIAL_COMPLETED in _names(tour)
     assert tour.view().active is False
 
     tour.open_feedback()

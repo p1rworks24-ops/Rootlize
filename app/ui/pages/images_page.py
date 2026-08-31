@@ -80,6 +80,7 @@ from app.prototype_tour.models import (
     UI_FIND_FINISHED,
     UI_FOLDER_SELECTED,
     UI_SELECTION_CHANGED,
+    UI_TAG_ADDED,
 )
 from app.ai_actions import ActionType
 from app.i18n import t
@@ -5531,6 +5532,7 @@ class ImagesPage(QWidget):
                 self._show_action_failure(result, "images.tag.save_failed")
                 return
             self._refresh_after_action_results((result,))
+            emit_tour_event(UI_TAG_ADDED, generation=tour_event_generation())
         except OSError as e:
             QMessageBox.critical(
                 self, t("common.error"), t("images.tag.save_failed", error=e)
@@ -5843,7 +5845,7 @@ class ImagesPage(QWidget):
                 UI_FIND_FINISHED,
                 ok=False,
                 result_count=0,
-                kind="basic",
+                kind=self._tour_search_kind(),
                 generation=self._tour_search_generation,
             )
             return
@@ -8166,7 +8168,7 @@ class ImagesPage(QWidget):
                     UI_FIND_FINISHED,
                     ok=True,
                     result_count=len(local_files),
-                    kind="basic",
+                    kind=self._tour_search_kind(),
                     generation=self._tour_search_generation,
                 )
                 return
@@ -8215,7 +8217,7 @@ class ImagesPage(QWidget):
             UI_FIND_FINISHED,
             ok=len(filtered_files) > 0,
             result_count=len(filtered_files),
-            kind="basic",
+            kind=self._tour_search_kind(),
             generation=self._tour_search_generation,
         )
         if (
@@ -8356,6 +8358,12 @@ class ImagesPage(QWidget):
         if mode == USER_FACING_TEXT_MODE:
             return USER_FACING_TEXT_MODE
         return USER_FACING_MEANING_MODE
+
+    def _tour_search_kind(self) -> str:
+        mode = self._user_facing_search_mode(
+            getattr(self, "_active_search_mode", USER_FACING_TEXT_MODE)
+        )
+        return "meaning" if mode == USER_FACING_MEANING_MODE else "basic"
 
     def _configured_search_mode(self) -> str:
         return self._user_facing_search_mode(

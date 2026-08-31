@@ -49,6 +49,8 @@ from PySide6.QtWidgets import (
 
 from app.config import save_config
 from app.i18n import t
+from app.prototype_tour.events import emit_tour_event, tour_event_generation
+from app.prototype_tour.models import UI_TAG_ADDED
 from app.ui.checkbox import CapixeCheckBox
 from app.services.metadata_service import MetadataService
 from app.ui.caption_delegate import (
@@ -1800,6 +1802,8 @@ class WorkPage(QWidget):
                 t("work.title"),
                 t("work.tag_add_done", tag=format_tag(tag_name), count=count),
             )
+            if count:
+                emit_tour_event(UI_TAG_ADDED, generation=tour_event_generation())
         except OSError as e:
             QMessageBox.critical(self, t("common.error"), t("work.tag_failed", error=e))
 
@@ -1824,6 +1828,8 @@ class WorkPage(QWidget):
                 t("work.title"),
                 t("work.tag_add_done", tag=format_tag(tag), count=count),
             )
+            if count:
+                emit_tour_event(UI_TAG_ADDED, generation=tour_event_generation())
         except OSError as e:
             QMessageBox.critical(self, t("common.error"), t("work.tag_failed", error=e))
 

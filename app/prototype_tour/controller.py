@@ -27,6 +27,7 @@ from app.prototype_tour.models import (
     EVENT_AUTOMATION_TUTORIAL_COMPLETED,
     EVENT_AUTOMATION_TUTORIAL_SKIPPED,
     EVENT_AUTOMATION_TUTORIAL_STARTED,
+    EVENT_BASIC_SEARCH_COMPLETED,
     EVENT_FEEDBACK_DISMISSED,
     EVENT_FEEDBACK_SHOWN,
     EVENT_FEEDBACK_SUBMITTED,
@@ -35,6 +36,8 @@ from app.prototype_tour.models import (
     EVENT_ONBOARDING_COMPLETED,
     EVENT_ONBOARDING_SKIPPED,
     EVENT_ONBOARDING_STARTED,
+    EVENT_TAG_ADDED,
+    EVENT_TUTORIAL_COMPLETED,
     EVENT_WORKFLOW_RUN,
     EVENT_WORKFLOW_SAVED,
     STATUS_COMPLETED,
@@ -86,6 +89,7 @@ from app.prototype_tour.models import (
     UI_FOLDER_SELECTED,
     UI_IMAGES_PAGE_SHOWN,
     UI_SELECTION_CHANGED,
+    UI_TAG_ADDED,
     FeedbackPayload,
     GuideView,
     TourView,
@@ -140,6 +144,7 @@ _GENERATION_FREE_EVENTS = {
     UI_ASK_AI_OPENED,
     UI_ACT_PREVIEW_SHOWN,
     UI_ACT_COMPLETED,
+    UI_TAG_ADDED,
     UI_IMAGES_PAGE_SHOWN,
     UI_AUTOMATION_FITTED,
 }
@@ -487,6 +492,7 @@ class TourController:
         if self._entering:
             return
         data = payload if isinstance(payload, dict) else {}
+        self._record_feature_event(name, data)
         if (
             name == UI_ASK_AI_OPENED
             and self.store.record.ai_status == STATUS_NOT_STARTED
@@ -671,7 +677,6 @@ class TourController:
         }:
             return
         self._meaning_ready = True
-        self._track(EVENT_MEANING_SEARCH_COMPLETED)
         self._mark_completed(STEP_MEANING_SEARCH)
         if self._step == STEP_MEANING_SEARCH:
             self._advance(STEP_MEANING_CONFIRM)
@@ -843,7 +848,6 @@ class TourController:
         if not self._builder_is_complete() and STEP_AUTOMATE not in self._completed_steps:
             return
         self._automation_saved = True
-        self._track(EVENT_WORKFLOW_SAVED)
         self._mark_completed(STEP_AUTOMATE)
         self._advance(STEP_AUTOMATE_SAVE_CONFIRM)
 
@@ -861,18 +865,19 @@ class TourController:
             self._publish()
             return
         self._run_done = True
-        self._track(EVENT_WORKFLOW_RUN)
         self._mark_completed(STEP_AUTOMATE_RUN)
         self._publish()
 
     def _finish_core(self) -> None:
         self.store.complete_core()
         self._track(EVENT_ONBOARDING_COMPLETED)
+        self._maybe_track_tutorial_completed()
         self.stop()
 
     def _finish_ai(self) -> None:
         self.store.complete_ai()
         self._track(EVENT_AI_TUTORIAL_COMPLETED)
+        self._maybe_track_tutorial_completed()
         if self.store.status == STATUS_IN_PROGRESS:
             self._resume_active()
             return
@@ -881,6 +886,7 @@ class TourController:
     def _finish_automation(self) -> None:
         self.store.complete_automation()
         self._track(EVENT_AUTOMATION_TUTORIAL_COMPLETED)
+        self._maybe_track_tutorial_completed()
         self.stop()
 
     def _offer_feedback_or_stop(self) -> None:
@@ -1060,6 +1066,38 @@ class TourController:
         self._ai_prep_started = True
         self.store.set_ai_prep_started(True)
         self._advance(STEP_AI_PREP)
+
+    def _maybe_track_tutorial_completed(self) -> None:
+        record = self.store.record
+        if (
+            record.status == STATUS_COMPLETED
+            and record.ai_status == STATUS_COMPLETED
+            and record.automation_status == STATUS_COMPLETED
+        ):
+            self._track(EVENT_TUTORIAL_COMPLETED)
+
+    def _record_feature_event(self, name: str, data: dict) -> None:
+        if name == UI_FIND_FINISHED:
+            if not bool(data.get("ok", False)):
+                return
+            if self._search_kind(data) == "meaning":
+                self._track(EVENT_MEANING_SEARCH_COMPLETED)
+            else:
+                self._track(EVENT_BASIC_SEARCH_COMPLETED)
+            return
+        if name == UI_TAG_ADDED:
+            self._track(EVENT_TAG_ADDED)
+            return
+        if name == UI_ACT_COMPLETED:
+            if not bool(data.get("ok", False)) or not self._is_add_tag_action(data):
+                return
+            self._track(EVENT_TAG_ADDED)
+            return
+        if name == UI_AUTOMATION_SAVED:
+            self._track(EVENT_WORKFLOW_SAVED)
+            return
+        if name == UI_AUTOMATION_RUN_FINISHED and bool(data.get("ok", False)):
+            self._track(EVENT_WORKFLOW_RUN)
 
     def _track(self, event_name: str) -> None:
         identity = self._identity()

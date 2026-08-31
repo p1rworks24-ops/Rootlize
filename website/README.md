@@ -50,6 +50,22 @@ Public legal pages:
 - [Privacy Policy](privacy/index.html) — `https://rootlize.com/privacy`
 - [Terms](terms/index.html) — `https://rootlize.com/terms`
 
+## Landing-page analytics
+
+The landing page records `lp_visit`, `page_view`, and `download_click` to Supabase. It does not send IP addresses or a device fingerprint.
+
+Operator opt-out for this browser (not shown to visitors):
+
+- `http://localhost:8080/?analytics=off` or `https://rootlize.com/?analytics=off`
+- Resume with `?analytics=on`
+- Console: `__rootlizeAnalytics.optOut()`, `.optIn()`, `.status()`
+
+The stored flag is `localStorage.rootlize_analytics_opt_out = true`.
+
+## Operator admin
+
+`https://rootlize.com/admin/` (local: `http://localhost:8080/admin/`). Sign in with a Rootlize account that is listed in `public.admin_users`. Ordinary users cannot load analytics data. See `supabase/README.md`.
+
 ## Future pages
 
 Add siblings next to `index.html` without refactoring the app:

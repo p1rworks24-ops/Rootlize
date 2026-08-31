@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rootlize Admin</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#f5f6f8" />
+    <link rel="icon" type="image/png" href="/assets/brand/favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Source+Sans+3:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css?v=20260831a" />
+  </head>
+  <body>
+    <div id="login-view" class="auth-shell hidden">
+      <main class="auth-card">
+        <img src="/assets/brand/app-icon.png" alt="" width="36" height="36" />
+        <h1>Rootlize Admin</h1>
+        <p class="muted">Sign in with an operator account.</p>
+        <p id="auth-error" class="error hidden" role="alert"></p>
+        <form id="login-form">
+          <label>
+            Email
+            <input id="email" type="email" autocomplete="username" required />
+          </label>
+          <label>
+            Password
+            <input
+              id="password"
+              type="password"
+              autocomplete="current-password"
+              required
+            />
+          </label>
+          <button class="btn btn-primary" type="submit">Sign in</button>
+        </form>
+        <div class="oauth-row">
+          <button class="btn btn-secondary" type="button" id="google-btn">
+            Continue with Google
+          </button>
+          <button class="btn btn-secondary" type="button" id="github-btn">
+            Continue with GitHub
+          </button>
+        </div>
+      </main>
+    </div>
+
+    <div id="app-view" class="app-shell hidden">
+      <header class="app-header">
+        <div class="brand">
+          <img src="/assets/brand/app-icon.png" alt="" width="28" height="28" />
+          <strong>Rootlize Admin</strong>
+        </div>
+        <div class="header-actions">
+          <span id="signed-in-email" class="muted"></span>
+          <button class="btn btn-secondary" type="button" id="sign-out">
+            Sign out
+          </button>
+        </div>
+      </header>
+
+      <main class="app-main">
+        <p id="app-error" class="error hidden" role="alert"></p>
+        <section class="kpi-grid" id="kpi-grid" aria-label="Overview">
+          <article class="kpi-card">
+            <h2>LP Visitors</h2>
+            <p class="kpi-value" id="kpi-visitors">—</p>
+            <p class="kpi-sub" id="kpi-pageviews"></p>
+          </article>
+          <article class="kpi-card">
+            <h2>Downloads</h2>
+            <p class="kpi-value" id="kpi-downloads">—</p>
+            <p class="kpi-sub" id="kpi-github-downloads"></p>
+          </article>
+          <article class="kpi-card">
+            <h2>Users</h2>
+            <p class="kpi-value" id="kpi-users">—</p>
+            <p class="kpi-sub" id="kpi-users-sub"></p>
+          </article>
+          <article class="kpi-card">
+            <h2>API Cost</h2>
+            <p class="kpi-value" id="kpi-api">—</p>
+            <p class="kpi-sub" id="kpi-api-sub"></p>
+          </article>
+          <article class="kpi-card">
+            <h2>Tutorial Completed</h2>
+            <p class="kpi-value" id="kpi-tutorial">—</p>
+            <p class="kpi-sub" id="kpi-tutorial-sub"></p>
+          </article>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Users</h2>
+            <button class="btn btn-secondary" type="button" id="reload">
+              Refresh
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Signed up</th>
+                  <th>API cost</th>
+                  <th>Tutorial</th>
+                  <th>Last activity</th>
+                </tr>
+              </thead>
+              <tbody id="users-body">
+                <tr>
+                  <td colspan="5" class="muted">Loading…</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel" id="history-panel">
+          <div class="panel-head">
+            <h2>Event History</h2>
+            <p id="history-user" class="muted">Select a user.</p>
+          </div>
+          <ol id="history-list" class="history-list">
+            <li class="muted">No user selected.</li>
+          </ol>
+        </section>
+      </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
+    <script src="/js/supabase-config.js?v=20260831a"></script>
+    <script src="api.js?v=20260831a"></script>
+    <script src="app.js?v=20260831a"></script>
+  </body>
+</html>
