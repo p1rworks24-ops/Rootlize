@@ -145,7 +145,7 @@ input {
 
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 12px;
 }
 
@@ -192,6 +192,58 @@ input {
   align-items: center;
   gap: 12px;
   margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.panel-tools {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filter-label {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.filter-label select,
+.filter-label input {
+  min-width: 160px;
+}
+
+.section-title {
+  margin: 16px 0 8px;
+  font-size: 0.92rem;
+  font-family: var(--font-display);
+  color: var(--text-strong);
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: minmax(120px, 160px) 1fr;
+  gap: 6px 16px;
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+}
+
+.detail-grid dt {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.detail-grid dd {
+  margin: 0;
+  word-break: break-all;
+}
+
+.user-cell {
+  display: grid;
+  gap: 2px;
+}
+
+.user-cell .muted {
+  font-size: 0.8rem;
 }
 
 .table-wrap {
@@ -260,6 +312,24 @@ tbody tr.is-selected {
 .badge-muted {
   background: #f3f4f6;
   color: var(--text-muted);
+}
+
+.badge-warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badge-info {
+  background: #eff6ff;
+  color: var(--accent);
+}
+
+#devices-body tr {
+  cursor: default;
+}
+
+#devices-body tr:hover {
+  background: transparent;
 }
 
 @media (max-width: 960px) {

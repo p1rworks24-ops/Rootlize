@@ -64,7 +64,7 @@ The stored flag is `localStorage.rootlize_analytics_opt_out = true`.
 
 ## Operator admin
 
-`https://rootlize.com/admin/` (local: `http://localhost:8080/admin/`). Sign in with a Rootlize account that is listed in `public.admin_users`. Ordinary users cannot load analytics data. See `supabase/README.md`.
+`https://rootlize.com/admin/` (local: `http://localhost:8080/admin/`). Sign in with a Rootlize account that is listed in `public.admin_users`. Ordinary users cannot load analytics data. After `007_admin_anonymous_users_v1.sql`, Guest (anonymous) users show without email; installation IDs stay on the device list, not as User IDs. See `supabase/README.md`.
 
 ## Future pages
 

@@ -33,7 +33,7 @@ Official packaged Prototype build (`tools/build_official_prototype.py`) bakes on
 
 ## Dashboard
 
-1. Run `supabase/migrations/001_auth_v1.sql`, then `002_ai_budget_v1.sql`, then `003_prototype_feedback_v1.sql` for Prototype feedback / funnel events, then `004_prototype_ai_budget_v1.sql` for the Public Prototype AI hard cap, then `005_admin_analytics_v1.sql` for operator admin analytics, then `006_prototype_anonymous_plan_v1.sql` for anonymous Prototype plan defaults (does not change `free` / `next` / `pro`).
+1. Run `supabase/migrations/001_auth_v1.sql`, then `002_ai_budget_v1.sql`, then `003_prototype_feedback_v1.sql` for Prototype feedback / funnel events, then `004_prototype_ai_budget_v1.sql` for the Public Prototype AI hard cap, then `005_admin_analytics_v1.sql` for operator admin analytics, then `006_prototype_anonymous_plan_v1.sql` for anonymous Prototype plan defaults (does not change `free` / `next` / `pro`), then `007_admin_anonymous_users_v1.sql` so the operator admin page can display Guest / Account users and Prototype AI usage (RPC replace only; no user/usage schema change).
 2. Auth → Providers: Email, Google, GitHub. For the public Prototype (D-042), also enable **Anonymous sign-ins**. Packaged Rootlize uses this for AI budget identity without a Sign-in gate. Turn it off when `AUTH_REQUIRED` is restored to True if you no longer need guest AI.
 3. Auth → URL configuration. Add redirect:
 
@@ -103,6 +103,8 @@ Static GitHub Pages cannot authorize admin reads. The admin UI at `https://rootl
 
 Those RPCs call `_admin_require()`, which checks `public.admin_users`. Ordinary signed-in Rootlize users receive `not_admin` and no rows. Do not put a service_role key in the website, EXE, or admin JS.
 
+After `007_admin_anonymous_users_v1.sql`, the user list uses `auth.users.id` as identity and `auth.users.is_anonymous` as Guest vs Account. Prototype AI used / hard cap / remaining come from `ai_usage_lifetime` and `entitlements` (not a summed monthly + onboarding + hard cap). Installation rows come from `devices` and are not User IDs. Email may be null for anonymous users.
+
 After applying `005_admin_analytics_v1.sql`, grant yourself access in the SQL editor (use your real operator email):
 
 ```sql
@@ -112,7 +114,7 @@ where email = 'YOUR_OPERATOR_EMAIL'
 on conflict (user_id) do nothing;
 ```
 
-Confirm with `supabase/ops/e2e_verify_005_admin_analytics.sql`. Expected: `admin_users` / `website_analytics` present; anon can insert website events but cannot select them; authenticated can execute the admin RPCs (the RPC still rejects non-admins).
+Confirm with `supabase/ops/e2e_verify_005_admin_analytics.sql`, then `supabase/ops/e2e_verify_007_admin_anonymous_users.sql`. Expected: `admin_users` / `website_analytics` present; anon can insert website events but cannot select them; authenticated can execute the admin RPCs (the RPC still rejects non-admins); user RPCs read `is_anonymous`, entitlements hard cap, lifetime usage, and devices.
 
 Landing-page events (`lp_visit`, `page_view`, `download_click`) go to `website_analytics`. Operator browsers can opt out without deleting visitor rows:
 

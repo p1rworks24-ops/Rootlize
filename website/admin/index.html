@@ -13,7 +13,7 @@
       href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Source+Sans+3:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260831a" />
+    <link rel="stylesheet" href="styles.css?v=20260901a" />
   </head>
   <body>
     <div id="login-view" class="auth-shell hidden">
@@ -82,6 +82,21 @@
             <p class="kpi-sub" id="kpi-users-sub"></p>
           </article>
           <article class="kpi-card">
+            <h2>Guests</h2>
+            <p class="kpi-value" id="kpi-guests">—</p>
+            <p class="kpi-sub" id="kpi-guests-sub"></p>
+          </article>
+          <article class="kpi-card">
+            <h2>Accounts</h2>
+            <p class="kpi-value" id="kpi-accounts">—</p>
+            <p class="kpi-sub" id="kpi-accounts-sub"></p>
+          </article>
+          <article class="kpi-card">
+            <h2>AI users</h2>
+            <p class="kpi-value" id="kpi-ai-users">—</p>
+            <p class="kpi-sub" id="kpi-ai-users-sub"></p>
+          </article>
+          <article class="kpi-card">
             <h2>API Cost</h2>
             <p class="kpi-value" id="kpi-api">—</p>
             <p class="kpi-sub" id="kpi-api-sub"></p>
@@ -96,24 +111,46 @@
         <section class="panel">
           <div class="panel-head">
             <h2>Users</h2>
-            <button class="btn btn-secondary" type="button" id="reload">
-              Refresh
-            </button>
+            <div class="panel-tools">
+              <label class="filter-label">
+                Filter
+                <select id="user-filter">
+                  <option value="all">All</option>
+                  <option value="anonymous">Anonymous / Guest</option>
+                  <option value="account">Account</option>
+                  <option value="prototype">Prototype</option>
+                  <option value="ai_limit">AI limit reached</option>
+                </select>
+              </label>
+              <label class="filter-label">
+                Search
+                <input
+                  id="user-search"
+                  type="search"
+                  placeholder="Email, Guest, user ID"
+                />
+              </label>
+              <button class="btn btn-secondary" type="button" id="reload">
+                Refresh
+              </button>
+            </div>
           </div>
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
                   <th>User</th>
-                  <th>Signed up</th>
-                  <th>API cost</th>
-                  <th>Tutorial</th>
-                  <th>Last activity</th>
+                  <th>Type</th>
+                  <th>Plan</th>
+                  <th>AI usage</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th>Last seen</th>
                 </tr>
               </thead>
               <tbody id="users-body">
                 <tr>
-                  <td colspan="5" class="muted">Loading…</td>
+                  <td colspan="7" class="muted">Loading…</td>
                 </tr>
               </tbody>
             </table>
@@ -122,9 +159,30 @@
 
         <section class="panel" id="history-panel">
           <div class="panel-head">
-            <h2>Event History</h2>
+            <h2>User detail</h2>
             <p id="history-user" class="muted">Select a user.</p>
           </div>
+          <dl id="user-detail" class="detail-grid hidden"></dl>
+          <h3 class="section-title">Installations</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Installation ID</th>
+                  <th>Last seen</th>
+                  <th>Platform</th>
+                  <th>Device name</th>
+                  <th>Auth user</th>
+                </tr>
+              </thead>
+              <tbody id="devices-body">
+                <tr>
+                  <td colspan="5" class="muted">Select a user.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <h3 class="section-title">Event History</h3>
           <ol id="history-list" class="history-list">
             <li class="muted">No user selected.</li>
           </ol>
@@ -134,7 +192,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
     <script src="/js/supabase-config.js?v=20260831a"></script>
-    <script src="api.js?v=20260831a"></script>
-    <script src="app.js?v=20260831a"></script>
+    <script src="display.js?v=20260901a"></script>
+    <script src="api.js?v=20260901a"></script>
+    <script src="app.js?v=20260901a"></script>
   </body>
 </html>
