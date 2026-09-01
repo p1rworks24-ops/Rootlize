@@ -3,24 +3,31 @@ window.CAPIXE = {
   brand: {
     name: "Rootlize",
     tagline: "Your Local Workspace.",
-    description: "Find, organize, and work with the images on your PC — without moving them to the cloud.",
+    description: "Find, organize, and automate work with the images already on your PC — without moving them to a Rootlize cloud.",
+  },
+  hero: {
+    eyebrow: "Prototype Preview · Windows",
+    description:
+      "Find images already on your Windows PC, organize what you find, and save repeating work as a Workflow.",
+    kicker: "Search should be the beginning of the workflow, not the end of it.",
+    signupNote: "No sign-up required",
+    proof: "Prototype Preview · v0.1.0-preview · Features may change",
   },
   version: {
     channel: "Prototype Preview",
     number: "0.1.0-preview",
-    get label() { return "Version " + this.number; },
+    get label() { return "v" + this.number.replace(/^v/, ""); },
     platform: "Windows",
   },
-  downloadBadges: ["Windows", "Free", "Sign-in required", "Local-first"],
+  downloadBadges: ["Windows 10 / 11", "Free", "No sign-up", "Local-first"],
   urls: {
     github: "https://github.com/p1rworks24-ops/Rootlize",
     releases: "https://github.com/p1rworks24-ops/Rootlize/releases",
     releasesApi: "https://api.github.com/repos/p1rworks24-ops/Rootlize/releases?per_page=10",
-    // Planned GitHub Release asset. Do not use as a live href until this exact file exists.
     downloadAsset: "Rootlize-v0.1.0-preview-win64.zip",
-    downloadTag: "v0.1.0-preview",
+    downloadTag: "v0.1.0-preview.1",
     download:
-      "https://github.com/p1rworks24-ops/Rootlize/releases/download/v0.1.0-preview/Rootlize-v0.1.0-preview-win64.zip",
+      "https://github.com/p1rworks24-ops/Rootlize/releases/download/v0.1.0-preview.1/Rootlize-v0.1.0-preview-win64.zip",
     license: "https://github.com/p1rworks24-ops/Rootlize/blob/master/LICENSE",
     issues: "https://github.com/p1rworks24-ops/Rootlize/issues",
     bugReport: "https://github.com/p1rworks24-ops/Rootlize/issues/new?template=bug_report.yml",
@@ -36,52 +43,56 @@ window.CAPIXE = {
       src: "assets/screenshots/images.png",
       full: "assets/screenshots/images-full.png",
       alt: "Rootlize Images workspace",
-      caption: "Images — search the folder already on your PC",
+      caption: "Find — search the folder already on your PC",
       slot: "images",
     },
     {
       src: "assets/screenshots/ask-ai.png",
       full: "assets/screenshots/ask-ai-full.png",
       alt: "Rootlize Ask AI panel",
-      caption: "Ask AI — describe the work in your own words",
+      caption: "Ask AI — find and organize in your own words",
       slot: "ask-ai",
     },
     {
       src: "assets/screenshots/automation.png",
       full: "assets/screenshots/automation-full.png",
       alt: "Rootlize Automation page",
-      caption: "Automation — save a flow and run it again",
+      caption: "Automate — save Select, Search, and Action as a Workflow",
       slot: "automation",
     },
   ],
   faq: [
     {
-      q: "Does Rootlize upload my image library?",
-      a: "No. Rootlize is local-first: it works with folders already on your PC and does not move the image library to a Rootlize cloud. Settings and the local search index stay on this PC.",
-    },
-    {
-      q: "What runs locally, and what needs the internet?",
-      a: "Basic Search, OCR, and bundled Meaning Search run on this PC. You do need to sign in to use the Prototype. Account features and Ask AI need the internet. Ask AI uses an external AI service after you agree, and may send image contents for analysis.",
-    },
-    {
-      q: "Do I need to set up a Meaning Search model?",
-      a: "No. Meaning Search ships with the app. There is no separate model download or extra setup step.",
-    },
-    {
       q: "Is Rootlize free?",
-      a: "The current Prototype Preview is free to download and try. There is no subscription. You do need to sign in to use the preview.",
+      a: "Yes. This Prototype Preview is free to download and try. There is no subscription. AI usage is limited during the Prototype.",
     },
     {
       q: "Do I need an account?",
-      a: "Yes. The Prototype opens on a sign-in screen. Sign in with Google, GitHub, or email to continue. Sign-in is for your Rootlize account — it does not upload your image files.",
+      a: "No. The public Prototype does not require sign-up or login. You can download it and start as a guest.",
     },
     {
-      q: "Which operating systems are supported?",
-      a: "Windows only (Windows 10 / Windows 11, 64-bit). macOS and Linux are not supported in this preview.",
+      q: "Does Rootlize upload my images?",
+      a: "Rootlize is not a cloud library. It does not move your image collection to Rootlize cloud storage. You point it at folders already on this PC. If you agree to use Ask AI, the first analysis may send those images to an external AI. After that, Meaning Search uses saved facts instead of resending images every time.",
+    },
+    {
+      q: "Is there a Mac version?",
+      a: "Not yet. This Prototype is Windows 10 / Windows 11, 64-bit only.",
+    },
+    {
+      q: "Is this a finished product?",
+      a: "No. Rootlize is a Prototype Preview (v0.1.0-preview). Features may change. Feedback is welcome.",
+    },
+    {
+      q: "What runs locally, and when does AI go online?",
+      a: "Filename, tag, and text-in-image search run on this PC. Ask AI needs the internet after you agree. Until you agree, Rootlize does not start sending images for AI analysis. After the Prototype AI limit, local search and organize still work.",
     },
     {
       q: "Do I need to install Python?",
-      a: "No. The Release ZIP is a portable Windows build. Keep Rootlize.exe together with the _internal folder and run Rootlize.exe.",
+      a: "No. The download is a portable Windows ZIP. Extract it completely, keep Rootlize.exe together with the _internal folder, then run Rootlize.exe.",
+    },
+    {
+      q: "Windows warned me about the download. Is that expected?",
+      a: "Yes. This Prototype is unsigned, so Windows SmartScreen may show a warning. Continue only if you downloaded the ZIP from rootlize.com, then choose More info → Run anyway.",
     },
   ],
 };

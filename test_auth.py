@@ -44,13 +44,19 @@ def _config() -> AuthClientConfig:
     return AuthClientConfig("https://example.supabase.co", "anon-public")
 
 
-def _user_payload(email="ada@example.com", user_id="11111111-1111-1111-1111-111111111111"):
+def _user_payload(
+    email="ada@example.com",
+    user_id="11111111-1111-1111-1111-111111111111",
+    *,
+    is_anonymous: bool = False,
+):
+    user = {"id": user_id, "email": email, "user_metadata": {}, "is_anonymous": is_anonymous}
     return {
         "access_token": "access-token-value",
         "refresh_token": "refresh-token-value",
         "expires_in": 3600,
         "token_type": "bearer",
-        "user": {"id": user_id, "email": email, "user_metadata": {}},
+        "user": user,
     }
 
 
@@ -58,14 +64,18 @@ class FakeHttp:
     def __init__(self, queue: list) -> None:
         self.queue = list(queue)
         self.calls: list[tuple[str, str]] = []
+        self.bodies: list = []
 
     def request(self, url: str, *, method: str = "GET", headers=None, json_body=None) -> HttpResponse:
         self.calls.append((method.upper(), url))
+        self.bodies.append(json_body)
         if json_body:
             dumped = json.dumps(json_body)
             assert "screenshot" not in dumped.lower()
             assert "ocr" not in dumped.lower()
             assert "embedding" not in dumped.lower()
+            assert "filename" not in dumped.lower()
+            assert "facts" not in dumped.lower()
         item = self.queue.pop(0)
         if isinstance(item, Exception):
             raise item
@@ -507,3 +517,135 @@ def test_oauth_callback_copy_uses_public_brand():
     source = Path(oauth_mod.__file__).read_text(encoding="utf-8")
     assert "return to Rootlize." in source
     assert "return to Capixe." not in source
+
+
+def test_auth_required_defaults_off_and_env_overrides(monkeypatch):
+    from app.auth.config import is_auth_required
+
+    monkeypatch.delenv("CAPIXE_AUTH_REQUIRED", raising=False)
+    assert is_auth_required() is False
+    monkeypatch.setenv("CAPIXE_AUTH_REQUIRED", "1")
+    assert is_auth_required() is True
+    monkeypatch.setenv("CAPIXE_AUTH_REQUIRED", "0")
+    assert is_auth_required() is False
+
+
+def test_anonymous_sign_in_persists_and_reuses_installation_id(tmp_path, monkeypatch):
+    monkeypatch.setenv("CAPIXE_PROTOTYPE_ANONYMOUS", "1")
+    monkeypatch.delenv("CAPIXE_AUTH_REQUIRED", raising=False)
+    user_id = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    http = FakeHttp(
+        [
+            _user_payload(email="", user_id=user_id, is_anonymous=True),
+            [{"plan": "prototype", "account_status": "active", "ai_allowed": True}],
+            {},
+            {},
+            _user_payload(email="", user_id=user_id, is_anonymous=True),
+            [{"plan": "prototype", "account_status": "active", "ai_allowed": True}],
+            {},
+            {},
+        ]
+    )
+    store = MemoryCredentialStore()
+    service = _service(tmp_path, http, store=store)
+    installation = service.device().device_id
+    session = service.sign_in_anonymously()
+    assert session.is_authenticated
+    assert session.is_anonymous
+    assert session.user_id == user_id
+    assert session.email == ""
+    signup = next(body for body in http.bodies if isinstance(body, dict) and "data" in body)
+    assert signup["data"]["installation_id"] == installation
+    assert "hostname" not in json.dumps(signup).lower()
+    persisted = store.load()
+    assert persisted is not None
+    assert persisted.user.is_anonymous is True
+    assert persisted.user.user_id == user_id
+
+    restored = AuthService(
+        _config(),
+        store=store,
+        devices=DeviceService(tmp_path / "device.json"),
+        entitlements=EntitlementService(
+            rest_url=_config().rest_url,
+            publishable_key="anon-public",
+            http=http,
+            cache_path=tmp_path / "entitlement-cache.json",
+        ),
+        http=http,
+    ).restore_session()
+    assert restored.is_authenticated
+    assert restored.is_anonymous
+    assert restored.user_id == user_id
+
+
+def test_two_installations_get_distinct_anonymous_identities(tmp_path, monkeypatch):
+    monkeypatch.setenv("CAPIXE_PROTOTYPE_ANONYMOUS", "1")
+    payloads = [
+        (
+            tmp_path / "a",
+            "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        ),
+        (
+            tmp_path / "b",
+            "cccccccc-cccc-cccc-cccc-cccccccccccc",
+        ),
+    ]
+    seen_installations = []
+    seen_users = []
+    for folder, user_id in payloads:
+        folder.mkdir()
+        http = FakeHttp(
+            [
+                _user_payload(email="", user_id=user_id, is_anonymous=True),
+                [{"plan": "prototype", "account_status": "active", "ai_allowed": True}],
+                {},
+                {},
+            ]
+        )
+        service = _service(folder, http)
+        session = service.sign_in_anonymously()
+        seen_users.append(session.user_id)
+        seen_installations.append(service.device().device_id)
+        signup = next(body for body in http.bodies if isinstance(body, dict) and "data" in body)
+        assert signup["data"]["installation_id"] == service.device().device_id
+    assert seen_users[0] != seen_users[1]
+    assert seen_installations[0] != seen_installations[1]
+
+
+def test_restore_or_ensure_reuses_stored_anonymous_session(tmp_path, monkeypatch):
+    monkeypatch.setenv("CAPIXE_PROTOTYPE_ANONYMOUS", "1")
+    store = MemoryCredentialStore()
+    http = FakeHttp(
+        [
+            _user_payload(
+                email="",
+                user_id="dddddddd-dddd-dddd-dddd-dddddddddddd",
+                is_anonymous=True,
+            ),
+            [{"plan": "prototype", "account_status": "active", "ai_allowed": True}],
+            {},
+            {},
+        ]
+    )
+    first = _service(tmp_path, http, store=store)
+    first.sign_in_anonymously()
+    later = _service(
+        tmp_path,
+        FakeHttp([AuthError(AuthErrorCode.NETWORK)]),
+        store=store,
+    )
+    session = later.restore_or_ensure_session()
+    assert session.is_authenticated
+    assert session.status == AuthStatus.OFFLINE_SESSION
+    assert session.user_id == "dddddddd-dddd-dddd-dddd-dddddddddddd"
+
+
+def test_ensure_prototype_session_skipped_when_auth_required(tmp_path, monkeypatch):
+    monkeypatch.setenv("CAPIXE_AUTH_REQUIRED", "1")
+    monkeypatch.setenv("CAPIXE_PROTOTYPE_ANONYMOUS", "1")
+    http = FakeHttp([])
+    service = _service(tmp_path, http)
+    session = service.ensure_prototype_session()
+    assert session.status == AuthStatus.SIGNED_OUT
+    assert http.calls == []

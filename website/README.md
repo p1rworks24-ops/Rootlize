@@ -19,14 +19,16 @@ Then visit `http://localhost:8080`.
 Edit [`js/content.js`](js/content.js):
 
 - Brand name / tagline / description
-- Version (`channel` + `number` → shown as Prototype Preview / Version x.x.x)
+- Version (`channel` + `number` → shown as Prototype Preview / v0.1.0-preview)
 - Download badges
 - FAQ items
 - GitHub / Releases / Issues URLs
 - Download asset wiring (`urls.downloadAsset`, `urls.downloadTag`, `urls.download`)
 - Hero carousel slides (`screenshots` array)
 
-Do not point Download CTAs at `urls.download` until GitHub has that exact ZIP. `js/main.js` enables Download Preview only when Releases API returns `Rootlize-v0.1.0-preview-win64.zip`. Until then the buttons stay on `#download`. After the Rootlize GitHub Release is published, no extra LP edit is required if that filename is attached. If the tag cannot be `v0.1.0-preview`, keep the filename and let the API match it, or update `urls.downloadAsset`.
+The published Prototype ZIP is `Rootlize-v0.1.0-preview-win64.zip` on GitHub Release `v0.1.0-preview.1`. Download CTAs use `urls.download` immediately, then `js/main.js` confirms the same filename via the Releases API. If the live asset name changes, update `urls.downloadAsset` and `urls.download`.
+
+The landing page presents Rootlize as a local workspace (Find → Organize → Automate). Desktop implementation Source of Truth remains `.ai/SPEC.md`.
 
 ## Hero carousel
 
@@ -40,8 +42,6 @@ Recommended drop-in assets:
 - `1600 × 930` PNG (aspect `1600 / 930`)
 - Same crop / window chrome on every slide
 - Filenames: `images.png`, `meaning-search.png`, `ask-ai.png`, `automation.png`, `account.png`
-
-The landing page presents Rootlize as a local workspace (Find → Narrow → Act → Automate). Desktop implementation Source of Truth remains `.ai/SPEC.md`.
 
 Brand icon: `assets/brand/app-icon.png` (512px, transparent). Tab icon: `assets/brand/favicon.png`.
 

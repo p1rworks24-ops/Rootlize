@@ -153,3 +153,28 @@ def test_signed_in_account_shows_email_and_sign_out(tmp_path):
     assert not page._usage_reset.isVisibleTo(page)
     assert "$" not in page._usage_used.text()
     page.close()
+
+
+def test_anonymous_account_keeps_optional_sign_in_and_hides_uuid():
+    _ensure_app()
+    from app.auth.models import AccountSession, AuthUser, Entitlement
+
+    page = AccountPage()
+    page.apply_session(
+        AccountSession(
+            status=AuthStatus.SIGNED_IN,
+            user=AuthUser(
+                user_id="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+                email="",
+                is_anonymous=True,
+            ),
+            entitlement=Entitlement(plan="prototype"),
+        )
+    )
+    assert t("account.guest_identity") in page._signed_email.text()
+    assert "aaaaaaaa" not in page._signed_email.text()
+    assert t("account.plan.prototype") in page._plan.text()
+    assert page._google.isVisibleTo(page)
+    assert page._primary.isVisibleTo(page)
+    assert not page._sign_out.isVisibleTo(page)
+    page.close()

@@ -6,7 +6,7 @@
     <title>Privacy Policy — Rootlize</title>
     <meta
       name="description"
-      content="How Rootlize handles local images, sign-in, and AI usage in the current Prototype."
+      content="How Rootlize handles local images, optional accounts, and AI usage in the current Prototype."
     />
     <link rel="canonical" href="https://rootlize.com/privacy" />
     <meta name="theme-color" content="#f5f6f8" />
@@ -18,7 +18,7 @@
       href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Source+Sans+3:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/css/styles.css?v=20260830i" />
+    <link rel="stylesheet" href="/css/styles.css?v=20260901a" />
   </head>
   <body>
     <header class="site-header legal-chrome">
@@ -39,7 +39,7 @@
     <main class="container legal-article">
       <p class="eyebrow">Rootlize</p>
       <h1>Privacy Policy</h1>
-      <p class="legal-meta">Last updated: August 29, 2026</p>
+      <p class="legal-meta">Last updated: September 1, 2026</p>
       <p>
         This page describes how the current Rootlize Prototype Preview handles
         data. Rootlize is preview software. This behavior can change.
@@ -47,13 +47,15 @@
 
       <h2>Your image library stays on this PC</h2>
       <p>
-        Rootlize does not upload, copy, or move your local image library to a
-        Rootlize cloud. You point the app at folders already on this PC. Those
-        image files remain in the folders you choose.
+        Rootlize is not a cloud photo library. It does not upload, copy, or move
+        your local image collection to Rootlize cloud storage. You point the app
+        at folders already on this PC. Those image files remain in the folders
+        you choose. You do not have to import them into a separate Rootlize
+        library.
       </p>
       <p>
-        Sign-in does not upload the library. Creating an account does not turn
-        your folders into a cloud photo library.
+        Creating an optional account does not turn your folders into a cloud
+        photo library.
       </p>
 
       <h2>What runs locally</h2>
@@ -61,34 +63,45 @@
       <ul>
         <li>Basic Search (filename, tags, and text found in images)</li>
         <li>OCR</li>
-        <li>The bundled Meaning Search model</li>
+        <li>Local ranking used by Meaning Search</li>
       </ul>
       <p>
         Local search index data stays on this PC. You do not download a separate
-        Meaning Search model.
+        search model.
       </p>
 
       <h2>Cloud AI features</h2>
       <p>
-        Some AI features, including Ask AI, use a cloud provider. Those features
-        need sign-in, the internet, and your agreement before they run.
+        Ask AI uses an external AI service. It needs the internet and your
+        agreement before it runs. You do not need a Rootlize account to try the
+        public Prototype, including Prototype AI within the usage limit.
       </p>
       <p>
-        After you agree, Ask AI and related cloud AI features may send image
-        contents and related request data to an external AI service so the
-        feature can run. Rootlize does not keep your image library in Rootlize
-        cloud storage.
+        The first time you open Ask AI, Rootlize shows a consent screen. Until
+        you agree, Rootlize does not start sending images for AI analysis.
+        After you agree, the first analysis may send image contents and related
+        request data to an external AI service. Rootlize then saves facts from
+        that analysis. Later Meaning Search uses those saved facts and does not
+        resend images on every search.
+      </p>
+      <p>
+        Prototype AI usage is limited. After you reach the limit, local search,
+        tags, favorites, folder operations, and other non-AI features still
+        work. Rootlize does not keep your image library in Rootlize cloud
+        storage.
       </p>
 
-      <h2>Sign-in and authentication</h2>
+      <h2>Accounts are optional</h2>
       <p>
-        The Prototype opens on a sign-in screen. Sign-in uses Supabase for
-        account identity. You can sign in with Google, GitHub, or email.
+        The public Prototype does not require sign-up or login. You can start as
+        a guest. If you choose to sign in, Rootlize uses Supabase for account
+        identity. You can sign in with Google, GitHub, or email.
       </p>
       <p>
         If you use Google or GitHub, that provider authenticates you and
-        Supabase receives the account identity needed to sign you in. Sign-in is
-        for your Rootlize account. It does not upload your image files.
+        Supabase receives the account identity needed to sign you in. An
+        optional account is for your Rootlize identity. It does not upload your
+        image files.
       </p>
 
       <h2>Usage metadata</h2>
@@ -185,7 +198,7 @@
       </div>
     </footer>
 
-    <script src="/js/content.js?v=20260830i"></script>
-    <script src="/js/main.js?v=20260830i"></script>
+    <script src="/js/content.js?v=20260901a"></script>
+    <script src="/js/main.js?v=20260901a"></script>
   </body>
 </html>

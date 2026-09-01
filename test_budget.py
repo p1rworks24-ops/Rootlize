@@ -425,6 +425,23 @@ def test_prototype_sql_hard_cap_contract():
     assert "Prototype" in sql
 
 
+def test_anonymous_prototype_plan_sql_does_not_overwrite_free():
+    sql = (
+        Path(__file__).resolve().parent
+        / "supabase"
+        / "migrations"
+        / "006_prototype_anonymous_plan_v1.sql"
+    ).read_text(encoding="utf-8")
+    assert "'prototype'" in sql
+    assert "is_anonymous" in sql
+    assert "on conflict (plan) do nothing" in sql
+    assert "update public.plan_defaults" not in sql.lower()
+    assert "update public.entitlements" not in sql.lower()
+    assert "query" not in sql.lower()
+    assert "filename" not in sql.lower()
+    assert "api_key" not in sql.lower()
+
+
 def test_client_cannot_patch_budget_through_budget_service():
     class Forbidden:
         def request(self, url, *, method="GET", headers=None, json_body=None):

@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rootlize — できること</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f5f6f8;
+        --card: #ffffff;
+        --text: #1f2937;
+        --strong: #111827;
+        --muted: #6b7280;
+        --accent: #1d4ed8;
+        --accent-soft: #eff6ff;
+        --border: #e5e7eb;
+        --ink: #0f172a;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        width: 1600px;
+        height: 1000px;
+        overflow: hidden;
+        background: var(--bg);
+      }
+
+      body {
+        font-family: "Noto Sans JP", "Yu Gothic UI", "Yu Gothic", Meiryo, sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(980px 520px at 8% -8%, #dbeafe 0%, transparent 56%),
+          radial-gradient(780px 460px at 100% 0%, #e0e7ff 0%, transparent 50%),
+          var(--bg);
+      }
+
+      .poster {
+        width: 1600px;
+        height: 1000px;
+        padding: 48px 56px 40px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        margin-bottom: 28px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .brand img {
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        box-shadow: 0 8px 20px rgba(29, 78, 216, 0.18);
+      }
+
+      .brand h1 {
+        font-family: Outfit, "Segoe UI", "Yu Gothic UI", sans-serif;
+        font-size: 44px;
+        font-weight: 700;
+        letter-spacing: -0.035em;
+        color: var(--strong);
+        line-height: 1;
+      }
+
+      .brand p {
+        margin-top: 6px;
+        font-size: 18px;
+        font-weight: 500;
+        color: var(--muted);
+        letter-spacing: 0.01em;
+      }
+
+      .lede {
+        text-align: right;
+        max-width: 560px;
+      }
+
+      .lede .eyebrow {
+        font-family: Outfit, "Segoe UI", "Yu Gothic UI", sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 8px;
+      }
+
+      .lede h2 {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--strong);
+        letter-spacing: -0.03em;
+        line-height: 1.35;
+      }
+
+      .journey {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin-bottom: 22px;
+      }
+
+      .step {
+        position: relative;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 16px 18px 18px;
+        box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04),
+          0 10px 24px rgba(17, 24, 39, 0.05);
+      }
+
+      .step-num {
+        font-family: Outfit, "Segoe UI", "Yu Gothic UI", sans-serif;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        color: var(--accent);
+        margin-bottom: 10px;
+      }
+
+      .scene {
+        height: 92px;
+        border-radius: 12px;
+        background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+        border: 1px solid #e8edf3;
+        margin-bottom: 12px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .step h3,
+      .card h3 {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--strong);
+        margin-bottom: 4px;
+        letter-spacing: -0.02em;
+      }
+
+      .step p,
+      .card p {
+        font-size: 13.5px;
+        line-height: 1.55;
+        color: var(--muted);
+        font-weight: 500;
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        flex: 1;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 18px 20px 20px;
+        box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04),
+          0 12px 28px rgba(17, 24, 39, 0.055);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .card .scene {
+        height: 118px;
+        margin-bottom: 14px;
+      }
+
+      footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 20px;
+        padding-top: 4px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 500;
+      }
+
+      footer strong {
+        color: var(--strong);
+        font-weight: 700;
+      }
+
+      .pills {
+        display: flex;
+        gap: 8px;
+      }
+
+      .pill {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-size: 12.5px;
+        color: #4b5563;
+      }
+
+      /* ---- mini scenes ---- */
+      .shots {
+        display: grid;
+        gap: 5px;
+        position: absolute;
+      }
+
+      .shot {
+        border-radius: 5px;
+        display: block;
+      }
+
+      .pic-land { background: linear-gradient(180deg, #93c5fd, #1d4ed8); }
+      .pic-face { background: radial-gradient(circle at 50% 38%, #fde68a 0 28%, #fb923c 29% 46%, #fed7aa 47%); }
+      .pic-doc { background: linear-gradient(180deg, #fff 0 55%, #dbeafe 55%); box-shadow: inset 8px 14px 0 -6px #94a3b8, inset 8px 22px 0 -6px #cbd5e1; }
+      .pic-leaf { background: linear-gradient(135deg, #86efac, #16a34a); }
+      .pic-sun { background: radial-gradient(circle at 70% 30%, #fde047 0 22%, #fb923c 23% 55%, #7c3aed 100%); }
+      .pic-mug { background: radial-gradient(circle at 50% 58%, #fecaca 0 18%, #ef4444 19% 42%, #fee2e2 43%); }
+      .pic-build { background: linear-gradient(180deg, #bfdbfe 0 40%, #64748b 40%); }
+      .pic-bird { background: linear-gradient(180deg, #bae6fd, #0ea5e9); }
+      .hit { outline: 2px solid #1d4ed8; outline-offset: 0; box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.18); }
+
+      .scene-find .shots { inset: 14px 16px; grid-template-columns: repeat(5, 1fr); }
+      .scene-find .shot { height: 28px; }
+      .lens {
+        position: absolute;
+        right: 18px;
+        bottom: 14px;
+        width: 38px;
+        height: 38px;
+        color: var(--accent);
+        background: rgba(255, 255, 255, 0.86);
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        box-shadow: 0 6px 16px rgba(29, 78, 216, 0.16);
+      }
+
+      .scene-narrow .bar {
+        position: absolute;
+        top: 10px;
+        left: 12px;
+        right: 12px;
+        height: 22px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .chip {
+        font-size: 10px;
+        font-weight: 700;
+        background: #dbeafe;
+        color: #1d4ed8;
+        border-radius: 999px;
+        padding: 2px 8px;
+      }
+      .chip.soft { background: #e5e7eb; color: #4b5563; }
+      .count {
+        margin-left: auto;
+        font-family: Outfit, "Segoe UI", "Yu Gothic UI", sans-serif;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--accent);
+      }
+      .scene-narrow .shots { left: 14px; right: 14px; bottom: 12px; top: 38px; grid-template-columns: repeat(8, 1fr); }
+      .scene-narrow .shot { height: 22px; }
+      .fade { opacity: 0.22; }
+
+      .scene-act { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0 16px; }
+      .mini-card {
+        width: 86px;
+        height: 70px;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 6px;
+        box-shadow: 0 4px 10px rgba(15, 23, 42, 0.06);
+        position: relative;
+      }
+      .mini-card .shot { height: 34px; }
+      .mini-card .name { display: block; margin-top: 6px; font-size: 10px; font-weight: 700; color: #111827; }
+      .mini-card .tag {
+        position: absolute;
+        top: 8px;
+        right: 6px;
+        font-size: 9px;
+        font-weight: 700;
+        color: #b45309;
+        background: #fef3c7;
+        border-radius: 999px;
+        padding: 1px 5px;
+      }
+      .folder {
+        width: 46px;
+        height: 36px;
+        color: var(--accent);
+      }
+
+      .scene-auto { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+      .flow { display: flex; align-items: center; gap: 6px; }
+      .node {
+        font-size: 11px;
+        font-weight: 700;
+        background: #fff;
+        border: 1px solid #dbeafe;
+        color: #1d4ed8;
+        border-radius: 999px;
+        padding: 4px 10px;
+      }
+      .wire { width: 18px; height: 2px; background: #93c5fd; border-radius: 2px; }
+      .batch { display: flex; gap: 5px; }
+      .batch .shot { width: 22px; height: 18px; }
+
+      .scene-meaning .ask {
+        position: absolute;
+        top: 12px;
+        left: 14px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--accent);
+        background: #eff6ff;
+        border-radius: 8px;
+        padding: 4px 10px;
+      }
+      .scene-meaning .shots { left: 14px; right: 14px; bottom: 14px; top: 48px; grid-template-columns: repeat(5, 1fr); }
+      .scene-meaning .shot { height: 36px; }
+
+      .scene-ask { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 16px; }
+      .prompt {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--strong);
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 12px;
+        max-width: 150px;
+        line-height: 1.4;
+      }
+      .arrow { color: var(--accent); font-size: 20px; font-weight: 700; }
+      .outs { display: flex; flex-direction: column; gap: 5px; }
+      .outs span {
+        font-size: 11px;
+        font-weight: 700;
+        background: #eff6ff;
+        color: #1d4ed8;
+        border-radius: 7px;
+        padding: 4px 8px;
+      }
+
+      .scene-local { display: flex; align-items: center; justify-content: center; gap: 18px; }
+      .pc {
+        width: 138px;
+        height: 82px;
+        background: #fff;
+        border: 1px solid #dbeafe;
+        border-radius: 12px;
+        padding: 10px 8px 8px;
+        position: relative;
+      }
+      .pc .label {
+        position: absolute;
+        top: -9px;
+        left: 10px;
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--accent);
+        background: #eff6ff;
+        border-radius: 999px;
+        padding: 1px 7px;
+      }
+      .pc .shots { position: static; grid-template-columns: repeat(3, 1fr); }
+      .pc .shot { height: 20px; }
+      .cloud {
+        width: 78px;
+        color: #94a3b8;
+        text-align: center;
+        font-size: 10px;
+        font-weight: 700;
+        position: relative;
+        opacity: 0.7;
+      }
+      .cloud svg.cloud-shape { display: block; margin: 0 auto 2px; }
+      .cloud .slash {
+        position: absolute;
+        inset: 2px 8px auto;
+        width: 62px;
+        height: 40px;
+        color: #dc2626;
+      }
+
+      svg { display: block; }
+    </style>
+  </head>
+  <body>
+    <article class="poster">
+      <header>
+        <div class="brand">
+          <img src="../brand/app-icon.png" alt="" />
+          <div>
+            <h1>Rootlize</h1>
+            <p>Your Local Workspace.</p>
+          </div>
+        </div>
+        <div class="lede">
+          <p class="eyebrow">できること</p>
+          <h2>PC上の画像を、<br />クラウドに移さずに扱う</h2>
+        </div>
+      </header>
+
+      <section class="journey" aria-label="流れ">
+        <article class="step">
+          <div class="step-num">01 FIND</div>
+          <div class="scene scene-find">
+            <div class="shots">
+              <i class="shot pic-land"></i><i class="shot pic-face"></i><i class="shot pic-doc hit"></i><i class="shot pic-leaf"></i><i class="shot pic-sun"></i>
+              <i class="shot pic-build"></i><i class="shot pic-mug"></i><i class="shot pic-bird hit"></i><i class="shot pic-land"></i><i class="shot pic-face"></i>
+            </div>
+            <div class="lens" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 32 32" fill="none">
+                <circle cx="13" cy="13" r="7.2" stroke="currentColor" stroke-width="2.2" />
+                <path d="M18.6 18.6 26 26" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+              </svg>
+            </div>
+          </div>
+          <h3>探す</h3>
+          <p>大量のローカルフォルダから、必要な画像を引き出す</p>
+        </article>
+
+        <article class="step">
+          <div class="step-num">02 NARROW</div>
+          <div class="scene scene-narrow">
+            <div class="bar">
+              <span class="chip">date</span>
+              <span class="chip soft">tag</span>
+              <span class="count">20 → 3</span>
+            </div>
+            <div class="shots">
+              <i class="shot pic-face fade"></i><i class="shot pic-doc fade"></i><i class="shot pic-land fade"></i><i class="shot pic-sun"></i>
+              <i class="shot pic-mug fade"></i><i class="shot pic-leaf"></i><i class="shot pic-build fade"></i><i class="shot pic-land"></i>
+            </div>
+          </div>
+          <h3>絞り込む</h3>
+          <p>日付やタグで、まだ必要な数枚まで落とす</p>
+        </article>
+
+        <article class="step">
+          <div class="step-num">03 ACT</div>
+          <div class="scene scene-act">
+            <div class="mini-card">
+              <i class="shot pic-sun"></i>
+              <span class="tag">★ sunset</span>
+              <span class="name">IMG_1042</span>
+            </div>
+            <div class="mini-card">
+              <i class="shot pic-doc"></i>
+              <span class="name">notes.png</span>
+            </div>
+            <svg class="folder" viewBox="0 0 32 28" fill="none">
+              <path d="M2 9.2V23a3 3 0 0 0 3 3h22a3 3 0 0 0 3-3V11.2a3 3 0 0 0-3-3h-9.2L15 5H5a3 3 0 0 0-3 3v1.2Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+            </svg>
+          </div>
+          <h3>動かす</h3>
+          <p>タグ、お気に入り、リネーム、移動をその場で</p>
+        </article>
+
+        <article class="step">
+          <div class="step-num">04 AUTOMATE</div>
+          <div class="scene scene-auto">
+            <div class="flow">
+              <span class="node">Search</span><i class="wire"></i>
+              <span class="node">Select</span><i class="wire"></i>
+              <span class="node">Action</span>
+            </div>
+            <div class="batch">
+              <i class="shot pic-land"></i>
+              <i class="shot pic-mug"></i>
+              <i class="shot pic-face"></i>
+              <i class="shot pic-sun"></i>
+            </div>
+          </div>
+          <h3>繰り返す</h3>
+          <p>一度つないだ流れを、同じ作業に再利用する</p>
+        </article>
+      </section>
+
+      <section class="cards" aria-label="できること">
+        <article class="card">
+          <div class="scene scene-meaning">
+            <span class="ask">「赤いマグ」</span>
+            <div class="shots">
+              <i class="shot pic-land"></i>
+              <i class="shot pic-mug hit"></i>
+              <i class="shot pic-face"></i>
+              <i class="shot pic-mug hit"></i>
+              <i class="shot pic-doc"></i>
+            </div>
+          </div>
+          <h3>意味で探す</h3>
+          <p>写っている内容で検索。Meaning Search のモデルはアプリに同梱。</p>
+        </article>
+
+        <article class="card">
+          <div class="scene scene-ask">
+            <div class="prompt">夕日の写真に<br />タグを付けて</div>
+            <div class="arrow">→</div>
+            <div class="outs">
+              <span>Search</span>
+              <span>Action</span>
+              <span>Auto</span>
+            </div>
+          </div>
+          <h3>自分の言葉で指示</h3>
+          <p>Ask AI が短い指示を、検索・整理・自動化に変える。チャットではない。</p>
+        </article>
+
+        <article class="card">
+          <div class="scene scene-local">
+            <div class="pc">
+              <span class="label">This PC</span>
+              <div class="shots">
+                <i class="shot pic-land"></i><i class="shot pic-face"></i><i class="shot pic-leaf"></i>
+                <i class="shot pic-mug"></i><i class="shot pic-doc"></i><i class="shot pic-build"></i>
+              </div>
+            </div>
+            <div class="cloud">
+              <svg class="cloud-shape" width="40" height="26" viewBox="0 0 24 24" fill="none">
+                <path d="M7.2 18h9.2A4.4 4.4 0 0 0 18 9.4 6 6 0 0 0 7.1 10.8 3.7 3.7 0 0 0 7.2 18Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+              </svg>
+              <svg class="slash" viewBox="0 0 62 40" fill="none">
+                <circle cx="31" cy="20" r="15" stroke="currentColor" stroke-width="2.2" />
+                <path d="M20 30 42 10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+              </svg>
+              Cloud
+            </div>
+          </div>
+          <h3>ファイルは PC に残る</h3>
+          <p>既存フォルダを指定するだけ。ライブラリを Rootlize のクラウドへは移さない。</p>
+        </article>
+      </section>
+
+      <footer>
+        <div>ほかにも <strong>範囲 / 全画面キャプチャ</strong> · グリッド / リスト · お気に入り</div>
+        <div class="pills">
+          <span class="pill">Windows Preview</span>
+          <span class="pill">Local-first</span>
+          <span class="pill">v0.1.0-preview</span>
+        </div>
+      </footer>
+    </article>
+  </body>
+</html>

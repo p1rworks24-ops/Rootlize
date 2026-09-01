@@ -33,8 +33,8 @@ Official packaged Prototype build (`tools/build_official_prototype.py`) bakes on
 
 ## Dashboard
 
-1. Run `supabase/migrations/001_auth_v1.sql`, then `002_ai_budget_v1.sql`, then `003_prototype_feedback_v1.sql` for Prototype feedback / funnel events, then `004_prototype_ai_budget_v1.sql` for the Public Prototype AI hard cap, then `005_admin_analytics_v1.sql` for operator admin analytics.
-2. Auth → Providers: Email, Google, GitHub.
+1. Run `supabase/migrations/001_auth_v1.sql`, then `002_ai_budget_v1.sql`, then `003_prototype_feedback_v1.sql` for Prototype feedback / funnel events, then `004_prototype_ai_budget_v1.sql` for the Public Prototype AI hard cap, then `005_admin_analytics_v1.sql` for operator admin analytics, then `006_prototype_anonymous_plan_v1.sql` for anonymous Prototype plan defaults (does not change `free` / `next` / `pro`).
+2. Auth → Providers: Email, Google, GitHub. For the public Prototype (D-042), also enable **Anonymous sign-ins**. Packaged Rootlize uses this for AI budget identity without a Sign-in gate. Turn it off when `AUTH_REQUIRED` is restored to True if you no longer need guest AI.
 3. Auth → URL configuration. Add redirect:
 
    `http://127.0.0.1:47831/auth/callback`
@@ -86,7 +86,9 @@ The client must not write plan, account_status, ai_allowed, budget, used, or res
 
 Those functions use `auth.uid()`. Do not accept a client-supplied `user_id`.
 
-Public Prototype amounts live in `plan_defaults` / `entitlements`: onboarding $1.25, regular $0.25 / UTC month, lifetime hard cap $1.25 / user. `get_ai_usage_status` reports used % against the hard cap, not the monthly bucket. Final Free / Next / Pro prices are not decided and must not appear in the public UI. User-facing plan name is Prototype while the internal plan ID stays `free`. Change amounts in the database only.
+Packaged Prototype (D-042) still sends `Authorization: Bearer <access token>`. The token is a GoTrue **anonymous** user JWT when Sign-in is not required. Usage is keyed by that `auth.uid()`, not by a client `installation_id` header. Local `%LOCALAPPDATA%\Capixe\device.json` stores the opaque installation UUID and upserts `devices`. Anonymous users get `plan='prototype'` from `006_prototype_anonymous_plan_v1.sql`. Change Prototype amounts in that `plan_defaults` row only.
+
+Public Prototype amounts live in `plan_defaults` / `entitlements`: onboarding $1.25, regular $0.25 / UTC month, lifetime hard cap $1.25 / user. `get_ai_usage_status` reports used % against the hard cap, not the monthly bucket. Final Free / Next / Pro prices are not decided and must not appear in the public UI. User-facing plan name is Prototype while the internal plan ID stays `free` for signed-in accounts and `prototype` for anonymous Prototype users. Change amounts in the database only.
 
 Local `%LOCALAPPDATA%\Capixe\ai-usage.sqlite3` remains debug telemetry. Cloud usage is the enforceable budget.
 
@@ -133,7 +135,7 @@ Local serve:
 supabase functions serve ai-proxy --no-verify-jwt
 ```
 
-`--no-verify-jwt` is for local harnesses only. The function still calls `auth.getUser()` and rejects missing/invalid tokens. Packaged Capixe always sends `Authorization: Bearer <access token>`.
+`--no-verify-jwt` is for local harnesses only. The function still calls `auth.getUser()` and rejects missing/invalid tokens. Packaged Capixe always sends `Authorization: Bearer <access token>` (signed-in or Prototype anonymous).
 
 ### Required secrets
 
@@ -155,7 +157,7 @@ supabase secrets set OPENAI_API_KEY=...
 
 ### Required migrations
 
-Apply `001_auth_v1.sql`, `002_ai_budget_v1.sql`, then `004_prototype_ai_budget_v1.sql`. The proxy calls the existing RPCs with the **user JWT**, so `auth.uid()` stays the identity. It does not accept a client `user_id`. Edge Function code does not need a redeploy for this budget change; the RPCs enforce the hard cap.
+Apply `001_auth_v1.sql`, `002_ai_budget_v1.sql`, `004_prototype_ai_budget_v1.sql`, then `006_prototype_anonymous_plan_v1.sql` for anonymous Prototype users. The proxy calls the existing RPCs with the **user JWT**, so `auth.uid()` stays the identity. It does not accept a client `user_id`. Anonymous JWTs are valid `authenticated` tokens. Edge Function code does not need a redeploy for Prototype Sign-in bypass; enable Anonymous sign-ins in the Auth dashboard.
 
 Live E2E of the usage-limit UI must not burn the official $1.25. Lower one test user's hard cap only, then restore it. Procedures and SQL: `docs/PROTOTYPE_AI_BUDGET_LIVE_E2E.md` and `supabase/ops/e2e_*.sql`. Do not change `plan_defaults` or other users for that test.
 

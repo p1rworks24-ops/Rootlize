@@ -179,24 +179,39 @@ class AccountPage(QWidget):
 
     def apply_session(self, session: AccountSession) -> None:
         signed_in = session.is_authenticated
-        self._welcome.setText(t("account.signed_in_title") if signed_in else t("account.welcome"))
-        self._google.setVisible(not signed_in)
-        self._github.setVisible(not signed_in)
-        self._email.setVisible(not signed_in)
-        self._password.setVisible(not signed_in)
-        self._primary.setVisible(not signed_in)
-        self._switch.setVisible(not signed_in)
+        anonymous = bool(signed_in and getattr(session, "is_anonymous", False))
+        named = signed_in and not anonymous
+        self._welcome.setText(
+            t("account.guest_title")
+            if anonymous
+            else t("account.signed_in_title")
+            if named
+            else t("account.welcome")
+        )
+        show_form = not named
+        self._google.setVisible(show_form)
+        self._github.setVisible(show_form)
+        self._email.setVisible(show_form)
+        self._password.setVisible(show_form)
+        self._primary.setVisible(show_form)
+        self._switch.setVisible(show_form)
         self._signed_email.setVisible(signed_in)
         self._plan.setVisible(signed_in)
-        self._sign_out.setVisible(signed_in)
+        self._sign_out.setVisible(named)
         if signed_in:
-            self._signed_email.setText(session.email or session.user_id)
+            if anonymous:
+                self._signed_email.setText(t("account.guest_identity"))
+            else:
+                self._signed_email.setText(session.email or session.user_id)
             self._plan.setText(t("account.plan_label", plan=session.entitlement.plan_label))
             if session.status == AuthStatus.OFFLINE_SESSION:
                 self._status.setText(t("account.offline"))
                 if not self._usage_used.text():
                     self.apply_usage(AIUsageStatus.unavailable_status())
-            elif not self._status.text():
+            elif anonymous:
+                if not self._status.text() or self._status.text() == t("account.guest_body"):
+                    self._status.setText(t("account.guest_body"))
+            elif self._status.text() == t("account.guest_body") or not self._status.text():
                 self._status.clear()
         else:
             self._signed_email.clear()

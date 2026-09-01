@@ -21,6 +21,15 @@ import importlib.util
 import os
 import sys
 from PyInstaller.utils.hooks import collect_all
+from PyInstaller.utils.win32.versioninfo import (
+    VSVersionInfo,
+    FixedFileInfo,
+    StringFileInfo,
+    StringTable,
+    StringStruct,
+    VarFileInfo,
+    VarStruct,
+)
 
 block_cipher = None
 
@@ -317,6 +326,54 @@ a.datas = [d for d in a.datas if not _denied(str(d[0])) and not _denied(str(d[1]
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
+
+def _windows_filevers(version: str) -> tuple[int, int, int, int]:
+    digits = []
+    for part in str(version or "").replace("-", ".").split("."):
+        if part.isdigit():
+            digits.append(int(part))
+        if len(digits) == 4:
+            break
+    while len(digits) < 4:
+        digits.append(0)
+    return tuple(digits[:4])
+
+
+_APP_VERSION = str(getattr(_official_mod, "APP_VERSION", "0.1.0-preview"))
+_PRODUCT_NAME = str(getattr(_official_mod, "DIST_NAME", "Rootlize"))
+_FILEVERS = _windows_filevers(_APP_VERSION)
+_VERSION_INFO = VSVersionInfo(
+    ffi=FixedFileInfo(
+        filevers=_FILEVERS,
+        prodvers=_FILEVERS,
+        mask=0x3F,
+        flags=0x0,
+        OS=0x40004,
+        fileType=0x1,
+        subtype=0x0,
+        date=(0, 0),
+    ),
+    kids=[
+        StringFileInfo(
+            [
+                StringTable(
+                    "040904B0",
+                    [
+                        StringStruct("CompanyName", _PRODUCT_NAME),
+                        StringStruct("FileDescription", _PRODUCT_NAME),
+                        StringStruct("FileVersion", _APP_VERSION),
+                        StringStruct("InternalName", _PRODUCT_NAME),
+                        StringStruct("OriginalFilename", f"{_PRODUCT_NAME}.exe"),
+                        StringStruct("ProductName", _PRODUCT_NAME),
+                        StringStruct("ProductVersion", _APP_VERSION),
+                    ],
+                )
+            ]
+        ),
+        VarFileInfo([VarStruct("Translation", [1033, 1200])]),
+    ],
+)
+
 exe = EXE(
     pyz,
     a.scripts,
@@ -334,6 +391,7 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=_ICON_ICO if os.path.isfile(_ICON_ICO) else None,
+    version=_VERSION_INFO,
 )
 
 coll = COLLECT(

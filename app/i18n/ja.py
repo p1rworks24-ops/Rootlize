@@ -18,6 +18,8 @@ MESSAGES: dict[str, str] = {
     "nav.account.name": "サインイン",
     "nav.account.plan": "",
     "nav.account.signed_out": "サインイン",
+    "nav.account.guest": "ゲスト",
+    "nav.account.guest_tooltip": "アカウントにサインインせずにRootlizeを使用しています",
     "nav.collapse": "ナビゲーションを閉じる",
     "nav.expand": "ナビゲーションを開く",
     "images.ai.ui_preview_hint": "UI preview · ローカル返信のみ（APIなし）",
@@ -564,7 +566,7 @@ MESSAGES: dict[str, str] = {
     # Images empty state
     "images.empty_title": "このフォルダには画像がありません。",
     "images.empty_body": (
-        "「Capture」で撮影するか、別のフォルダを選択してください。"
+        "別のフォルダを選ぶか、画像が入っているフォルダを選択してください。"
     ),
     "images.folder_unselected": "フォルダを選択して始めましょう",
     "images.folder_unselected_body": "スクリーンショットのフォルダを選び、覚えている言葉で検索できます。",
@@ -690,6 +692,9 @@ MESSAGES: dict[str, str] = {
     "account.subtitle": "プランを管理するためにサインインします。画像はこのPCに残ります。",
     "account.welcome": "Rootlizeへようこそ",
     "account.signed_in_title": "アカウント",
+    "account.guest_title": "ゲストとしてRootlizeを使用しています",
+    "account.guest_body": "このPrototypeではサインインは任意です。画像はこのPCに残ります。",
+    "account.guest_identity": "ゲスト",
     "account.continue_google": "Googleで続ける",
     "account.continue_github": "GitHubで続ける",
     "account.email": "メール",
@@ -719,6 +724,7 @@ MESSAGES: dict[str, str] = {
     "account.ai_critical": "AIの利用枠があとわずかです。",
     "account.ai_unavailable": "AIを利用できません",
     "account.ai.limit_reached": "AIの利用上限に達しました。",
+    "account.ai.limit_reached_body": "このPrototypeのAI利用上限に達しました。",
     "account.ai.limit_reset": "利用枠は{date}にリセットされます。",
     "account.ai.offline": "オフラインではAI使用量を確認できません。このPCのファイルは使えます。",
     "account.ai.verification_unavailable": "AI使用量を確認できません。",

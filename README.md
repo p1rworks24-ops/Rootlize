@@ -2,41 +2,31 @@
 
 Your Local Workspace.
 
-Find, organize, and work with the images on your PC — without moving them to the cloud.
+Find, organize, and automate work with the images already on your PC — without moving them to a Rootlize cloud.
 
-Sign in, point Rootlize at an existing local folder, then find, organize, and work with the images already on your PC. Basic Search, OCR, and bundled Meaning Search run locally. Ask AI needs the internet after you agree.
+This is a **Prototype Preview** (`v0.1.0-preview`) for **Windows 10 / 11 (64-bit)**. No sign-up required. Features may change, and AI usage is limited during the Prototype.
 
 ## Screenshot
 
 ![Rootlize Images search](website/assets/screenshots/images.png)
 
-## Preview status
+## What it does
 
-This is a **Prototype Preview** (`v0.1.0-preview`). Bugs, incomplete features, and breaking changes are expected. The Features and limitations below describe the published ZIP, not necessarily the current source tree.
+**Find → Organize → Automate**
 
-## Features
+- Find images in a folder you already have, by filename, text, Meaning Search, or Ask AI
+- Organize what you find with tags, favorites, rename, and move
+- Save Select / Search / Action as a Workflow and run it again (with confirmation first)
 
-- Sign in required to start the Prototype
-- Use an existing local image folder — files stay on this PC
-- Basic Search by filename, tags, and text found inside images
-- Meaning Search by what an image shows (bundled model, no extra setup)
-- Ask AI to find and organize in your own words (needs internet after you agree)
-- Organize in place: rename, tags, favorites, move
-- Save a repeated flow as Automation
-- Region and full-screen capture with configurable save settings
-- Grid/list viewing, grouping, preview, and zoom
+Rootlize is local-first. It is not a cloud photo library. Ask AI asks for consent first; after you agree, the first analysis may send images to an external AI. Later Meaning Search uses saved facts instead of resending images every time. After the Prototype AI limit, local search and organize still work.
 
-Rootlize does not move your image library to a Rootlize cloud. Basic Search, OCR, and bundled Meaning Search run locally. Account features and Ask AI need sign-in and the internet.
+macOS is not available in this Prototype.
 
-## Download and installation
+## Download
 
-Download `Rootlize-v0.1.0-preview-win64.zip` from [GitHub Releases](https://github.com/p1rworks24-ops/Rootlize/releases), extract it completely, then run `Rootlize.exe` inside the extracted `Rootlize` folder.
+Download [`Rootlize-v0.1.0-preview-win64.zip`](https://github.com/p1rworks24-ops/Rootlize/releases/download/v0.1.0-preview.1/Rootlize-v0.1.0-preview-win64.zip) from [Releases](https://github.com/p1rworks24-ops/Rootlize/releases/tag/v0.1.0-preview.1). Extract the ZIP completely, then run `Rootlize.exe`. Keep the `_internal` folder beside it. Python is not required. Sign-in is not required.
 
-Keep `Rootlize.exe` together with the `_internal` folder. Python is not required. This preview has no installer or automatic updater.
-
-### Windows security warning
-
-This preview is not code-signed, so Windows SmartScreen, Microsoft Defender, or an organization policy may show a warning. Continue only if you trust this repository and the downloaded Release.
+This portable build is unsigned, so Windows SmartScreen may show a warning. Continue only if you downloaded it from this repository or [rootlize.com](https://rootlize.com), then choose More info → Run anyway.
 
 ## Data storage
 
@@ -52,9 +42,9 @@ Changing or moving the application folder does not move screenshots or settings.
 
 - Windows 10/11 (64-bit) only
 - Prototype Preview; features may change
-- Unsigned portable build; no installer or auto-update
+- Unsigned portable ZIP; no installer or auto-update
+- AI usage is limited during the Prototype
 - Local search currently indexes PNG files most completely
-- Capture shortcuts work only while Rootlize is running
 
 ## Feedback
 

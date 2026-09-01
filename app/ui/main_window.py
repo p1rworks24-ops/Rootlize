@@ -147,6 +147,7 @@ from app.ui.design_tokens import COLORS, apply_product_palette, paint_canvas
 from app.ui.styles import APP_STYLE
 from app.ui.welcome_dialog import WelcomeDialog
 from app.paths import is_frozen
+from app.auth.config import is_auth_required
 from app.utils.filename_template import DEFAULT_FILENAME_TEMPLATE
 from app.utils.save_folder import list_folder_names
 from app.utils.selected_folder import selected_folder_state
@@ -1161,12 +1162,17 @@ class MainWindow(QMainWindow):
             email = str(session.email or "")
             from app.auth import email_account_name
 
-            name = email_account_name(email, session.user_id)
+            if getattr(session, "is_anonymous", False):
+                name = t("nav.account.guest")
+                tooltip = t("nav.account.guest_tooltip")
+            else:
+                name = email_account_name(email, session.user_id)
+                tooltip = email or name
             plan = session.entitlement.plan_label
             if session.status == AuthStatus.OFFLINE_SESSION:
                 plan = t("account.offline_plan", plan=plan)
             self._side_nav._account_control.set_identity(
-                name, plan, tooltip=email or name
+                name, plan, tooltip=tooltip
             )
         else:
             name = t("nav.account.signed_out")
@@ -1187,6 +1193,8 @@ class MainWindow(QMainWindow):
 
     def _needs_sign_in_gate(self) -> bool:
         if getattr(self, "_auth_gate_released", False):
+            return False
+        if not is_auth_required():
             return False
         if not is_frozen():
             return False

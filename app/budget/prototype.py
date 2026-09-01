@@ -1,4 +1,10 @@
-"""Public Prototype AI budget amounts. Enforcement stays on the server."""
+"""Public Prototype AI budget amounts. Enforcement stays on the server.
+
+Anonymous Prototype users use plan_defaults.plan = 'prototype'.
+Authenticated Free / Next / Pro rows are not overwritten for this.
+Change Prototype amounts in that plan_defaults row (and matching entitlements),
+not in scattered client magic numbers.
+"""
 
 from __future__ import annotations
 

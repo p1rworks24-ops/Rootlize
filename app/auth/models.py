@@ -48,6 +48,7 @@ class AuthUser:
     user_id: str
     email: str = ""
     display_name: str = ""
+    is_anonymous: bool = False
 
 
 @dataclass(frozen=True)
@@ -94,6 +95,10 @@ class AccountSession:
     @property
     def is_authenticated(self) -> bool:
         return self.status in {AuthStatus.SIGNED_IN, AuthStatus.OFFLINE_SESSION}
+
+    @property
+    def is_anonymous(self) -> bool:
+        return bool(self.user is not None and self.user.is_anonymous)
 
     def without_secrets(self) -> AccountSession:
         return replace(self, access_token="")

@@ -17,7 +17,20 @@
     return (C.urls && C.urls.downloadAsset) || "Rootlize-v0.1.0-preview-win64.zip";
   }
 
+  function canonicalDownloadUrl() {
+    return (C.urls && C.urls.download) || "";
+  }
+
+  function liveMeta() {
+    return "Windows 10 / 11 · Portable ZIP · ~708 MB";
+  }
+
   function setDownloadPending() {
+    var fallback = canonicalDownloadUrl();
+    if (/^https:\/\//i.test(fallback)) {
+      setDownloadLive(fallback, C.urls.releases);
+      return;
+    }
     document.querySelectorAll("[data-url-download]").forEach(function (el) {
       el.setAttribute("href", "#download");
       el.removeAttribute("target");
@@ -50,7 +63,7 @@
         el.setAttribute("rel", "noopener noreferrer");
       });
     }
-    setText("[data-download-meta]", "Windows 10 / 11 · Free Preview");
+    setText("[data-download-meta]", liveMeta());
   }
 
   function setText(selector, text) {
@@ -373,10 +386,18 @@
     setText("[data-brand-tagline]", C.brand.tagline);
     setText("[data-brand-description]", C.brand.description);
 
+    if (C.hero) {
+      setText("[data-hero-eyebrow]", C.hero.eyebrow);
+      setText("[data-hero-description]", C.hero.description);
+      setText("[data-hero-kicker]", C.hero.kicker);
+      setText("[data-hero-signup]", C.hero.signupNote);
+      setText("[data-hero-proof]", C.hero.proof);
+    }
+
     setText("[data-version-channel]", C.version.channel);
     setText(
       "[data-version-label]",
-      C.version.label || "Version " + C.version.number
+      C.version.label || "v" + String(C.version.number || "").replace(/^v/, "")
     );
     setText("[data-version-number]", C.version.number);
     setText("[data-version-platform]", C.version.platform);

@@ -1,4 +1,8 @@
-"""Stable local device identity. Logout does not rotate this id."""
+"""Stable local installation identity. Logout does not rotate this id.
+
+The UUID in device.json is the Prototype installation identity. It is random
+and opaque: not a hardware serial, MAC, or Windows username fingerprint.
+"""
 
 from __future__ import annotations
 

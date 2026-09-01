@@ -94,6 +94,8 @@ def test_images_empty_hint_for_empty_folder():
         app.processEvents()
         assert page._list_stack.currentIndex() == 1
         assert page._list_empty_title.text() == t("images.empty_title")
+        assert page._list_empty_body.text() == t("images.empty_body")
+        assert "Capture" not in page._list_empty_body.text()
 
 
 def test_images_empty_hint_hidden_when_folder_has_images():
@@ -138,8 +140,16 @@ def test_empty_state_i18n_ja():
     assert t("home.empty_title") == "まだスクリーンショットがありません"
     assert "Capture" in t("home.empty_body")
     assert t("images.empty_title") == "このフォルダには画像がありません。"
+    assert t("images.empty_body") == (
+        "別のフォルダを選ぶか、画像が入っているフォルダを選択してください。"
+    )
+    assert "Capture" not in t("images.empty_body")
     set_locale("en")
     assert t("home.empty_title") == "No screenshots yet"
+    assert t("images.empty_body") == (
+        "Select another folder, or choose a folder that contains images."
+    )
+    assert "Capture" not in t("images.empty_body")
 
 
 def test_empty_hint_card_object_name():

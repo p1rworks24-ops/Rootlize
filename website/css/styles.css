@@ -218,6 +218,15 @@ p {
   max-width: 34rem;
 }
 
+.hero-kicker {
+  margin: 0.85rem 0 0;
+  max-width: 34rem;
+  color: var(--text-strong);
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
 .cta-row {
   display: flex;
   flex-direction: column;
@@ -230,7 +239,7 @@ p {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
-  width: min(100%, 26.5rem);
+  width: min(100%, 28.5rem);
 }
 
 .cta-pair .btn {
@@ -255,6 +264,12 @@ p {
 
 .download-frame {
   display: none;
+}
+
+.signup-note {
+  margin: 0.45rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.88rem;
 }
 
 .hero-proof {
@@ -526,7 +541,7 @@ p {
   padding-top: 0;
 }
 
-/* Find → Narrow → Act → Automate */
+/* Find → Organize → Automate */
 .journey-grid {
   display: grid;
   gap: 1.15rem;
@@ -541,6 +556,12 @@ p {
   .journey-grid {
     grid-template-columns: 1fr 1fr;
     gap: 1.25rem;
+  }
+}
+
+@media (min-width: 1100px) {
+  .journey-grid {
+    grid-template-columns: 1fr 1fr 1fr;
   }
 }
 
@@ -2097,6 +2118,11 @@ p {
   gap: 0.65rem;
 }
 
+.download-actions .cta-pair {
+  width: min(100%, 18.5rem);
+  grid-template-columns: 1fr;
+}
+
 .version-block {
   margin: 0.35rem 0 1rem;
 }
@@ -2139,6 +2165,10 @@ p {
   margin: 0;
   color: var(--text-muted);
   font-size: 0.92rem;
+}
+
+.download-note--follow {
+  margin-top: 0.7rem;
 }
 
 /* FAQ */

@@ -158,6 +158,34 @@ def test_proxy_rejects_unauthenticated():
     assert exc.value.code == "unauthenticated"
 
 
+def test_proxy_accepts_anonymous_session_without_sending_identity():
+    seen = []
+
+    def fake_urlopen(request, timeout=0):
+        seen.append(
+            {
+                "body": json.loads(request.data.decode("utf-8")),
+                "authorization": request.get_header("Authorization") or request.headers.get("Authorization"),
+            }
+        )
+        return _HttpResponse({"ok": True, "result": {"matches": []}, "usage": {}})
+
+    auth = _FakeAuth()
+    auth._session = AccountSession(
+        status=AuthStatus.SIGNED_IN,
+        user=AuthUser("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "", is_anonymous=True),
+        access_token="anon-access-token",
+    )
+    client = AiProxyClient(auth, config=_config(), urlopen_fn=fake_urlopen)
+    client.invoke("meaning_search", {"query": "dog", "items": [{"image_id": 1, "document": "x"}]})
+    body = seen[0]["body"]
+    assert "user_id" not in body
+    assert "installation_id" not in json.dumps(body)
+    assert "aaaaaaaa" not in json.dumps(body)
+    header = seen[0]["authorization"] or ""
+    assert "Bearer anon-access-token" in header
+
+
 def test_proxy_skips_when_client_config_is_unconfigured():
     opened = []
 

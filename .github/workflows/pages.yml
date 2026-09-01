@@ -1,9 +1,6 @@
 name: Deploy Rootlize website to GitHub Pages
 
 on:
-  push:
-    branches:
-      - master
   workflow_dispatch:
 
 permissions:

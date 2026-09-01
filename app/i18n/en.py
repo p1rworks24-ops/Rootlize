@@ -37,6 +37,8 @@ MESSAGES: dict[str, str] = {
     "nav.account.name": "Sign in",
     "nav.account.plan": "",
     "nav.account.signed_out": "Sign in",
+    "nav.account.guest": "Guest",
+    "nav.account.guest_tooltip": "Using Rootlize without a signed-in account",
     "nav.organize": "Organize",
     "nav.action": "Organize",  # legacy alias
     "nav.work": "Organize",  # legacy alias
@@ -725,7 +727,7 @@ MESSAGES: dict[str, str] = {
     "images.analysis.retry_message": "Some images couldn't be analyzed.",
     "images.analysis.retry": "Retry",
     "images.empty_title": "No images in this folder.",
-    "images.empty_body": "Take a screenshot with Capture, or select another folder.",
+    "images.empty_body": "Select another folder, or choose a folder that contains images.",
     "images.folder_selector_label": "Folder:",
     "images.choose_folder": "Choose folder",
     "images.choose_folder_title": "Choose folder",
@@ -1142,6 +1144,9 @@ MESSAGES: dict[str, str] = {
     "account.subtitle": "Sign in to manage your Rootlize plan. Images stay on this PC.",
     "account.welcome": "Welcome to Rootlize",
     "account.signed_in_title": "Account",
+    "account.guest_title": "Using Rootlize as a guest",
+    "account.guest_body": "Sign in is optional during this prototype. Images stay on this PC.",
+    "account.guest_identity": "Guest",
     "account.continue_google": "Continue with Google",
     "account.continue_github": "Continue with GitHub",
     "account.email": "Email",

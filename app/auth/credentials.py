@@ -48,6 +48,7 @@ def _dump_session(session: StoredSession) -> str:
             "user_id": session.user.user_id,
             "email": session.user.email,
             "display_name": session.user.display_name,
+            "is_anonymous": bool(session.user.is_anonymous),
         },
         separators=(",", ":"),
     )
@@ -72,6 +73,7 @@ def _load_session(raw: str) -> StoredSession | None:
             user_id=user_id,
             email=str(data.get("email") or ""),
             display_name=str(data.get("display_name") or ""),
+            is_anonymous=bool(data.get("is_anonymous")),
         ),
     )
 

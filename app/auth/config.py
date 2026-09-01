@@ -21,6 +21,44 @@ LOOPBACK_PORT = 47831
 CALLBACK_PATH = "/auth/callback"
 OAUTH_TIMEOUT_SEC = 300
 
+# Public Prototype skips the Sign-in gate. Set True (or CAPIXE_AUTH_REQUIRED=1)
+# to restore Auth-required startup without deleting Auth code.
+AUTH_REQUIRED = False
+AUTH_REQUIRED_ENV = "CAPIXE_AUTH_REQUIRED"
+# Packaged Prototype mints a silent anonymous JWT so AI budget still keys off
+# auth.uid(). Source launches do not, unless this env is set (avoids creating
+# live anonymous users during local Run Capixe.bat).
+PROTOTYPE_ANONYMOUS_ENV = "CAPIXE_PROTOTYPE_ANONYMOUS"
+
+_TRUTHY = {"1", "true", "yes", "on"}
+_FALSY = {"0", "false", "no", "off"}
+
+
+def _env_bool(name: str) -> bool | None:
+    raw = os.environ.get(name, "").strip().lower()
+    if raw in _TRUTHY:
+        return True
+    if raw in _FALSY:
+        return False
+    return None
+
+
+def is_auth_required() -> bool:
+    override = _env_bool(AUTH_REQUIRED_ENV)
+    if override is not None:
+        return override
+    return bool(AUTH_REQUIRED)
+
+
+def allow_anonymous_prototype_session() -> bool:
+    """Silent anonymous JWT for AI identity. Never a client-supplied user_id."""
+    if is_auth_required():
+        return False
+    override = _env_bool(PROTOTYPE_ANONYMOUS_ENV)
+    if override is not None:
+        return override
+    return is_frozen()
+
 
 class AuthConfigError(RuntimeError):
     """Publishable configuration is missing or unsafe."""

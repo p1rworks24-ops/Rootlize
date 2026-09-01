@@ -13,6 +13,7 @@ from app.auth import (
     build_auth_service,
     local_features_available,
 )
+from app.auth.config import allow_anonymous_prototype_session, is_auth_required
 from app.budget.models import AIUsageStatus
 from app.budget.service import BudgetService
 from app.i18n import t
@@ -100,10 +101,15 @@ class AccountController(QObject):
     def restore_in_background(self) -> None:
         if not self._accepting_callbacks():
             return
-        if self._service.session.status == AuthStatus.SIGNED_OUT and not self._service.has_stored_session():
+        signed_out = self._service.session.status == AuthStatus.SIGNED_OUT
+        if (
+            signed_out
+            and not self._service.has_stored_session()
+            and (is_auth_required() or not self._service.configured or not allow_anonymous_prototype_session())
+        ):
             self.session_changed.emit(self._service.restore_session())
             return
-        self._run(self._service.restore_session)
+        self._run(self._service.restore_or_ensure_session)
 
     def sign_in_email(self, email: str, password: str) -> None:
         self._run(lambda: self._service.sign_in_email(email, password))
@@ -204,7 +210,13 @@ class AccountController(QObject):
         if not self._accepting_callbacks() or self._thread is not None:
             return
         self.busy_changed.emit(True)
-        if fn not in {self._service.restore_session, self._service.sign_out}:
+        quiet = fn in {
+            self._service.restore_session,
+            self._service.restore_or_ensure_session,
+            self._service.ensure_prototype_session,
+            self._service.sign_out,
+        }
+        if not quiet:
             current = self._service.session
             self.session_changed.emit(
                 AccountSession(

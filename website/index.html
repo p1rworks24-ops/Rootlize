@@ -6,7 +6,7 @@
     <title>Rootlize — Your Local Workspace.</title>
     <meta
       name="description"
-      content="Find, organize, and work with the images on your PC — without moving them to the cloud."
+      content="Find, organize, and automate work with images already on your Windows PC. Local-first Prototype Preview — no sign-up required."
     />
     <meta name="theme-color" content="#f5f6f8" />
     <link rel="icon" type="image/png" href="assets/brand/favicon.png" />
@@ -17,7 +17,7 @@
       href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Source+Sans+3:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=20260830i" />
+    <link rel="stylesheet" href="css/styles.css?v=20260901a" />
   </head>
   <body>
     <header class="site-header">
@@ -40,33 +40,33 @@
       <section class="hero">
         <div class="container hero-grid">
           <div class="hero-copy">
-            <p class="eyebrow">Windows Preview</p>
+            <p class="eyebrow" data-hero-eyebrow>Prototype Preview · Windows</p>
             <h1 data-brand-name>Rootlize</h1>
             <p class="hero-tagline" data-brand-tagline>Your Local Workspace.</p>
-            <p class="hero-desc" data-brand-description>
-              Find, organize, and work with the images on your PC — without
-              moving them to the cloud.
+            <p class="hero-desc" data-hero-description>
+              Find images already on your Windows PC, organize what you find,
+              and save repeating work as a Workflow.
+            </p>
+            <p class="hero-kicker" data-hero-kicker>
+              Search should be the beginning of the workflow, not the end of it.
             </p>
             <div class="cta-row">
               <div class="cta-pair">
-                <a class="btn btn-primary" data-url-download href="#download"
-                  >Download Preview</a
-                >
                 <a
-                  class="btn btn-secondary"
-                  data-url-github
-                  href="https://github.com/p1rworks24-ops/Rootlize"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  >View on GitHub</a
+                  class="btn btn-primary"
+                  data-url-download
+                  href="https://github.com/p1rworks24-ops/Rootlize/releases/download/v0.1.0-preview.1/Rootlize-v0.1.0-preview-win64.zip"
+                  >Download for Windows</a
                 >
+                <a class="btn btn-secondary" href="#workspace">See how it works</a>
               </div>
+              <p class="signup-note" data-hero-signup>No sign-up required</p>
               <p class="download-meta" data-download-meta>
-                Windows 10 / 11 · ZIP available after the GitHub Release
+                Windows 10 / 11 · Portable ZIP · ~708 MB
               </p>
             </div>
-            <p class="hero-proof">
-              Windows 10 / 11 · Sign in to start · Images stay on your PC
+            <p class="hero-proof" data-hero-proof>
+              Prototype Preview · v0.1.0-preview · Features may change
             </p>
           </div>
 
@@ -113,10 +113,10 @@
         <div class="container">
           <div class="section-head reveal">
             <p class="eyebrow">What you can do</p>
-            <h2>Find. Narrow. Act. Automate.</h2>
+            <h2>Find. Organize. Automate.</h2>
             <p>
-              Rootlize is the workspace for files already on your PC — not
-              another cloud library.
+              Rootlize is a local workspace for images already on your PC —
+              search, then keep going.
             </p>
           </div>
           <ol class="journey-grid">
@@ -156,51 +156,11 @@
                 </div>
               </div>
               <h3>Find</h3>
-              <p>Search a large local folder and pull out the images you need.</p>
-            </li>
-            <li class="journey-card reveal">
-              <div class="viz viz-narrow" aria-hidden="true">
-                <div class="scene scene-narrow">
-                  <div class="narrow-bar">
-                    <span class="narrow-funnel">
-                      <svg viewBox="0 0 24 24" fill="none">
-                        <path d="M4 6h16l-5.4 7.2V20l-5.2-2.2v-4.6L4 6Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
-                      </svg>
-                    </span>
-                    <span class="narrow-chip c1">date</span>
-                    <span class="narrow-chip c2">tag</span>
-                    <span class="narrow-count">
-                      <b class="n16">20</b>
-                      <b class="n8">8</b>
-                      <b class="n3">3</b>
-                    </span>
-                  </div>
-                  <div class="shot-grid cols-5">
-                    <i class="shot pic-face drop-a"></i>
-                    <i class="shot pic-doc drop-b"></i>
-                    <i class="shot pic-land drop-a"></i>
-                    <i class="shot pic-bird drop-a"></i>
-                    <i class="shot pic-mug drop-b"></i>
-                    <i class="shot pic-build drop-a"></i>
-                    <i class="shot pic-sun keep k1"></i>
-                    <i class="shot pic-leaf keep k2"></i>
-                    <i class="shot pic-face drop-b"></i>
-                    <i class="shot pic-doc drop-a"></i>
-                    <i class="shot pic-bird drop-a"></i>
-                    <i class="shot pic-land keep k3"></i>
-                    <i class="shot pic-mug drop-a"></i>
-                    <i class="shot pic-build drop-b"></i>
-                    <i class="shot pic-sun drop-a"></i>
-                    <i class="shot pic-leaf drop-a"></i>
-                    <i class="shot pic-face drop-a"></i>
-                    <i class="shot pic-doc drop-b"></i>
-                    <i class="shot pic-bird drop-a"></i>
-                    <i class="shot pic-mug drop-a"></i>
-                  </div>
-                </div>
-              </div>
-              <h3>Narrow</h3>
-              <p>Filter a large set down to the few that still matter.</p>
+              <p>
+                Search filenames and text in the folder you already have, use
+                Meaning Search for what an image shows, or Ask AI in natural
+                language.
+              </p>
             </li>
             <li class="journey-card reveal">
               <div class="viz viz-act" aria-hidden="true">
@@ -229,16 +189,19 @@
                   </div>
                 </div>
               </div>
-              <h3>Act</h3>
-              <p>Tag, favorite, rename, and move — on the files you just found.</p>
+              <h3>Organize</h3>
+              <p>
+                Tag, favorite, rename, and move the images you just found.
+                Search results are a starting point, not a dead end.
+              </p>
             </li>
             <li class="journey-card reveal">
               <div class="viz viz-auto" aria-hidden="true">
                 <div class="scene scene-auto">
                   <div class="auto-flow">
-                    <span class="auto-node n1">Search</span>
+                    <span class="auto-node n1">Select</span>
                     <i class="auto-wire w1"><b></b></i>
-                    <span class="auto-node n2">Select</span>
+                    <span class="auto-node n2">Search</span>
                     <i class="auto-wire w2"><b></b></i>
                     <span class="auto-node n3">Action</span>
                   </div>
@@ -262,7 +225,11 @@
                 </div>
               </div>
               <h3>Automate</h3>
-              <p>Connect the steps once, then run the same work again.</p>
+              <p>
+                Save Select, Search, and Action as a Workflow. Run it again when
+                the same work comes back — Rootlize still asks you to confirm
+                first.
+              </p>
             </li>
           </ol>
         </div>
@@ -274,8 +241,8 @@
             <p class="eyebrow">On your PC</p>
             <h2>Use the folder you already have.</h2>
             <p>
-              Point Rootlize at an existing local folder. Your images stay
-              there. Rootlize does not move the library into a Rootlize cloud.
+              Point Rootlize at an existing Windows folder. Your images stay
+              there. You do not move them into a Rootlize cloud library.
             </p>
           </div>
           <div class="privacy-grid">
@@ -311,8 +278,9 @@
               </div>
               <h3>Stays on this PC</h3>
               <p>
-                Basic Search, OCR, and bundled Meaning Search run locally.
-                Sign-in does not upload the library.
+                Rootlize works with folders you already have. It does not upload
+                your image library to Rootlize cloud storage, and you do not
+                have to import files into a separate app library.
               </p>
             </article>
             <article class="panel reveal">
@@ -337,10 +305,14 @@
                   </div>
                 </div>
               </div>
-              <h3>Needs sign-in and internet</h3>
+              <h3>AI is opt-in</h3>
               <p>
-                The Prototype opens on a sign-in screen. Ask AI uses a cloud
-                provider after you agree, and may send image contents.
+                Ask AI asks for consent first. Until you agree, Rootlize does
+                not start sending images for AI analysis. After you agree, the
+                first analysis may send images to an external AI. Saved facts
+                are reused, so Meaning Search does not resend images every time.
+                Prototype AI usage is limited; local search and organize still
+                work after the limit.
               </p>
             </article>
           </div>
@@ -357,8 +329,8 @@
             <p class="eyebrow">Deeper capabilities</p>
             <h2>Search by meaning. Ask in your own words. Repeat the work.</h2>
             <p>
-              The workspace goes beyond a search box — once you have a set,
-              you can ask, organize, and repeat the work.
+              Once you have a set of images, you can keep working — tag,
+              favorite, and save the flow.
             </p>
           </div>
           <div class="capability-grid">
@@ -377,8 +349,9 @@
               </div>
               <h3>Meaning Search</h3>
               <p>
-                Find images by what they show. The model ships with the app —
-                no extra setup.
+                Find images by what they show, not just by filename. After the
+                first consented analysis, later Meaning Search uses saved facts
+                instead of resending images every time.
               </p>
             </article>
             <article class="capability-card reveal">
@@ -390,14 +363,15 @@
                   <div class="ask-out">
                     <span>Search</span>
                     <span>Action</span>
-                    <span>Auto</span>
+                    <span>Preview</span>
                   </div>
                 </div>
               </div>
               <h3>Ask AI</h3>
               <p>
-                A short instruction becomes Search, Action, or Automation
-                inside Rootlize — not a chat thread.
+                Describe the work in your own words. After you agree, Ask AI can
+                search and propose actions. You still review a preview before
+                anything runs.
               </p>
             </article>
             <article class="capability-card reveal">
@@ -419,8 +393,8 @@
               </div>
               <h3>Automation</h3>
               <p>
-                Save a repeated find-and-organize flow, then run it again on
-                the same kind of local work.
+                Save a repeated Select / Search / Action flow as a Workflow,
+                then run it again. Confirmation stays in place before execute.
               </p>
             </article>
           </div>
@@ -430,11 +404,11 @@
       <section class="section" id="download">
         <div class="container">
           <div class="section-head reveal">
-            <p class="eyebrow">Windows Preview</p>
-            <h2>Your Local Workspace.</h2>
+            <p class="eyebrow">Windows Prototype</p>
+            <h2>Download Rootlize for Windows</h2>
             <p>
-              Find, organize, and work with the images on your PC — without
-              moving them to the cloud.
+              Prototype Preview · v0.1.0-preview. Features may change. AI usage
+              is limited during the prototype. Feedback is welcome.
             </p>
           </div>
           <div class="download-card reveal">
@@ -442,37 +416,49 @@
               <h3 data-brand-name>Rootlize</h3>
               <div class="version-block">
                 <p class="version-channel" data-version-channel>Prototype Preview</p>
-                <p class="version-label" data-version-label>Version 0.1.0-preview</p>
+                <p class="version-label" data-version-label>v0.1.0-preview</p>
               </div>
               <div
                 class="badge-row"
                 id="download-badges"
                 aria-label="Download highlights"
               >
-                <span class="badge">Windows</span>
+                <span class="badge">Windows 10 / 11</span>
                 <span class="badge">Free</span>
-                <span class="badge">Sign-in required</span>
+                <span class="badge">No sign-up</span>
                 <span class="badge">Local-first</span>
               </div>
               <p class="download-note">
-                Unsigned Prototype Preview. Windows SmartScreen may show a
-                warning — only continue if you trust this GitHub Release.
-                Meaning Search is bundled; you do not download a separate model.
-                The Windows ZIP is
-                <code>Rootlize-v0.1.0-preview-win64.zip</code>.
+                Portable ZIP (~708 MB). No installer. Extract the ZIP completely,
+                then run <code>Rootlize.exe</code>. Keep the
+                <code>_internal</code> folder beside it. Python is not required.
+                Sign-in is not required.
+              </p>
+              <p class="download-note download-note--follow">
+                This Prototype is unsigned, so Windows SmartScreen may warn you.
+                Continue only if you downloaded it from rootlize.com, then choose
+                More info → Run anyway.
               </p>
             </div>
             <div class="download-actions">
               <div class="cta-pair">
-                <a class="btn btn-primary" data-url-download href="#download"
-                  >Download Preview</a
+                <a
+                  class="btn btn-primary"
+                  data-url-download
+                  href="https://github.com/p1rworks24-ops/Rootlize/releases/download/v0.1.0-preview.1/Rootlize-v0.1.0-preview-win64.zip"
+                  >Download Rootlize for Windows</a
                 >
-                <a class="btn btn-secondary" data-url-releases href="#download"
-                  >View release details</a
+                <a
+                  class="btn btn-secondary"
+                  data-url-issues
+                  href="https://github.com/p1rworks24-ops/Rootlize/issues"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >Give feedback</a
                 >
               </div>
               <p class="download-meta" data-download-meta>
-                Windows 10 / 11 · ZIP available after the GitHub Release
+                Windows 10 / 11 · Portable ZIP · ~708 MB
               </p>
             </div>
           </div>
@@ -484,7 +470,7 @@
           <div class="section-head reveal">
             <p class="eyebrow">Questions</p>
             <h2>FAQ</h2>
-            <p>Common questions about privacy, sign-in, and what runs locally.</p>
+            <p>Privacy, accounts, Windows, and what this Prototype includes.</p>
           </div>
           <div class="faq-list" id="faq-list"></div>
         </div>
@@ -493,11 +479,12 @@
       <section class="section section--tight" id="feedback">
         <div class="container">
           <div class="feedback-box reveal">
-            <p class="eyebrow">Early preview</p>
-            <h2>Feedback</h2>
+            <p class="eyebrow">Prototype Preview</p>
+            <h2>Feedback is welcome</h2>
             <p>
-              Rootlize is currently in an early preview. I'm actively improving
-              it based on user feedback.
+              Rootlize is a Prototype Preview (v0.1.0-preview). Features may
+              change, and AI usage is limited. If something is unclear or
+              broken, tell us.
             </p>
             <div class="cta-row">
               <a
@@ -506,7 +493,7 @@
                 href="https://github.com/p1rworks24-ops/Rootlize/issues"
                 target="_blank"
                 rel="noopener noreferrer"
-                >GitHub Issues</a
+                >Give feedback</a
               >
               <a
                 class="btn btn-ghost"
@@ -514,7 +501,7 @@
                 href="https://github.com/p1rworks24-ops/Rootlize/issues/new?template=bug_report.yml"
                 target="_blank"
                 rel="noopener noreferrer"
-                >Report a Bug</a
+                >Report a bug</a
               >
               <a
                 class="btn btn-secondary"
@@ -522,7 +509,7 @@
                 href="https://github.com/p1rworks24-ops/Rootlize/issues/new?template=feature_request.yml"
                 target="_blank"
                 rel="noopener noreferrer"
-                >Contact</a
+                >Request a feature</a
               >
             </div>
           </div>
@@ -592,9 +579,9 @@
       </figure>
     </div>
 
-    <script src="js/content.js?v=20260830i"></script>
+    <script src="js/content.js?v=20260901a"></script>
     <script src="js/supabase-config.js?v=20260831a"></script>
     <script src="js/analytics.js?v=20260831a"></script>
-    <script src="js/main.js?v=20260830i"></script>
+    <script src="js/main.js?v=20260901a"></script>
   </body>
 </html>

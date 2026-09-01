@@ -11,6 +11,7 @@ from typing import Callable
 
 from app.auth.config import (
     AuthClientConfig,
+    allow_anonymous_prototype_session,
     load_auth_client_config_or_unconfigured,
 )
 from app.auth.credentials import CredentialStore, default_credential_store
@@ -52,6 +53,34 @@ def _jwt_exp(token: str) -> float:
         return 0.0
 
 
+def _truthy_flag(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+    return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _is_anonymous_from_payload(payload: dict, user: dict) -> bool:
+    if _truthy_flag(user.get("is_anonymous")):
+        return True
+    if _truthy_flag(payload.get("is_anonymous")):
+        return True
+    token = str(payload.get("access_token") or "")
+    if not token:
+        return False
+    try:
+        parts = token.split(".")
+        if len(parts) < 2:
+            return False
+        raw = parts[1] + "=" * (-len(parts[1]) % 4)
+        claims = json.loads(base64.urlsafe_b64decode(raw.encode("ascii")))
+    except Exception:
+        return False
+    if _truthy_flag(claims.get("is_anonymous")):
+        return True
+    metadata = claims.get("app_metadata") if isinstance(claims.get("app_metadata"), dict) else {}
+    return _truthy_flag(metadata.get("is_anonymous"))
+
+
 def _user_from_payload(payload: dict) -> AuthUser:
     user = payload.get("user") if isinstance(payload.get("user"), dict) else payload
     user_id = str(user.get("id") or "").strip()
@@ -60,7 +89,12 @@ def _user_from_payload(payload: dict) -> AuthUser:
     display = str(metadata.get("full_name") or metadata.get("name") or email.split("@")[0] or "")
     if not user_id:
         raise AuthError(AuthErrorCode.UNKNOWN)
-    return AuthUser(user_id=user_id, email=email, display_name=display)
+    return AuthUser(
+        user_id=user_id,
+        email=email,
+        display_name=display,
+        is_anonymous=_is_anonymous_from_payload(payload, user if isinstance(user, dict) else {}),
+    )
 
 
 def _session_from_payload(payload: dict) -> StoredSession:
@@ -178,6 +212,55 @@ class AuthService:
 
     def has_stored_session(self) -> bool:
         return self._store.load() is not None
+
+    def restore_or_ensure_session(self) -> AccountSession:
+        """Restore a stored session, or mint a Prototype anonymous JWT if allowed."""
+        had_stored = self.has_stored_session()
+        session = self.restore_session()
+        if session.is_authenticated or had_stored:
+            return session
+        return self.ensure_prototype_session()
+
+    def ensure_prototype_session(self) -> AccountSession:
+        """Silent anonymous sign-in for packaged Prototype AI identity."""
+        if self._session.is_authenticated:
+            return self.session
+        if not allow_anonymous_prototype_session() or not self.configured:
+            return self.session
+        try:
+            return self.sign_in_anonymously()
+        except AuthError as exc:
+            if exc.code == AuthErrorCode.NETWORK:
+                logger.info("Prototype anonymous session skipped (network).")
+            else:
+                logger.info("Prototype anonymous session failed.")
+            return self.session
+
+    def sign_in_anonymously(self) -> AccountSession:
+        """Create a GoTrue anonymous user. Identity is auth.uid(), not a client user_id."""
+        self.require_configured()
+        device = self._devices.get_or_create()
+        payload = self._auth_json(
+            "POST",
+            "/signup",
+            {"data": {"installation_id": device.device_id}},
+        )
+        stored = _session_from_payload(payload)
+        if not stored.user.is_anonymous:
+            stored = StoredSession(
+                access_token=stored.access_token,
+                refresh_token=stored.refresh_token,
+                user=AuthUser(
+                    user_id=stored.user.user_id,
+                    email=stored.user.email,
+                    display_name=stored.user.display_name,
+                    is_anonymous=True,
+                ),
+                expires_at=stored.expires_at,
+                token_type=stored.token_type,
+            )
+        logger.info("Prototype anonymous session created.")
+        return self._commit(stored, online=True)
 
     def restore_session(self) -> AccountSession:
         stored = self._store.load()

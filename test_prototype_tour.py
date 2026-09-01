@@ -385,6 +385,7 @@ def test_needs_sign_in_gate_until_authenticated(monkeypatch) -> None:
     from app.ui.main_window import MainWindow
 
     monkeypatch.setattr("app.ui.main_window.is_frozen", lambda: True)
+    monkeypatch.setattr("app.ui.main_window.is_auth_required", lambda: False)
     window = SimpleNamespace(
         _auth_gate_released=False,
         _account_controller=SimpleNamespace(
@@ -392,6 +393,8 @@ def test_needs_sign_in_gate_until_authenticated(monkeypatch) -> None:
             service=SimpleNamespace(has_stored_session=lambda: False, configured=True),
         ),
     )
+    assert MainWindow._needs_sign_in_gate(window) is False
+    monkeypatch.setattr("app.ui.main_window.is_auth_required", lambda: True)
     assert MainWindow._needs_sign_in_gate(window) is True
     window._account_controller.session.is_authenticated = True
     assert MainWindow._needs_sign_in_gate(window) is False
