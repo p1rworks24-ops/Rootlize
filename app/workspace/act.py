@@ -89,41 +89,23 @@ def resolve_destination_folder(
     current_folder: Path | str | None,
     screenshot_root: Path | str | None = None,
 ) -> Path | None:
+    """Resolve a relative folder name under the Start Folder.
+
+    Existing folders at the Start Folder's parent are not used. Missing
+    destinations stay under the Start Folder so Move can create them later.
+    """
     raw = str(name or "").strip().strip("「」\"'")
     if not raw or not is_safe_relative_name(raw):
         return None
-    candidate = Path(raw)
-    if candidate.is_absolute():
+    if Path(raw).is_absolute():
         return None
-    bases: list[Path] = []
-    if current_folder:
-        current = Path(current_folder)
-        bases.extend((current, current.parent))
-    if screenshot_root:
-        bases.append(Path(screenshot_root))
-    seen: set[str] = set()
-    for base in bases:
-        try:
-            key = str(base.resolve())
-        except OSError:
-            key = str(base)
-        if key in seen:
-            continue
-        seen.add(key)
-        hit = base / raw
-        try:
-            if hit.is_dir():
-                if screenshot_root and not is_within_root(hit, screenshot_root):
-                    continue
-                return hit
-        except OSError:
-            continue
-    if current_folder:
-        dest = Path(current_folder) / raw
-        if screenshot_root and not is_within_root(dest, screenshot_root):
-            return None
-        return dest
-    return None
+    if not current_folder:
+        return None
+    dest = Path(current_folder) / raw
+    bound = screenshot_root or current_folder
+    if bound and not is_within_root(dest, bound):
+        return None
+    return dest
 
 
 def proposal_to_request(

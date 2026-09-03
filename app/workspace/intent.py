@@ -110,7 +110,7 @@ _FIND_SUFFIX = re.compile(
 )
 _MOVE = re.compile(
     r"^(?:(?:please\s+)?move\s+(?P<en_target>.+?)\s+to\s+(?:the\s+)?(?P<en_dest>.+?)(?:\s+folder)?|"
-    r"(?:please\s+)?move\s+(?P<en_target_here>.+?)\s+(?P<en_here>there|here)|"
+    r"(?:please\s+)?move\s+(?P<en_target_here>.+?)\s+(?P<en_here>there|here|into\s+it)|"
     r"(?:please\s+)?move\s+to\s+(?:the\s+)?(?P<en_dest_only>.+?)(?:\s+folder)?|"
     r"(?P<ja_target>.+?)を(?P<ja_dest>.+?)(?:フォルダ|フォルダー)?(?:に|へ)移動|"
     r"(?P<ja_dest_only>.+?)(?:フォルダ|フォルダー)?(?:に|へ)移動)"

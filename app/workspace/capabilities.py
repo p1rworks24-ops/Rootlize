@@ -61,7 +61,7 @@ _SPECS: dict[str, dict[str, Any]] = {
     ACTION_MOVE: {
         "summary": "Move target images into a folder identified by destination_name.",
         "required": ("destination_name",),
-        "notes": "Use destination_ref when moving into a folder created earlier in this plan. Same-folder moves are no-op.",
+        "notes": "Use destination_ref when moving into a folder created earlier in this plan. Same-folder moves are no-op. If destination_name does not exist, Move creates that folder under the current Start Folder after Confirm.",
         "target_types": ("images",),
         "multiplicity": "many",
         "constraints": "Folder names only. No absolute, UNC, or parent-traversal paths.",

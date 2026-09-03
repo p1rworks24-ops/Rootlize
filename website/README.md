@@ -28,7 +28,7 @@ Edit [`js/content.js`](js/content.js):
 
 The published Prototype ZIP is `Rootlize-v0.1.0-preview-win64.zip` on GitHub Release `v0.1.0-preview.1`. Download CTAs use `urls.download` immediately, then `js/main.js` confirms the same filename via the Releases API. If the live asset name changes, update `urls.downloadAsset` and `urls.download`.
 
-The landing page presents Rootlize as a local workspace (Find → Organize → Automate). Desktop implementation Source of Truth remains `.ai/SPEC.md`.
+The landing page presents Rootlize as a local workspace (Find → Organize → Automate) with **Describe it. AI builds the workflow.** Desktop implementation Source of Truth remains `.ai/SPEC.md`.
 
 ## Hero carousel
 

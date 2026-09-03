@@ -1,9 +1,21 @@
-"""Workflow editor: Puzzle Builder is primary, Automation AI drafts only."""
+"""Workflow editor: Puzzle Builder is primary, Automation AI generates editable blocks."""
 from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QEvent, QPoint, QRect, QRectF, QSize, QTimer, Qt, Signal
+from PySide6.QtCore import (
+    QEvent,
+    QObject,
+    QPoint,
+    QRect,
+    QRectF,
+    QRunnable,
+    QSize,
+    QThreadPool,
+    QTimer,
+    Qt,
+    Signal,
+)
 from PySide6.QtGui import QColor, QIcon, QPainter, QPainterPath, QPalette, QPen
 from PySide6.QtWidgets import (
     QApplication,
@@ -74,6 +86,7 @@ from app.automation.blocks import (
     make_select_step,
     origin_from_target_mode,
     primary_search_query,
+    target_mode_from_origin,
     visual_blocks_for,
 )
 from app.automation.models import sanitize_step_parameters
@@ -853,6 +866,35 @@ class FolderPickRow(QWidget):
         QLineEdit.mousePressEvent(self._value, event)
 
 
+class _WorkflowDraftSignals(QObject):
+    finished = Signal(int, object, object)
+
+
+class _WorkflowDraftTask(QRunnable):
+    """Call draft_workflow_from_text off the UI thread. Never executes Actions."""
+
+    def __init__(self, request_id: int, instruction: str, context: SearchResultContext, complete_json=None) -> None:
+        super().__init__()
+        self.setAutoDelete(False)
+        self.request_id = request_id
+        self.instruction = instruction
+        self.context = context
+        self.complete_json = complete_json
+        self.signals = _WorkflowDraftSignals()
+
+    def run(self) -> None:
+        try:
+            outcome = draft_workflow_from_text(
+                self.instruction,
+                self.context,
+                allow_ai=True,
+                complete_json=self.complete_json,
+            )
+            self.signals.finished.emit(self.request_id, outcome, None)
+        except Exception as exc:
+            self.signals.finished.emit(self.request_id, None, exc)
+
+
 class WorkflowEditor(QWidget):
     back_requested = Signal()
     run_requested = Signal(str)
@@ -875,6 +917,11 @@ class WorkflowEditor(QWidget):
         self._identity_editing = False
         self._identity_snapshot = ("", "")
         self._tour_catalog_allow: tuple[str, ...] = ()
+        self._draft_complete_json = None
+        self._draft_busy = False
+        self._draft_request_id = 0
+        self._draft_task: _WorkflowDraftTask | None = None
+        self._draft_pool = QThreadPool.globalInstance()
         self._init_ui()
 
     def paintEvent(self, event) -> None:
@@ -1266,12 +1313,13 @@ class WorkflowEditor(QWidget):
         card_hint = QLabel(t("automation.ai_card_hint"), self._ai_card)
         card_hint.setObjectName("mutedLabel")
         card_hint.setWordWrap(True)
-        self._ai_card.setProperty("catalogEnabled", False)
-        self._ai_card.setEnabled(False)
+        self._ai_card.setProperty("catalogEnabled", True)
+        self._ai_card.setEnabled(True)
         self._open_ai = QPushButton(t("automation.open_ai"), self._ai_card)
         self._open_ai.setObjectName("workflowOpenAiButton")
-        self._open_ai.setCursor(Qt.ArrowCursor)
-        self._open_ai.setEnabled(False)
+        self._open_ai.setCursor(Qt.PointingHandCursor)
+        self._open_ai.setEnabled(True)
+        self._open_ai.clicked.connect(self._show_ai_tab)
         card.addLayout(card_head)
         card.addWidget(card_hint)
         card.addWidget(self._open_ai)
@@ -1315,9 +1363,9 @@ class WorkflowEditor(QWidget):
         self._inspector_tabs.addTab(
             ai,
             t("automation.inspector_ai"),
-            icon=icon_ai_sparkle(size=14, color=COLORS.text_faint),
+            icon=icon_ai_sparkle(size=14, color=COLORS.text_muted),
             role="ai",
-            enabled=False,
+            enabled=True,
         )
         self._inspector_tabs.setCurrentIndex(0)
         return rail
@@ -1492,13 +1540,26 @@ class WorkflowEditor(QWidget):
         self._show_settings_tab()
         self._notify_tour_blocks()
 
-    def replace_steps(self, steps: tuple[PlanStep, ...] | list[PlanStep]) -> None:
+    def replace_steps(
+        self,
+        steps: tuple[PlanStep, ...] | list[PlanStep],
+        *,
+        origin: str | None = None,
+    ) -> None:
         self._steps = list(assign_step_ids(steps))
-        self._target_mode = default_target_mode(self._steps, self._origin or ORIGIN_MEANING)
-        if any(step.type == STEP_FIND for step in self._steps) and self._target_mode == TARGET_ALL:
-            self._target_mode = TARGET_MEANING
-        self._origin = origin_from_target_mode(self._target_mode)
-        self._selected = 0
+        has_find = any(step.type == STEP_FIND for step in self._steps)
+        if origin:
+            self._origin = origin
+        if has_find:
+            mode = target_mode_from_origin(self._origin or ORIGIN_MEANING)
+            if mode == TARGET_ALL:
+                mode = TARGET_MEANING
+            self._target_mode = mode
+            self._origin = origin_from_target_mode(mode)
+        else:
+            self._target_mode = TARGET_ALL
+            self._origin = ORIGIN_BROWSE
+        self._selected = 1 if self.visual_blocks()[1:] else 0
         self._refresh_canvas()
         self._notify_tour_blocks()
 
@@ -1700,6 +1761,10 @@ class WorkflowEditor(QWidget):
 
     def _show_settings_tab(self) -> None:
         self._inspector_tabs.setCurrentIndex(0)
+
+    def _show_ai_tab(self) -> None:
+        self._inspector_tabs.setCurrentIndex(1)
+        self._draft_input.setFocus()
 
     def _refresh_inspector(self) -> None:
         block = self._selected_block()
@@ -1937,7 +2002,17 @@ class WorkflowEditor(QWidget):
         )
         if not selected:
             return
-        self._set_action_parameter(step, "destination_name", selected)
+        picked = Path(selected)
+        scope = Path(self._scope_folder) if self._scope_folder else None
+        name = picked.name
+        if scope is not None:
+            try:
+                relative = picked.resolve().relative_to(scope.resolve())
+                if len(relative.parts) == 1:
+                    name = relative.parts[0]
+            except (OSError, ValueError):
+                name = picked.name
+        self._set_action_parameter(step, "destination_name", name)
 
     def _set_action_parameter(self, step: PlanStep, key: str, value: str) -> None:
         parameters = sanitize_step_parameters(step.action_id, {**dict(step.parameters), key: value})
@@ -2016,18 +2091,54 @@ class WorkflowEditor(QWidget):
         self.add_block(make_act_step(item.item_id))
 
     def _apply_draft(self) -> None:
+        if self._draft_busy:
+            return
         text = self._draft_input.text().strip()
-        outcome = draft_workflow_from_text(
-            text,
-            SearchResultContext(scope_folder=self._scope_folder, origin=self._origin or ORIGIN_MEANING),
-            allow_ai=True,
+        context = SearchResultContext(
+            scope_folder=self._scope_folder,
+            origin=self._origin or ORIGIN_MEANING,
         )
-        if outcome.steps:
-            if self._scope_folder is None:
-                self._scope_folder = None
-            self.replace_steps(outcome.steps)
-            if not self._name.text().strip() or self._name.text().strip() == t("automation.untitled"):
-                self._name.setText(text[:80] or t("automation.untitled"))
+        outcome = draft_workflow_from_text(text, context, allow_ai=False)
+        if outcome.reasons == ("unplanned",) and not outcome.steps:
+            self._start_ai_draft(text, context)
+            return
+        self._apply_draft_outcome(outcome, instruction=text)
+
+    def _start_ai_draft(self, text: str, context: SearchResultContext) -> None:
+        self._draft_busy = True
+        self._draft_request_id += 1
+        self._draft_button.setEnabled(False)
+        self._draft_input.setEnabled(False)
+        self._draft_status.setText(t("automation.draft_generating"))
+        task = _WorkflowDraftTask(
+            self._draft_request_id,
+            text,
+            context,
+            complete_json=self._draft_complete_json,
+        )
+        self._draft_task = task
+        task.signals.finished.connect(self._on_draft_finished)
+        self._draft_pool.start(task)
+
+    def _on_draft_finished(self, request_id: int, outcome, error) -> None:
+        if request_id != self._draft_request_id:
+            return
+        self._draft_busy = False
+        self._draft_button.setEnabled(True)
+        self._draft_input.setEnabled(True)
+        self._draft_task = None
+        if error is not None or outcome is None:
+            self._draft_status.setText(t("automation.draft_unavailable"))
+            return
+        self._apply_draft_outcome(outcome, instruction=self._draft_input.text().strip())
+
+    def _apply_draft_outcome(self, outcome, *, instruction: str = "") -> None:
+        if outcome.apply_steps:
+            self.replace_steps(outcome.steps, origin=outcome.origin)
+            label = self._name.text().strip()
+            if not label or label == t("automation.untitled"):
+                self._name.setText((instruction or "")[:80] or t("automation.untitled"))
+                self._sync_identity_labels()
         if outcome.ok:
             self._draft_status.setText(t("automation.draft_applied"))
             self._set_editor_status(

@@ -20,9 +20,10 @@ CURRENT FLOW
 3. Find images with Basic Search or Ask AI.
 4. Preview, organize, and act on what you find.
 5. Guest users can use Prototype AI, within the usage limit.
-6. Save a repeated flow as Automation.
+6. In Automation, describe the work if you want AI to build an editable Workflow. You can also add blocks yourself.
+7. Run still shows a preview. Confirm before files move. Missing destination folders are created only after Confirm, under the Start Folder.
 
-Your images stay on this PC. Rootlize does not move the library to the cloud.
+Your images stay on this PC. Rootlize does not move the library to the cloud, and it does not organize files on its own.
 Basic Search and local search run on this PC. No extra model setup.
 
 ASK AI

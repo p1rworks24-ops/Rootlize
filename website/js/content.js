@@ -9,7 +9,7 @@ window.CAPIXE = {
     eyebrow: "Prototype Preview · Windows",
     description:
       "Find images already on your Windows PC, organize what you find, and save repeating work as a Workflow.",
-    kicker: "Search should be the beginning of the workflow, not the end of it.",
+    kicker: "Describe it. AI builds the workflow.",
     signupNote: "No sign-up required",
     proof: "Prototype Preview · v0.1.0-preview · Features may change",
   },
@@ -57,7 +57,7 @@ window.CAPIXE = {
       src: "assets/screenshots/automation.png",
       full: "assets/screenshots/automation-full.png",
       alt: "Rootlize Automation page",
-      caption: "Automate — save Select, Search, and Action as a Workflow",
+      caption: "Automate — describe it, and AI builds an editable Workflow",
       slot: "automation",
     },
   ],
@@ -81,6 +81,10 @@ window.CAPIXE = {
     {
       q: "Is this a finished product?",
       a: "No. Rootlize is a Prototype Preview (v0.1.0-preview). Features may change. Feedback is welcome.",
+    },
+    {
+      q: "Does AI organize my files by itself?",
+      a: "No. Rootlize is not an AI file organizer that rearranges your folders on its own. You describe the work, AI builds an editable Workflow from existing blocks, and you review a preview before anything runs.",
     },
     {
       q: "What runs locally, and when does AI go online?",

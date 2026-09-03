@@ -28,6 +28,7 @@ from app.automation import (
     workflow_list_status,
     workflow_to_payload,
 )
+from app.automation.draft import draft_workflow_from_text
 from app.ocr.database import OCRDatabase
 from app.ocr.fingerprint import calculate_quick_fingerprint
 from app.ocr.repository import OCRRepository
@@ -451,3 +452,144 @@ def test_workflow_list_status_uses_short_badges(tmp_path):
         steps=ready.steps,
     )
     assert workflow_list_status(disabled)[0] == "disabled"
+
+
+def _move_workflow(folder: Path, *, destination: str = "Animal") -> Workflow:
+    return workflow_from_session(
+        name="Move dogs",
+        context=SearchResultContext(
+            scope_folder=str(folder), origin=ORIGIN_MEANING, find_query="dog", query="dog"
+        ),
+        action_id=ACTION_MOVE,
+        parameters={"destination_name": destination},
+    )
+
+
+def test_move_uses_existing_start_folder_destination(tmp_path):
+    folder, paths = _library(tmp_path)
+    dest = folder / "Animal"
+    dest.mkdir()
+    workflow = _move_workflow(folder)
+    actions, _metadata, ocr, database = _service(tmp_path)
+    service = AutomationService(WorkflowStore(tmp_path / "automations.json"))
+    try:
+        for path in paths:
+            _index(ocr, path)
+        context, validation = service.evaluate_search(workflow, FilenameSearchEvaluator())
+        assert validation.ok is True
+        context = _bind_ocr_ids(context, ocr)
+        prepared = service.prepare(workflow, context, actions, current_folder=folder)
+        assert prepared.preview.executable is True
+        result = service.execute(prepared, actions, confirmed=True, current_folder=folder, context=context)
+        assert result.status == "success"
+        assert (dest / "dog-a.png").exists()
+        assert (dest / "dog-b.png").exists()
+        assert (folder / "cat.png").exists()
+    finally:
+        database.close()
+
+
+def test_move_creates_missing_destination_only_after_confirm(tmp_path):
+    folder, paths = _library(tmp_path)
+    dest = folder / "Animal"
+    sibling = folder.parent / "Animal"
+    workflow = _move_workflow(folder)
+    actions, _metadata, ocr, database = _service(tmp_path)
+    service = AutomationService(WorkflowStore(tmp_path / "automations.json"))
+    try:
+        for path in paths:
+            _index(ocr, path)
+        context, validation = service.evaluate_search(workflow, FilenameSearchEvaluator())
+        assert validation.ok is True
+        context = _bind_ocr_ids(context, ocr)
+        prepared = service.prepare(workflow, context, actions, current_folder=folder)
+        assert prepared.preview.executable is True
+        assert "will be created" in prepared.preview.detail.lower() or "does not exist yet" in prepared.preview.detail.lower()
+        blocked = service.execute(prepared, actions, confirmed=False, current_folder=folder, context=context)
+        assert blocked.status == "blocked"
+        assert dest.exists() is False
+        assert sibling.exists() is False
+        assert paths[0].exists()
+        result = service.execute(prepared, actions, confirmed=True, current_folder=folder, context=context)
+        assert result.status == "success"
+        assert dest.is_dir()
+        assert (dest / "dog-a.png").exists()
+        assert (dest / "dog-b.png").exists()
+        assert sibling.exists() is False
+        assert (folder / "cat.png").exists()
+    finally:
+        database.close()
+
+
+def test_move_does_not_use_sibling_folder_with_the_same_name(tmp_path):
+    folder, paths = _library(tmp_path)
+    sibling = folder.parent / "Animal"
+    sibling.mkdir()
+    decoy = _png(sibling / "keep-out.png")
+    workflow = _move_workflow(folder)
+    actions, _metadata, ocr, database = _service(tmp_path)
+    service = AutomationService(WorkflowStore(tmp_path / "automations.json"))
+    try:
+        for path in paths:
+            _index(ocr, path)
+        context = _bind_ocr_ids(
+            service.evaluate_search(workflow, FilenameSearchEvaluator())[0],
+            ocr,
+        )
+        prepared = service.prepare(workflow, context, actions, current_folder=folder)
+        blocked = service.execute(prepared, actions, confirmed=False, current_folder=folder, context=context)
+        assert blocked.status == "blocked"
+        assert (folder / "Animal").exists() is False
+        result = service.execute(prepared, actions, confirmed=True, current_folder=folder, context=context)
+        assert result.status == "success"
+        assert (folder / "Animal" / "dog-a.png").exists()
+        assert decoy.exists()
+        assert not (sibling / "dog-a.png").exists()
+    finally:
+        database.close()
+
+
+def test_manual_and_ai_generated_move_share_execution_path(tmp_path):
+    folder, paths = _library(tmp_path)
+    drafted = draft_workflow_from_text(
+        "Find all dog images in this folder, tag them DOG, and move them to the Animal folder.",
+        SearchResultContext(scope_folder=str(folder)),
+        allow_ai=False,
+    )
+    assert drafted.ok is True
+    ai_workflow = Workflow(
+        id="ai-move",
+        name="AI dogs",
+        scope_folder=str(folder),
+        origin=drafted.origin,
+        steps=drafted.steps,
+    )
+    manual_workflow = workflow_from_session(
+        name="Manual dogs",
+        context=SearchResultContext(
+            scope_folder=str(folder), origin=ORIGIN_MEANING, find_query="dog", query="dog"
+        ),
+        plan=None,
+        action_id=ACTION_MOVE,
+        parameters={"destination_name": "Animal"},
+    )
+    ai_move = next(step for step in ai_workflow.steps if step.action_id == ACTION_MOVE)
+    manual_move = next(step for step in manual_workflow.steps if step.action_id == ACTION_MOVE)
+    assert ai_move.action_id == manual_move.action_id == ACTION_MOVE
+    assert ai_move.parameters.get("destination_name") == manual_move.parameters.get("destination_name") == "Animal"
+    actions, _metadata, ocr, database = _service(tmp_path)
+    service = AutomationService(WorkflowStore(tmp_path / "automations.json"))
+    try:
+        for path in paths:
+            _index(ocr, path)
+        context, validation = service.evaluate_search(ai_workflow, FilenameSearchEvaluator())
+        assert validation.ok is True
+        context = _bind_ocr_ids(context, ocr)
+        prepared = service.prepare(ai_workflow, context, actions, current_folder=folder)
+        assert prepared.preview.executable is True
+        assert (folder / "Animal").exists() is False
+        result = service.execute(prepared, actions, confirmed=True, current_folder=folder, context=context)
+        assert result.status == "success"
+        assert (folder / "Animal" / "dog-a.png").exists()
+    finally:
+        database.close()

@@ -54,9 +54,10 @@ def test_hero_and_cta_match_prototype() -> None:
     assert ZIP_NAME in content
     assert "v0.1.0-preview" in index
     assert "Prototype Preview" in index
-    assert "Search should be the beginning of the workflow" in index
     assert "Find. Organize. Automate." in index
     assert "Find. Narrow. Act." not in index
+    assert "Describe it. AI builds the workflow." in index
+    assert "Search should be the beginning of the workflow" not in index
 
 
 def test_download_js_uses_live_zip_without_waiting() -> None:
@@ -85,6 +86,9 @@ def test_features_match_current_scope() -> None:
     assert "workflow" in joined
     assert "select" in joined and "search" in joined and "action" in joined
     assert "consent" in joined
+    assert "does not organize your files on its own" in joined
+    assert "describe it" in joined
+    assert "ai builds the workflow" in joined
     assert "does not resend images" in joined or "does not resend images every time" in joined
     assert "capture" not in index
     assert "mac version" in content

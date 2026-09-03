@@ -7,7 +7,12 @@ from pathlib import Path
 from app.utils.file_copy_name import make_unique_copy_filename
 
 from .context import ActionContext
-from .filenames import is_managed_hidden_path, is_within_root, path_too_long
+from .filenames import (
+    is_managed_hidden_path,
+    is_safe_relative_name,
+    is_within_root,
+    path_too_long,
+)
 from .models import (
     ACTION_MOVE,
     ITEM_BLOCKED,
@@ -32,11 +37,24 @@ from .models import (
 from .resolve import resolve_target, sync_path_change
 
 
+DESTINATION_WILL_CREATE = "destination_will_create"
+
+
 def _destination(request: ActionRequest) -> Path | None:
     raw = request.param("destination_path")
     if not raw:
         return None
     return Path(raw)
+
+
+def destination_will_create(plan: ActionPlan) -> bool:
+    summary = getattr(plan, "summary", None) or {}
+    if summary.get("destination_will_create"):
+        return True
+    return any(
+        getattr(found, "code", "") == DESTINATION_WILL_CREATE
+        for found in getattr(plan, "issues", ()) or ()
+    )
 
 
 def _existing_png_names(folder: Path) -> set[str]:
@@ -64,10 +82,21 @@ class MoveAction:
             request_issues.append(
                 issue("destination_missing", SEVERITY_ERROR, "A destination folder is required.")
             )
+        dest_name = str(request.param("destination_name") or "").strip()
         dest_exists = dest is not None and dest.exists()
         dest_is_dir = dest_exists and dest.is_dir()
         will_create = dest is not None and not dest_exists
-        if dest is not None and dest_exists and not dest_is_dir:
+        if dest_name and not is_safe_relative_name(dest_name):
+            request_issues.append(
+                issue(
+                    "invalid_folder_name",
+                    SEVERITY_ERROR,
+                    "The destination folder name is not valid.",
+                    path=dest_name,
+                )
+            )
+            will_create = False
+        elif dest is not None and dest_exists and not dest_is_dir:
             request_issues.append(
                 issue(
                     "destination_not_directory",
@@ -96,10 +125,21 @@ class MoveAction:
                         path=str(dest),
                     )
                 )
+                will_create = False
+            elif not _writable_dir(parent):
+                request_issues.append(
+                    issue(
+                        "destination_not_writable",
+                        SEVERITY_ERROR,
+                        "The destination folder is not writable.",
+                        path=str(dest),
+                    )
+                )
+                will_create = False
             else:
                 request_issues.append(
                     issue(
-                        "destination_missing",
+                        DESTINATION_WILL_CREATE,
                         SEVERITY_WARNING,
                         "The destination folder will be created.",
                         path=str(dest),
@@ -108,7 +148,7 @@ class MoveAction:
 
         dest_blocked = any(item.severity == SEVERITY_ERROR for item in request_issues)
         root = context.managed_root or context.app_root
-        name_bound = bool(str(request.param("destination_name") or "").strip())
+        name_bound = bool(dest_name)
         if dest is not None and not dest_blocked:
             if is_managed_hidden_path(dest):
                 request_issues.append(
@@ -206,7 +246,10 @@ class MoveAction:
             confirmation_required=True,
             items=tuple(items),
             issues=tuple(request_issues),
-            summary={"destination_path": str(dest) if dest is not None else None},
+            summary={
+                "destination_path": str(dest) if dest is not None else None,
+                "destination_will_create": bool(will_create and not dest_blocked),
+            },
         )
 
     def execute(self, request: ActionRequest, context: ActionContext, plan: ActionPlan) -> ActionResult:
@@ -218,7 +261,15 @@ class MoveAction:
                 continue
             source = Path(item.before["path"])
             try:
-                dest.mkdir(parents=True, exist_ok=True)
+                root = context.managed_root or context.app_root
+                name_bound = bool(str(request.param("destination_name") or "").strip())
+                if root is not None and name_bound:
+                    inside = is_within_root(dest, root)
+                    if not inside and not dest.exists():
+                        inside = is_within_root(dest.parent, root)
+                    if not inside:
+                        raise OSError("That folder is outside the library.")
+                dest.mkdir(parents=False, exist_ok=True)
                 context.metadata.ensure_sstool(dest)
                 moved = context.metadata.move_image_to_project(source, dest)
             except FileNotFoundError:

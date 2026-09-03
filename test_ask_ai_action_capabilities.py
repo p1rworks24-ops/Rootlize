@@ -293,3 +293,12 @@ def test_destination_name_cannot_escape_library(tmp_path):
     inner = tmp_path / "Pets"
     inner.mkdir()
     assert resolve_destination_folder("Pets", current_folder=tmp_path, screenshot_root=tmp_path) == inner
+    inbox = tmp_path / "Inbox"
+    inbox.mkdir()
+    sibling = tmp_path / "Animal"
+    sibling.mkdir()
+    dest = resolve_destination_folder("Animal", current_folder=inbox, screenshot_root=tmp_path)
+    assert dest == inbox / "Animal"
+    assert dest != sibling
+    missing = resolve_destination_folder("Animal", current_folder=inbox, screenshot_root=tmp_path)
+    assert missing == inbox / "Animal"

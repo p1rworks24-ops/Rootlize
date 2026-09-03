@@ -15,6 +15,8 @@ def test_github_public_copy_matches_prototype() -> None:
     assert "sign in to start" not in lower
     assert "find → narrow" not in lower
     assert "find → organize → automate" in lower
+    assert "describe it. ai builds the workflow." in lower
+    assert "does not organize your files on its own" in lower
     assert "no sign-up required" in lower
     assert "v0.1.0-preview" in PUBLIC
     assert "windows 10" in lower

@@ -72,7 +72,7 @@ _NARROW_THEN_ACT = re.compile(
     re.I,
 )
 _HERE_DEST = re.compile(
-    r"^(?:そこ|そのフォルダ|そのフォルダー|there|it|that folder|the (?:new |created )?folder)$",
+    r"^(?:そこ|そのフォルダ|そのフォルダー|there|here|it|into it|that folder|the (?:new |created )?folder)$",
     re.I,
 )
 _TAG_WITHOUT_NI = re.compile(
@@ -487,8 +487,9 @@ def _split_clauses(raw: str) -> list[str]:
 
 def _normalize_act_clause(text: str) -> str:
     clause = str(text or "").strip(" 　、,。.! ")
+    clause = re.sub(r"^(?:and|then)\s+", "", clause, flags=re.I)
     created = re.match(
-        r"^(?:please\s+)?create\s+(?:a\s+)?[\"']?(.+?)[\"']?\s+folder$",
+        r"^(?:please\s+)?create\s+(?:an?\s+)?[\"']?(.+?)[\"']?\s+folder$",
         clause,
         re.I,
     )

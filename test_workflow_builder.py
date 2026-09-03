@@ -597,7 +597,7 @@ def test_editor_information_architecture(tmp_path):
     assert action.trash_visible() is True
     editor._inspector_tabs.setCurrentIndex(1)
     app.processEvents()
-    assert editor._inspector_tabs.currentIndex() == 0
+    assert editor._inspector_tabs.currentIndex() == 1
     editor._inspector_tabs.setCurrentIndex(0)
     editor.remove_block(action.index)
     app.processEvents()
@@ -828,11 +828,106 @@ def test_automation_ai_reflects_on_canvas_not_ask_ai(tmp_path):
     assert STEP_FIND in types
     assert STEP_ACTION in types
     assert editor.visual_blocks()[0].block_id == START_BLOCK_ID
+    assert editor._target_mode == TARGET_MEANING
     assert editor._draft_status.text()
     assert editor.findChild(QLineEdit, "automationDraftInput") is not None
     assert editor.findChild(QWidget, "askAiChat") is None
     assert "Ask AI" not in editor._draft_status.text()
+    search = next(block for block in editor.visual_blocks() if block.category == CATEGORY_TARGET)
+    assert search.title == t("automation.block_meaning_search")
+    action = next(block for block in editor.visual_blocks() if block.category == CATEGORY_ACTION)
+    editor._canvas.select_index(editor.visual_blocks().index(action))
+    app.processEvents()
+    editor._param.setText("DOG")
+    app.processEvents()
+    tagged = next(step for step in editor.current_steps() if step.type == STEP_ACTION)
+    assert tagged.parameters.get("tag") == "DOG"
     window.close()
+
+
+def test_dog_instruction_lands_on_builder_and_stays_editable(tmp_path):
+    app = _ensure_app()
+    editor = _editor(tmp_path)
+    editor.show()
+    app.processEvents()
+    editor._show_ai_tab()
+    app.processEvents()
+    editor._draft_input.setText(
+        "Find all dog images in this folder, tag them DOG, and move them to the Animal folder."
+    )
+    editor._apply_draft()
+    app.processEvents()
+    steps = editor.current_steps()
+    assert [step.type for step in steps] == [STEP_FIND, STEP_ACTION, STEP_ACTION]
+    assert editor._target_mode == TARGET_MEANING
+    assert steps[1].action_id == "add_tag"
+    assert steps[1].parameters.get("tag") == "DOG"
+    assert steps[2].action_id == "move"
+    assert steps[2].parameters.get("destination_name") == "Animal"
+    titles = [block.title for block in editor.visual_blocks()]
+    assert t("automation.trigger_folder") in titles
+    assert t("automation.block_meaning_search") in titles
+    assert t("automation.action_add_tag") in titles
+    assert t("automation.action_move") in titles
+    editor._canvas.select_index(2)
+    app.processEvents()
+    editor._param.setText("PET")
+    app.processEvents()
+    assert editor.current_steps()[1].parameters.get("tag") == "PET"
+    editor._draft_complete_json = lambda *_args, **_kwargs: {"status": "explode"}
+    before = [(step.type, step.action_id, dict(step.parameters)) for step in editor.current_steps()]
+    editor._draft_input.setText("please assemble a reusable canine workflow xyzzy")
+    editor._apply_draft()
+    editor._draft_pool.waitForDone(3000)
+    app.processEvents()
+    after = [(step.type, step.action_id, dict(step.parameters)) for step in editor.current_steps()]
+    assert after == before
+    assert t("automation.draft_invalid") in editor._draft_status.text()
+    editor.close()
+
+
+def test_required_create_folder_only_does_not_change_the_board(tmp_path):
+    app = _ensure_app()
+    editor = _editor(tmp_path)
+    editor.show()
+    app.processEvents()
+    editor._show_ai_tab()
+    app.processEvents()
+    before = [(step.type, step.action_id, dict(step.parameters)) for step in editor.current_steps()]
+    titles_before = [block.title for block in editor.visual_blocks()]
+    editor._draft_input.setText("Create an Animal folder.")
+    editor._apply_draft()
+    app.processEvents()
+    after = [(step.type, step.action_id, dict(step.parameters)) for step in editor.current_steps()]
+    assert after == before
+    assert [block.title for block in editor.visual_blocks()] == titles_before
+    assert not any(step.action_id == "create_folder" for step in editor.current_steps())
+    status = editor._draft_status.text()
+    assert t("automation.action_create_folder") in status
+    editor.close()
+
+
+def test_create_folder_and_move_builds_meaning_search_and_move(tmp_path):
+    app = _ensure_app()
+    editor = _editor(tmp_path)
+    editor.show()
+    app.processEvents()
+    editor._show_ai_tab()
+    app.processEvents()
+    editor._draft_input.setText("Create an Animal folder and move all dog images into it.")
+    editor._apply_draft()
+    app.processEvents()
+    steps = editor.current_steps()
+    assert [step.type for step in steps] == [STEP_FIND, STEP_ACTION]
+    assert editor._target_mode == TARGET_MEANING
+    assert "dog" in steps[0].query.lower()
+    assert steps[1].action_id == "move"
+    assert steps[1].parameters.get("destination_name") == "Animal"
+    assert not any(step.action_id == "create_folder" for step in steps)
+    titles = [block.title for block in editor.visual_blocks()]
+    assert t("automation.block_meaning_search") in titles
+    assert t("automation.action_move") in titles
+    editor.close()
 
 
 def test_run_still_uses_v0_confirm_and_does_not_change_before_confirm():
@@ -1254,12 +1349,13 @@ def test_inspector_tabs_and_folder_browse(tmp_path):
     assert tabs.tabText(1) == t("automation.inspector_ai")
     tabs.setCurrentIndex(1)
     app.processEvents()
-    assert tabs.currentIndex() == 0
-    assert tabs._buttons[1].isEnabled() is False
-    assert bool(tabs._buttons[1].property("catalogEnabled")) is False
-    assert tabs._buttons[1].cursor().shape() == Qt.ArrowCursor
-    assert editor._draft_input.isVisible() is False
+    assert tabs.currentIndex() == 1
+    assert tabs._buttons[1].isEnabled() is True
+    assert bool(tabs._buttons[1].property("catalogEnabled")) is True
+    assert tabs._buttons[1].cursor().shape() == Qt.PointingHandCursor
+    assert editor._draft_input.isVisible() is True
     assert editor.findChild(QWidget, "askAiChat") is None
+    assert editor._draft_button.text() == t("automation.draft_action")
     tabs.setCurrentIndex(0)
     editor._canvas.select_index(0)
     app.processEvents()
@@ -1278,14 +1374,14 @@ def test_inspector_tabs_and_folder_browse(tmp_path):
     assert not editor._folder_pick._browse.icon().isNull()
     card = editor.findChild(QFrame, "workflowAiCard")
     assert card is not None
-    assert card.isEnabled() is False
-    assert bool(card.property("catalogEnabled")) is False
+    assert card.isEnabled() is True
+    assert bool(card.property("catalogEnabled")) is True
     assert editor._open_ai.text() == t("automation.open_ai")
-    assert editor._open_ai.isEnabled() is False
-    assert editor._open_ai.cursor().shape() == Qt.ArrowCursor
+    assert editor._open_ai.isEnabled() is True
+    assert editor._open_ai.cursor().shape() == Qt.PointingHandCursor
     editor._open_ai.click()
     app.processEvents()
-    assert tabs.currentIndex() == 0
+    assert tabs.currentIndex() == 1
     editor.close()
 
 

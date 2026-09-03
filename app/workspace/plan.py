@@ -758,6 +758,11 @@ def build_combined_preview(
         if runnable <= 0 and step.action_id != ACTION_CREATE_FOLDER:
             executable = False
         lines.append(_action_preview_line(step, request, action_plan, count, translate))
+        if step.action_id == ACTION_MOVE and _move_will_create(action_plan):
+            dest = Path(str(action_plan.summary.get("destination_path") or request.param("destination_path") or ""))
+            name = dest.name or str(step.parameters.get("destination_name") or "")
+            if name:
+                lines.append(translate("images.ai.will_create_destination", name=name))
         if step.action_id == ACTION_REMOVE_ALL_TAGS and count:
             lines.append(translate("images.ai.plan_image_count", count=count))
         if step.action_id in TAG_ACTION_IDS:
@@ -864,6 +869,16 @@ def _action_preview_line(step, request, action_plan, count: int, translate) -> s
     return translate("images.ai.not_understood")
 
 
+def _move_will_create(action_plan) -> bool:
+    summary = getattr(action_plan, "summary", None) or {}
+    if summary.get("destination_will_create"):
+        return True
+    return any(
+        getattr(found, "code", "") == "destination_will_create"
+        for found in getattr(action_plan, "issues", ()) or ()
+    )
+
+
 def _default_preview_copy(key: str, kwargs: Mapping[str, Any]) -> str:
     templates = {
         "images.ai.will_update_count": "{count} images will be updated",
@@ -882,6 +897,7 @@ def _default_preview_copy(key: str, kwargs: Mapping[str, Any]) -> str:
         "images.ai.plan_add_tags_detail": "Add: {tags}",
         "images.ai.plan_remove_tags_detail": "Remove: {tags}",
         "images.ai.plan_create_folder": "Create folder: {name}",
+        "images.ai.will_create_destination": "Folder “{name}” does not exist yet and will be created.",
         "images.ai.plan_move": "Move {count} images to {name}",
         "images.ai.plan_rename": "Rename {count} images",
         "images.ai.plan_add_favorite": "Add favorite to {count} images",

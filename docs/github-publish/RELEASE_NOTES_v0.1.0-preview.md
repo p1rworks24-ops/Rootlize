@@ -11,7 +11,7 @@ Rootlize is a local-first Windows workspace for images already on your PC. The c
 - Portable ZIP. Extract it completely, then run `Rootlize.exe`. Keep `_internal` beside it.
 - Find images by filename, text, Meaning Search, or Ask AI.
 - Organize what you find with tags, favorites, rename, and move.
-- Save Select / Search / Action as a Workflow and run it again. Confirmation stays in place before execute.
+- Save Select / Search / Action as a Workflow and run it again. You can describe the work in your own words; AI builds an editable Workflow. Confirmation stays in place before execute. Rootlize does not organize files on its own.
 - Local-first: point Rootlize at a folder you already have. It is not a cloud photo library.
 - Ask AI asks for consent first. After you agree, the first analysis may send images to an external AI. Later Meaning Search uses saved facts instead of resending images every time.
 - AI usage is limited during the Prototype. Local search and organize still work after the limit.

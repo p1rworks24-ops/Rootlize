@@ -14,9 +14,11 @@ This is a **Prototype Preview** (`v0.1.0-preview`) for **Windows 10 / 11 (64-bit
 
 **Find → Organize → Automate**
 
+**Describe it. AI builds the workflow.**
+
 - Find images in a folder you already have, by filename, text, Meaning Search, or Ask AI
 - Organize what you find with tags, favorites, rename, and move
-- Save Select / Search / Action as a Workflow and run it again (with confirmation first)
+- Describe a repeated flow in your own words; AI builds an editable Select / Search / Action Workflow. You can change the blocks, then Run with confirmation first. Rootlize does not organize your files on its own.
 
 Rootlize is local-first. It is not a cloud photo library. Ask AI asks for consent first; after you agree, the first analysis may send images to an external AI. Later Meaning Search uses saved facts instead of resending images every time. After the Prototype AI limit, local search and organize still work.
 

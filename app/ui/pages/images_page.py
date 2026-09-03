@@ -7234,9 +7234,17 @@ class ImagesPage(QWidget):
         dest = Path(str(plan.summary.get("destination_path") or request.param("destination_path") or ""))
         dest_name = dest.name if dest.name else str(dest)
         if request.action_id == ACTION_MOVE:
+            detail_parts = []
+            if dest_name:
+                detail_parts.append(t("images.ai.destination_line", name=dest_name))
+            if (plan.summary or {}).get("destination_will_create") or any(
+                getattr(found, "code", "") == "destination_will_create"
+                for found in getattr(plan, "issues", ()) or ()
+            ):
+                detail_parts.append(t("images.ai.will_create_destination", name=dest_name or dest.name))
             return (
                 t("images.ai.will_move_count", count=count),
-                t("images.ai.destination_line", name=dest_name) if dest_name else "",
+                "\n".join(part for part in detail_parts if part),
                 t("images.ai.confirm_move"),
             )
         if request.action_id == ACTION_ADD_TAG:

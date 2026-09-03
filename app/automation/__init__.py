@@ -6,7 +6,7 @@ from .blocks import (
     user_step_summary,
     workflow_step_summary,
 )
-from .draft import DraftOutcome, draft_workflow_from_text
+from .draft import DraftOutcome, adapt_plan_for_builder, draft_workflow_from_text
 from .models import (
     Workflow,
     default_workflow_name,
@@ -41,6 +41,7 @@ __all__ = [
     "block_title",
     "default_store_path",
     "default_workflow_name",
+    "adapt_plan_for_builder",
     "draft_workflow_from_text",
     "new_workflow_id",
     "sanitize_step_parameters",
