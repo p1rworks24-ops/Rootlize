@@ -2569,8 +2569,7 @@ QLabel#workflowInspectorCalloutText {{
 }}
 QComboBox#workflowTargetCombo,
 QComboBox#workflowActionCombo,
-QLineEdit#workflowParamInput,
-QLineEdit#automationDraftInput {{
+QLineEdit#workflowParamInput {{
     background-color: {c.input_bg};
     border: 1px solid {c.border_subtle};
     border-radius: {RADIUS_CONTROL}px;
@@ -2582,12 +2581,24 @@ QLineEdit#automationDraftInput {{
 QComboBox#workflowTargetCombo:hover,
 QComboBox#workflowActionCombo:hover,
 QLineEdit#workflowParamInput:hover,
-QLineEdit#automationDraftInput:hover,
 QComboBox#workflowTargetCombo:focus,
 QComboBox#workflowActionCombo:focus,
 QComboBox#workflowTargetCombo:on,
-QLineEdit#workflowParamInput:focus,
-QLineEdit#automationDraftInput:focus {{
+QLineEdit#workflowParamInput:focus {{
+    background-color: {c.input_bg};
+    border: 1px solid {c.accent};
+}}
+QPlainTextEdit#automationDraftInput {{
+    background-color: {c.input_bg};
+    color: {c.text};
+    border: 1px solid {c.border_subtle};
+    border-radius: {RADIUS_CONTROL}px;
+    min-height: 32px;
+    padding: 6px 8px;
+    font-size: 12px;
+}}
+QPlainTextEdit#automationDraftInput:hover,
+QPlainTextEdit#automationDraftInput:focus {{
     background-color: {c.input_bg};
     border: 1px solid {c.accent};
 }}

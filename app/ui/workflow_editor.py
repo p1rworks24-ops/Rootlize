@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QMenu,
+    QPlainTextEdit,
     QPushButton,
     QScrollArea,
     QSizePolicy,
@@ -248,6 +249,101 @@ class WorkflowWorkspace(QFrame):
         y = max(16, self.height() - bar.height() - 28 - scroll)
         bar.move(x, y)
         bar.raise_()
+
+
+_DRAFT_INPUT_MIN_HEIGHT = 32
+_DRAFT_INPUT_CHROME = 16
+
+
+class GrowingDraftInput(QPlainTextEdit):
+    """Composer that grows downward with the instruction. Never scrolls the text away."""
+
+    submitted = Signal()
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.setObjectName("automationDraftInput")
+        self.setLineWrapMode(QPlainTextEdit.WidgetWidth)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setTabChangesFocus(True)
+        self.setFrameStyle(QFrame.NoFrame)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.document().setDocumentMargin(2)
+        self.setMinimumHeight(_DRAFT_INPUT_MIN_HEIGHT)
+        self.setFixedHeight(_DRAFT_INPUT_MIN_HEIGHT)
+        self.textChanged.connect(self._fit_to_content)
+
+    def text(self) -> str:
+        return self.toPlainText()
+
+    def setText(self, value: str) -> None:
+        self.setPlainText(value)
+        self._fit_to_content()
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        self._fit_to_content()
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._fit_to_content()
+
+    def wheelEvent(self, event) -> None:
+        event.ignore()
+
+    def keyPressEvent(self, event) -> None:
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter) and not (
+            event.modifiers() & Qt.ShiftModifier
+        ):
+            event.accept()
+            self.submitted.emit()
+            return
+        super().keyPressEvent(event)
+        self._fit_to_content()
+
+    def _fit_to_content(self) -> None:
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        height = max(_DRAFT_INPUT_MIN_HEIGHT, self._content_height())
+        if self.minimumHeight() != height or self.height() != height:
+            self.setMinimumHeight(height)
+            self.setFixedHeight(height)
+        bar = self.verticalScrollBar()
+        bar.setRange(0, 0)
+        bar.setValue(0)
+
+    def _content_height(self) -> int:
+        doc = self.document()
+        first = doc.firstBlock()
+        last = doc.lastBlock()
+        if first.isValid() and last.isValid():
+            top = self.blockBoundingGeometry(first).translated(self.contentOffset()).top()
+            bottom = self.blockBoundingGeometry(last).translated(self.contentOffset()).bottom()
+            laid_out = int(bottom - top)
+        else:
+            laid_out = 0
+        width = max(1, self.viewport().width())
+        if width <= 4:
+            width = max(1, self.width() - _DRAFT_INPUT_CHROME)
+        measure = self.toPlainText() if self.toPlainText() else " "
+        bounds = self.fontMetrics().boundingRect(
+            0,
+            0,
+            width,
+            100_000,
+            Qt.TextWordWrap | Qt.AlignLeft | Qt.AlignTop,
+            measure,
+        )
+        margins = self.contentsMargins()
+        chrome = (
+            margins.top()
+            + margins.bottom()
+            + self.frameWidth() * 2
+            + int(doc.documentMargin() * 2)
+            + 8
+        )
+        return max(laid_out, bounds.height()) + chrome
 
 
 class WorkflowSideRail(QFrame):
@@ -1340,10 +1436,9 @@ class WorkflowEditor(QWidget):
         ai_hint.setObjectName("mutedLabel")
         ai_hint.setWordWrap(True)
         ai_layout.addWidget(ai_hint)
-        self._draft_input = QLineEdit(ai)
-        self._draft_input.setObjectName("automationDraftInput")
+        self._draft_input = GrowingDraftInput(ai)
         self._draft_input.setPlaceholderText(t("automation.draft_placeholder"))
-        self._draft_input.returnPressed.connect(self._apply_draft)
+        self._draft_input.submitted.connect(self._apply_draft)
         ai_layout.addWidget(self._draft_input)
         self._draft_button = QPushButton(t("automation.draft_action"), ai)
         self._draft_button.setCursor(Qt.PointingHandCursor)

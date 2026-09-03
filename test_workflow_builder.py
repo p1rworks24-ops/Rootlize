@@ -6,7 +6,16 @@ from pathlib import Path
 
 from PySide6.QtCore import QEvent, QPoint, QPointF, QRect, QTimer, Qt
 from PySide6.QtGui import QColor, QKeyEvent
-from PySide6.QtWidgets import QApplication, QFrame, QLabel, QLineEdit, QPushButton, QTableWidget, QToolButton, QWidget
+from PySide6.QtWidgets import (
+    QApplication,
+    QFrame,
+    QLabel,
+    QPlainTextEdit,
+    QPushButton,
+    QTableWidget,
+    QToolButton,
+    QWidget,
+)
 
 from app.automation import (
     AutomationService,
@@ -830,7 +839,7 @@ def test_automation_ai_reflects_on_canvas_not_ask_ai(tmp_path):
     assert editor.visual_blocks()[0].block_id == START_BLOCK_ID
     assert editor._target_mode == TARGET_MEANING
     assert editor._draft_status.text()
-    assert editor.findChild(QLineEdit, "automationDraftInput") is not None
+    assert editor.findChild(QPlainTextEdit, "automationDraftInput") is not None
     assert editor.findChild(QWidget, "askAiChat") is None
     assert "Ask AI" not in editor._draft_status.text()
     search = next(block for block in editor.visual_blocks() if block.category == CATEGORY_TARGET)
@@ -843,6 +852,37 @@ def test_automation_ai_reflects_on_canvas_not_ask_ai(tmp_path):
     tagged = next(step for step in editor.current_steps() if step.type == STEP_ACTION)
     assert tagged.parameters.get("tag") == "DOG"
     window.close()
+
+
+def test_automation_draft_input_grows_to_show_full_text(tmp_path):
+    app = _ensure_app()
+    editor = _editor(tmp_path)
+    editor.resize(1100, 720)
+    editor.show()
+    app.processEvents()
+    editor._show_ai_tab()
+    app.processEvents()
+    field = editor._draft_input
+    field.setText("find dogs")
+    app.processEvents()
+    short_h = field.height()
+    long_text = (
+        "このフォルダの犬の画像をすべて探してDOGタグを付け、"
+        "Animalフォルダへ移動したうえで、お気に入りにも追加したい。"
+        "さらに同じ条件で再実行できるようにワークフローとして保存したい。"
+        "条件に合う画像がなければスキップし、実行後は件数を残したい。" * 6
+    )
+    field.setText(long_text)
+    app.processEvents()
+    long_h = field.height()
+    assert field.toPlainText() == long_text
+    assert editor.findChild(QPlainTextEdit, "automationDraftInput") is field
+    assert long_h > short_h
+    assert long_h >= field.fontMetrics().lineSpacing() * 8
+    assert long_h > 360
+    assert field.verticalScrollBarPolicy() == Qt.ScrollBarAlwaysOff
+    assert field.verticalScrollBar().maximum() == 0
+    editor.close()
 
 
 def test_dog_instruction_lands_on_builder_and_stays_editable(tmp_path):
