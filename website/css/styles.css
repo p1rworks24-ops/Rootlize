@@ -262,6 +262,14 @@ p {
   text-align: left;
 }
 
+.download-security-note {
+  max-width: 28.5rem;
+  margin: 0.15rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
 .download-frame {
   display: none;
 }
@@ -2121,6 +2129,10 @@ p {
 .download-actions .cta-pair {
   width: min(100%, 18.5rem);
   grid-template-columns: 1fr;
+}
+
+.download-actions .download-security-note {
+  max-width: 18.5rem;
 }
 
 .version-block {
