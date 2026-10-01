@@ -388,6 +388,7 @@
 
     if (C.hero) {
       setText("[data-hero-eyebrow]", C.hero.eyebrow);
+      setText("[data-hero-heading]", C.hero.heading);
       setText("[data-hero-description]", C.hero.description);
       setText("[data-hero-kicker]", C.hero.kicker);
       setText("[data-hero-signup]", C.hero.signupNote);

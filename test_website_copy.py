@@ -54,9 +54,11 @@ def test_hero_and_cta_match_prototype() -> None:
     assert ZIP_NAME in content
     assert "v0.1.0-preview" in index
     assert "Prototype Preview" in index
-    assert "Find. Organize. Automate." in index
+    assert "Find the images you know are somewhere on your PC." in index
+    assert "From search results to a finished cleanup." in index
+    assert "Search the folder you already have" in index
     assert "Find. Narrow. Act." not in index
-    assert "Describe it. AI builds the workflow." in index
+    assert "Describe it. AI builds the workflow." not in index
     assert "Search should be the beginning of the workflow" not in index
 
 
@@ -87,7 +89,7 @@ def test_features_match_current_scope() -> None:
     assert "select" in joined and "search" in joined and "action" in joined
     assert "consent" in joined
     assert "does not organize your files on its own" in joined
-    assert "describe it" in joined
+    assert "when the same cleanup comes back" in joined
     assert "ai builds the workflow" in joined
     assert "does not resend images" in joined or "does not resend images every time" in joined
     assert "capture" not in index
@@ -105,6 +107,12 @@ def test_faq_covers_required_questions() -> None:
     assert 'q: "does rootlize upload my images?"' in content
     assert "not a cloud library" in content
     assert "first analysis may send" in content
+    assert 'q: "can rootlize search images by what they show?"' in content
+    assert 'q: "can i use rootlize to organize screenshots on windows?"' in content
+    assert (
+        'q: "will rootlize create a separate image library or rearrange my folders automatically?"'
+        in content
+    )
     assert 'q: "is there a mac version?"' in content
     assert "windows 10 / windows 11" in content
     assert 'q: "is this a finished product?"' in content

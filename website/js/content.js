@@ -2,14 +2,16 @@
 window.CAPIXE = {
   brand: {
     name: "Rootlize",
-    tagline: "Your Local Workspace.",
+    tagline: "Search the folder you already have — not a new library.",
     description: "Find, organize, and automate work with the images already on your PC — without moving them to a Rootlize cloud.",
   },
   hero: {
     eyebrow: "Prototype Preview · Windows",
+    heading: "Find the images you know are somewhere on your PC.",
     description:
-      "Find images already on your Windows PC, organize what you find, and save repeating work as a Workflow.",
-    kicker: "Describe it. AI builds the workflow.",
+      "Rootlize helps you search the Windows folders you already use — screenshots, reference assets, and AI-generated images — then narrow the results, organize selected files, and save repeat work as a reusable workflow.",
+    kicker:
+      "Your files stay in their existing folders. Rootlize shows a preview and asks for confirmation before it moves anything.",
     signupNote: "No sign-up required",
     proof: "Prototype Preview · v0.1.0-preview · Features may change",
   },
@@ -73,6 +75,18 @@ window.CAPIXE = {
     {
       q: "Does Rootlize upload my images?",
       a: "Rootlize is not a cloud library. It does not move your image collection to Rootlize cloud storage. You point it at folders already on this PC. If you agree to use Ask AI, the first analysis may send those images to an external AI. After that, Meaning Search uses saved facts instead of resending images every time.",
+    },
+    {
+      q: "Can Rootlize search images by what they show?",
+      a: "Yes. Meaning Search can help you find images by their visual content, not only by filename. Rootlize asks for consent before the first AI analysis; later searches reuse saved facts where available.",
+    },
+    {
+      q: "Can I use Rootlize to organize screenshots on Windows?",
+      a: "Yes. Point Rootlize at the folder where your screenshots already live, find the ones you need by filename, text, or content, then tag, rename, favorite, move, or save the steps as a workflow.",
+    },
+    {
+      q: "Will Rootlize create a separate image library or rearrange my folders automatically?",
+      a: "No. Rootlize works with existing Windows folders. It does not import your files into a Rootlize cloud library, and it shows a preview for you to confirm before files are moved.",
     },
     {
       q: "Is there a Mac version?",
