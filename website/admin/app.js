@@ -96,7 +96,7 @@
       });
   }
 
-  function renderOverview(data, githubCount) {
+  function renderOverview(data) {
     var lp = (data && data.lp) || {};
     var downloads = (data && data.downloads) || {};
     var users = (data && data.users) || {};
@@ -107,10 +107,7 @@
     setText("kpi-visitors", String(lp.unique_visitors || 0));
     setText("kpi-pageviews", (lp.page_views || 0) + " page views");
     setText("kpi-downloads", String(downloads.clicks || 0));
-    setText(
-      "kpi-github-downloads",
-      githubCount == null ? "CTA clicks" : "GitHub assets: " + githubCount
-    );
+    setText("kpi-github-downloads", "User CTA clicks");
     setText("kpi-users", String(users.total || 0));
     setText(
       "kpi-users-sub",
@@ -273,15 +270,22 @@
       escapeHtml(formatTime(merged.ai_last_at)) +
       "</dd><dt>Created</dt><dd>" +
       escapeHtml(formatTime(merged.signup_at)) +
+      "</dd><dt>First seen</dt><dd>" +
+      escapeHtml(formatTime(merged.first_seen_at || merged.signup_at)) +
       "</dd><dt>Last seen</dt><dd>" +
       escapeHtml(formatTime(display.lastSeenAt(merged))) +
+      "</dd><dt>Launches / sessions</dt><dd>" +
+      escapeHtml(String(merged.launch_count == null ? "—" : merged.launch_count)) + " / " +
+      escapeHtml(String(merged.session_count == null ? "—" : merged.session_count)) +
+      "</dd><dt>Second session reached</dt><dd>" +
+      escapeHtml(merged.second_session_reached ? "Yes" : "No") +
       "</dd>";
     renderDevices(merged);
   }
 
   function renderHistory(payload) {
     var list = document.getElementById("history-list");
-    var events = (payload && payload.events) || [];
+    var events = (payload && (payload.timeline || payload.events)) || [];
     list.innerHTML = "";
     if (!events.length) {
       list.innerHTML = '<li class="muted">No events yet.</li>';
@@ -292,19 +296,91 @@
       var time = document.createElement("time");
       time.textContent = formatTime(event.occurred_at);
       var label = document.createElement("span");
-      label.textContent = api.eventLabel(event.event_name);
+      var details = event.payload || {};
+      var suffix = [];
+      if (details.operation) suffix.push(details.operation);
+      if (details.status) suffix.push(details.status);
+      if (details.search_kind) suffix.push(details.search_kind + " search");
+      label.textContent = api.eventLabel(event.event_name) + (suffix.length ? " · " + suffix.join(" · ") : "");
       item.appendChild(time);
       item.appendChild(label);
       list.appendChild(item);
     });
   }
 
+  function renderAiRequests(payload) {
+    var body = document.getElementById("ai-requests-body");
+    var rows = (payload && payload.ai_requests) || [];
+    body.innerHTML = "";
+    if (!rows.length) {
+      body.innerHTML = '<tr><td colspan="5" class="muted">No AI requests recorded.</td></tr>';
+      return;
+    }
+    rows.forEach(function (row) {
+      var tr = document.createElement("tr");
+      tr.innerHTML = "<td>" + escapeHtml(formatTime(row.occurred_at)) + "</td><td>" +
+        escapeHtml(row.operation || "—") + "</td><td>" + escapeHtml(row.status || "—") +
+        "</td><td>" + escapeHtml(formatUsd(row.actual_cost_micros)) + "</td><td>" +
+        escapeHtml(row.request_id_short || "—") + "</td>";
+      body.appendChild(tr);
+    });
+  }
+
+  function renderFeedback(payload) {
+    var host = document.getElementById("feedback-detail");
+    var entries = (payload && payload.feedback) || [];
+    host.innerHTML = "";
+    if (!entries.length) {
+      host.textContent = "No feedback submitted.";
+      return;
+    }
+    entries.forEach(function (entry) {
+      var block = document.createElement("div");
+      block.className = "feedback-entry";
+      var rows = [
+        ["Submitted", formatTime(entry.submitted_at)], ["App version", entry.app_version || "—"],
+        ["Feedback version", entry.feedback_version || "—"], ["Most useful", entry.most_useful || "—"],
+        ["Would use", entry.would_use || "—"], ["Easier", entry.easier_than_current || "—"],
+        ["Willingness to pay", entry.willingness_to_pay || "—"], ["Confusing feedback", entry.confusing_text || "—"]
+      ];
+      rows.forEach(function (pair) {
+        var row = document.createElement("p");
+        row.innerHTML = "<strong>" + escapeHtml(pair[0]) + ":</strong> " + escapeHtml(pair[1]);
+        block.appendChild(row);
+      });
+      host.appendChild(block);
+    });
+  }
+
+  function renderFunnel(data) {
+    var body = document.getElementById("funnel-body");
+    var labels = {
+      created: "Guest / Account created", first_launch: "First launch", folder_added: "Folder added",
+      first_search: "First search", first_ai_use: "First AI use", workflow_created: "Workflow created",
+      workflow_previewed: "Workflow previewed", workflow_executed: "Workflow executed",
+      file_action_completed: "File action completed", second_session: "Second session",
+      feedback_submitted: "Feedback submitted", account_created: "Account created"
+    };
+    body.innerHTML = "";
+    Object.keys(labels).forEach(function (key) {
+      var value = (data && data[key]) || {};
+      var tr = document.createElement("tr");
+      tr.innerHTML = "<td>" + escapeHtml(labels[key]) + "</td><td>" +
+        escapeHtml(String(value.users || 0)) + "</td><td>" +
+        escapeHtml(value.installations == null ? "—" : String(value.installations)) + "</td>";
+      body.appendChild(tr);
+    });
+  }
+
   function loadHistory(user) {
-    api
-      .getUserActivity(user.user_id)
-      .then(function (payload) {
-        renderDetail(user, payload);
-        renderHistory(payload);
+    Promise.all([api.getUserActivity(user.user_id), api.getProductUserDetail(user.user_id)])
+      .then(function (results) {
+        var legacy = results[0] || {};
+        var product = results[1] || {};
+        renderDetail(user, Object.assign({}, legacy, product));
+        renderHistory(product.timeline ? product : legacy);
+        renderAiRequests(product);
+        renderFeedback(product);
       })
       .catch(function (error) {
         show(appError, true);
@@ -318,13 +394,14 @@
       api.getOverview(),
       api.getUsers(),
       api.getApiUsage(),
-      api.getGithubDownloadCount(),
+      api.getProductFunnel(),
     ])
       .then(function (results) {
         var overview = results[0] || {};
         if (results[2]) overview.api_cost = results[2];
+        renderFunnel(results[3] || {});
         loadedUsers = Array.isArray(results[1]) ? results[1] : [];
-        renderOverview(overview, results[3]);
+        renderOverview(overview);
         renderUsers();
         if (selectedUserId) {
           var match = loadedUsers.filter(function (user) {

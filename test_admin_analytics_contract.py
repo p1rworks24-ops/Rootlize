@@ -59,6 +59,18 @@ def test_admin_ui_uses_rpc_layer_only() -> None:
     assert "client.rpc" not in display
 
 
+def test_product_analytics_admin_ui_uses_product_rpcs() -> None:
+    api = ADMIN_API.read_text(encoding="utf-8")
+    app = ADMIN_APP.read_text(encoding="utf-8")
+    assert "admin_get_product_user_detail" in api
+    assert "admin_get_product_funnel" in api
+    assert "getProductUserDetail" in app
+    assert "getProductFunnel" in app
+    assert "No feedback submitted." in app
+    assert "ai_requests" in app
+    assert "funnel-body" in app
+
+
 def test_website_and_admin_do_not_ship_service_role() -> None:
     for path in WEBSITE.rglob("*"):
         if path.suffix.lower() not in {".js", ".html", ".css"}:

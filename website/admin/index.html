@@ -13,7 +13,7 @@
       href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Source+Sans+3:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260901a" />
+    <link rel="stylesheet" href="styles.css?v=20261022a" />
   </head>
   <body>
     <div id="login-view" class="auth-shell hidden">
@@ -108,6 +108,19 @@
           </article>
         </section>
 
+        <section class="panel" id="funnel-panel">
+          <div class="panel-head">
+            <h2>Self-serve funnel</h2>
+            <p class="muted">Unique users / installations</p>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Stage</th><th>Users</th><th>Installations</th></tr></thead>
+              <tbody id="funnel-body"><tr><td colspan="3" class="muted">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+
         <section class="panel">
           <div class="panel-head">
             <h2>Users</h2>
@@ -182,10 +195,16 @@
               </tbody>
             </table>
           </div>
-          <h3 class="section-title">Event History</h3>
+          <h3 class="section-title">Timeline</h3>
           <ol id="history-list" class="history-list">
             <li class="muted">No user selected.</li>
           </ol>
+          <h3 class="section-title">AI requests</h3>
+          <div class="table-wrap"><table><thead><tr><th>Time</th><th>Operation</th><th>Status</th><th>Actual cost</th><th>Request</th></tr></thead>
+            <tbody id="ai-requests-body"><tr><td colspan="5" class="muted">Select a user.</td></tr></tbody>
+          </table></div>
+          <h3 class="section-title">Feedback</h3>
+          <div id="feedback-detail" class="feedback-detail muted">Select a user.</div>
         </section>
       </main>
     </div>
@@ -193,7 +212,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
     <script src="/js/supabase-config.js?v=20260831a"></script>
     <script src="display.js?v=20260901a"></script>
-    <script src="api.js?v=20260901a"></script>
-    <script src="app.js?v=20260901a"></script>
+    <script src="api.js?v=20261022a"></script>
+    <script src="app.js?v=20261022a"></script>
   </body>
 </html>
